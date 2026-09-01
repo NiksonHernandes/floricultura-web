@@ -2,17 +2,17 @@ import { Routes } from '@angular/router';
 
 import { authGuard } from './core/guards/auth.guard';
 import { adminGuard } from './core/guards/admin.guard';
+import { senhaProvisoriaGuard } from './core/guards/senha-provisoria.guard';
 
 /**
  * Rotas da aplicação (SPEC-M1 §3.6).
  * - `''` → `/login` (a tela de login, T-M1-8, redireciona a home se já autenticado).
  * - `login`        público (T-M1-8 preenche).
- * - `usuarios`     protegida por autenticação + papel ADMIN (T-M1-9 preenche).
- * - `trocar-senha` protegida por autenticação; alvo do 1º login forçado (T-M1-10).
+ * - `usuarios`     protegida por autenticação + papel ADMIN; `senhaProvisoriaGuard` desvia
+ *                  a `/trocar-senha` enquanto o perfil estiver com senha provisória (T-M1-10).
+ * - `trocar-senha` protegida por autenticação; alvo do 1º login forçado (T-M1-10). NÃO leva
+ *                  a `senhaProvisoriaGuard` — senão o fluxo forçado se prenderia.
  * - `health`       preservada do M0 (prova de integração; NÃO remover).
- *
- * Os componentes de auth/usuários são PLACEHOLDERS do T-M1-7 (lazy) — as telas reais
- * chegam nas tasks T-M1-8/9/10 sem alterar este wiring.
  */
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'login' },
@@ -22,7 +22,7 @@ export const routes: Routes = [
   },
   {
     path: 'usuarios',
-    canActivate: [authGuard, adminGuard],
+    canActivate: [authGuard, senhaProvisoriaGuard, adminGuard],
     loadComponent: () => import('./features/usuarios/usuarios').then((m) => m.Usuarios),
   },
   {
