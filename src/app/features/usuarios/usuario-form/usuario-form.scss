@@ -38,11 +38,34 @@
   min-width: 0;
 }
 
+.muda__papel {
+  margin: 0.25rem 0 1rem;
+  font: var(--mat-sys-body-small);
+  color: color-mix(in srgb, var(--tinta) 62%, var(--estufa));
+
+  strong {
+    color: var(--folhagem);
+  }
+}
+
 .muda__acoes {
   display: flex;
+  flex-wrap: wrap; // no mobile as ações podem quebrar sem espremer/estourar
   justify-content: flex-end;
   gap: 0.5rem;
   margin-top: 0.5rem;
+}
+
+// Alvo de toque >= 44px em todos os botões do form (dono: ~90% mobile).
+.muda__acoes .mat-mdc-button,
+.muda__acoes .mat-mdc-unelevated-button {
+  min-height: 44px;
+}
+
+// Cancelar em cor de paleta (folhagem) — nada de azul do Material.
+.botao-secundario {
+  --mat-button-text-label-text-color: var(--folhagem);
+  --mat-button-text-icon-color: var(--folhagem);
 }
 
 .acao {
@@ -67,7 +90,7 @@
   }
 }
 
-// Desktop: nome/e-mail/senha/papel em duas colunas na bancada.
+// Desktop: nome/e-mail/senha em duas colunas na bancada.
 @media (min-width: 720px) {
   .muda__grade {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);

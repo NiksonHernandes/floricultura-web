@@ -30,11 +30,11 @@ describe('UsuarioForm (T-M1-9)', () => {
     criadoEm: '2026-08-31T14:00:00Z',
   };
 
+  // Regra do dono: cadastro nasce USER — o payload NÃO carrega `role`.
   const valido: CriarUsuarioRequest = {
     nome: 'Maria Silva',
     email: 'maria@floricultura.local',
     senha: 'provisoria8',
-    role: 'USER',
   };
 
   function montar() {

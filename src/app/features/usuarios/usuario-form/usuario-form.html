@@ -47,18 +47,12 @@
         <mat-error>{{ form.controls.senha.getError('servidor') }}</mat-error>
       }
     </mat-form-field>
-
-    <mat-form-field appearance="outline" class="muda__campo">
-      <mat-label>Papel</mat-label>
-      <mat-select formControlName="role">
-        <mat-option value="USER">Usuário</mat-option>
-        <mat-option value="ADMIN">Administrador</mat-option>
-      </mat-select>
-    </mat-form-field>
   </div>
 
+  <p class="muda__papel">Cadastrado como <strong>Usuário</strong>. Promoções de papel ficam para outra etapa.</p>
+
   <div class="muda__acoes">
-    <button type="button" mat-button (click)="cancelar()">Cancelar</button>
+    <button type="button" mat-button class="botao-secundario" (click)="cancelar()">Cancelar</button>
     <button type="submit" mat-flat-button class="acao" [disabled]="enviando()">
       <span>{{ enviando() ? 'Cadastrando…' : 'Cadastrar' }}</span>
       @if (!enviando()) {

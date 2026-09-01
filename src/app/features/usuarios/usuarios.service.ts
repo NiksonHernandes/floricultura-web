@@ -6,12 +6,14 @@ import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../../core/models/api-response.model';
 import { Usuario } from '../../core/models/auth.model';
 
-/** Payload de criação de usuário (SPEC-M1 §3.2 POST /usuarios). `role` default USER no back. */
+/**
+ * Payload de criação de usuário (SPEC-M1 §3.2 POST /usuarios).
+ * Regra do dono: todo cadastro nasce `USER` — o front NÃO envia `role`; o back grava USER.
+ */
 export interface CriarUsuarioRequest {
   nome: string;
   email: string;
   senha: string;
-  role: 'ADMIN' | 'USER';
 }
 
 /**

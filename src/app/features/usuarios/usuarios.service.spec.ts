@@ -60,12 +60,12 @@ describe('UsuariosService (T-M1-9)', () => {
     expect(recebido).toEqual(maria);
   });
 
-  it('criar() faz POST com o payload e devolve o UsuarioResponse', () => {
+  it('criar() faz POST com o payload (sem `role`) e devolve o UsuarioResponse', () => {
+    // Regra do dono: cadastro nasce USER — o front não envia `role` no corpo.
     const payload = {
       nome: 'Maria Silva',
       email: 'maria@floricultura.local',
       senha: 'provisoria8',
-      role: 'USER' as const,
     };
     let recebido: Usuario | undefined;
     service.criar(payload).subscribe((u) => (recebido = u));
@@ -73,6 +73,7 @@ describe('UsuariosService (T-M1-9)', () => {
     const req = httpMock.expectOne(BASE);
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual(payload);
+    expect(req.request.body.role).toBeUndefined();
     req.flush(envelope(maria), { status: 201, statusText: 'Created' });
 
     expect(recebido).toEqual(maria);

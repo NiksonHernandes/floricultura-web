@@ -89,6 +89,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
+  min-height: 44px; // alvo de toque (dono: ~90% mobile)
   --mat-button-filled-container-color: var(--dalia);
   --mat-button-filled-label-text-color: #fff;
   --mat-button-filled-state-layer-color: #fff;
@@ -105,6 +106,7 @@ app-usuario-form {
 /* ---- Estados (carregando / erro / vazio) — telas honestas, não "nada por aqui :(" ---- */
 .estado {
   display: flex;
+  flex-wrap: wrap; // no mobile o botão "Tentar de novo" quebra em vez de estourar
   align-items: center;
   gap: 0.6rem;
   padding: 1.25rem;
@@ -240,13 +242,17 @@ app-usuario-form {
   flex-wrap: wrap;
   gap: 0.25rem;
 
+  // Botões de texto em cor de paleta (folhagem) + ÍCONE também — nada de azul do Material.
   .mat-mdc-button {
-    --mat-text-button-label-text-color: var(--folhagem);
+    --mat-button-text-label-text-color: var(--folhagem);
+    --mat-button-text-icon-color: var(--folhagem);
+    min-height: 44px; // alvo de toque (dono: ~90% mobile)
   }
 }
 
 .muda__toggle--desativar {
-  --mat-text-button-label-text-color: #8f2450;
+  --mat-button-text-label-text-color: #8f2450;
+  --mat-button-text-icon-color: #8f2450;
 }
 
 /* ---- Diálogos (confirmação de status / reset de senha) ---- */
@@ -312,9 +318,28 @@ app-usuario-form {
 
 .dialogo__acoes {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 0.5rem;
   margin-top: 0.5rem;
+
+  // Botões >= 44px de toque; a ação primária mantém a dália, o secundário vira folhagem.
+  .mat-mdc-button,
+  .mat-mdc-unelevated-button {
+    min-height: 44px;
+  }
+
+  .mat-mdc-button {
+    --mat-button-text-label-text-color: var(--folhagem);
+    --mat-button-text-icon-color: var(--folhagem);
+  }
+}
+
+// "Tentar de novo" (estado de erro) em cor de paleta — sem azul.
+.estado .mat-mdc-button {
+  --mat-button-text-label-text-color: var(--folhagem);
+  --mat-button-text-icon-color: var(--folhagem);
+  min-height: 44px;
 }
 
 /* ---- Foco de teclado visível (piso de qualidade §9) ---- */
