@@ -22,10 +22,10 @@ import { UsuarioSessao } from '../../../core/models/auth.model';
  * Form reativo e-mail+senha → `AuthService.login`. Trata `401` (mensagem genérica
  * "Credenciais inválidas.", §3.2) e `400 VALIDATION_ERROR` (erro por campo via `details`).
  *
- * Redireciono pós-login (M1 não tem home/dashboard — decisão documentada na entrega):
- * - `senhaProvisoria === true` → FORÇA `/trocar-senha` (não deixa prosseguir; §3.6);
- * - senão ADMIN → `/usuarios`;
- * - senão (USER não provisório) → `/trocar-senha` como destino provisório do M1.
+ * Redireciono pós-login (SPEC-M1.1 §3.4, AD-SQ-24 — sem troca de senha forçada):
+ * - ADMIN → `/usuarios`;
+ * - USER  → `/trocar-senha` como destino stopgap do M1 (ainda não há home), NÃO forçado —
+ *   o usuário pode navegar livremente a partir dali. `senhaProvisoria` é apenas informativo.
  *
  * Design distintivo (§9): "etiqueta de viveiro sobre a bancada do ateliê" — ver login.scss.
  */
@@ -91,12 +91,8 @@ export class Login {
     });
   }
 
-  /** Destino pós-login conforme perfil (ver docstring da classe). */
+  /** Destino pós-login conforme perfil (ver docstring da classe). Sem desvio forçado. */
   private redirecionar(usuario: UsuarioSessao): void {
-    if (usuario.senhaProvisoria) {
-      this.router.navigate(['/trocar-senha']);
-      return;
-    }
     this.router.navigate([usuario.role === 'ADMIN' ? '/usuarios' : '/trocar-senha']);
   }
 
