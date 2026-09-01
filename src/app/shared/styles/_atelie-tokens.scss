@@ -1,0 +1,19 @@
+// Tokens nomeados do ateliê Floricultura — paleta + display compartilhados pelas telas
+// do M1. A linguagem visual nasceu no login (T-M1-8, login.scss §Passe 1); centralizamos
+// os hex aqui para que a gestão de usuários (T-M1-9) fale do MESMO produto sem duplicar cor.
+//
+//   folhagem  chão de folhagem (painéis-marca)      caule    caule/sálvia (traços, foco, "em cultivo")
+//   estufa    vidro de estufa (superfície)          dalia    dália carmim (ÚNICO acento/ação)
+//   tinta     tinta botânica (títulos/corpo)        orvalho  orvalho (hairlines/preenches)
+//   sais      tinta clara sobre folhagem            Display: Fraunces (serifa botânica, com contenção)
+@mixin base {
+  --folhagem: #1f3a2e;
+  --estufa: #f3f6f0;
+  --tinta: #14241c;
+  --caule: #6b8f71;
+  --dalia: #c4326b;
+  --orvalho: #e4ece2;
+  --sais: #a9c6ae;
+
+  --display: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+}

@@ -1,0 +1,81 @@
+// Formulário de cadastro — "a ficha da muda nova". Mesma linguagem do login (etiqueta de
+// viveiro): reusa os tokens do ateliê e reserva a dália só para a ação de cadastrar.
+@use '../../../shared/styles/atelie-tokens' as atelie;
+
+:host {
+  @include atelie.base;
+  display: block;
+}
+
+.muda {
+  padding: 1.25rem 1.25rem 1rem;
+  background: #fff;
+  border: 1px solid var(--orvalho);
+  border-left: 3px solid var(--caule); // o "caule" da muda nova, ecoando o login
+  border-radius: 12px;
+  box-shadow: 0 14px 32px -28px rgba(20, 36, 28, 0.5);
+
+  // Foco/traço dos campos em caule (verde); a dália fica reservada à ação.
+  --mdc-outlined-text-field-focus-outline-color: var(--caule);
+  --mdc-outlined-text-field-caret-color: var(--caule);
+  --mdc-outlined-text-field-focus-label-text-color: var(--folhagem);
+}
+
+.muda__legenda {
+  margin: 0 0 1rem;
+  font: var(--mat-sys-body-small);
+  color: color-mix(in srgb, var(--tinta) 58%, var(--estufa));
+}
+
+.muda__grade {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr); // minmax(0,…) deixa o mat-form-field encolher (evita overflow)
+  gap: 0.25rem 1rem;
+}
+
+.muda__campo {
+  width: 100%;
+  min-width: 0;
+}
+
+.muda__acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.acao {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+
+  // A ação em dália carmim — a única ousadia (design-distintivo §gaste a ousadia num lugar só).
+  --mat-button-filled-container-color: var(--dalia);
+  --mat-button-filled-label-text-color: #fff;
+  --mat-button-filled-state-layer-color: #fff;
+  --mat-button-filled-ripple-color: color-mix(in srgb, white 30%, transparent);
+  --mat-button-filled-disabled-container-color: color-mix(in srgb, #c4326b 35%, white);
+  --mat-button-filled-disabled-label-text-color: #fff;
+
+  mat-icon {
+    transition: transform 160ms ease;
+  }
+
+  &:hover:not([disabled]) mat-icon {
+    transform: translateX(3px);
+  }
+}
+
+// Desktop: nome/e-mail/senha/papel em duas colunas na bancada.
+@media (min-width: 720px) {
+  .muda__grade {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .acao mat-icon {
+    transition: none;
+  }
+}
