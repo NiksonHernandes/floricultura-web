@@ -55,9 +55,6 @@
             <span class="tag tag--status" [class.tag--ativo]="u.ativo">
               {{ u.ativo ? 'Ativo' : 'Inativo' }}
             </span>
-            @if (u.senhaProvisoria) {
-              <span class="tag tag--prov">Senha provisória</span>
-            }
           </div>
           <div class="muda__acoes">
             <button mat-button (click)="pedirReset(u)">
@@ -115,12 +112,11 @@
   <div class="dialogo" role="dialog" aria-modal="true" aria-labelledby="dlg-reset-titulo">
     <h2 id="dlg-reset-titulo" class="dialogo__titulo">Redefinir senha</h2>
     <p class="dialogo__corpo">
-      Defina uma senha provisória para <strong>{{ alvo.nome }}</strong>. No próximo acesso, a troca
-      será obrigatória.
+      Defina a nova senha de acesso de <strong>{{ alvo.nome }}</strong>.
     </p>
     <form [formGroup]="resetForm" (ngSubmit)="confirmarReset()" novalidate>
       <mat-form-field appearance="outline" class="dialogo__campo">
-        <mat-label>Nova senha provisória</mat-label>
+        <mat-label>Nova senha</mat-label>
         <input matInput type="password" formControlName="novaSenha" autocomplete="new-password" />
         @if (resetForm.controls.novaSenha.hasError('required')) {
           <mat-error>Informe a nova senha.</mat-error>
@@ -128,6 +124,20 @@
           <mat-error>A senha precisa de ao menos 8 caracteres.</mat-error>
         } @else if (resetForm.controls.novaSenha.hasError('servidor')) {
           <mat-error>{{ resetForm.controls.novaSenha.getError('servidor') }}</mat-error>
+        }
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="dialogo__campo">
+        <mat-label>Confirmar nova senha</mat-label>
+        <input
+          matInput
+          type="password"
+          formControlName="confirmarNovaSenha"
+          autocomplete="new-password"
+        />
+        @if (resetForm.controls.confirmarNovaSenha.hasError('required')) {
+          <mat-error>Confirme a nova senha.</mat-error>
+        } @else if (resetForm.controls.confirmarNovaSenha.hasError('diferente')) {
+          <mat-error>As senhas não conferem.</mat-error>
         }
       </mat-form-field>
       <div class="dialogo__acoes">
