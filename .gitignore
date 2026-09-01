@@ -48,3 +48,6 @@ yarn-error.log*
 # Arquivos de sistema operacional
 .DS_Store
 Thumbs.db
+
+# Evidencia de design (screenshots) — nao versionar binarios no repo
+.design-evidence/

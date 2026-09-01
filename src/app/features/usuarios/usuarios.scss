@@ -1,0 +1,388 @@
+// Gestão de usuários — "o canteiro de pessoas" (SPEC-M1 §9, CA-14).
+//
+// Passe 1 (tokens nomeados, reusados do login via _atelie-tokens.scss): folhagem/estufa/
+//   tinta/caule/dalia/orvalho + Fraunces. Assinatura: a PLACA DE CANTEIRO (com furo real)
+//   que ecoa a etiqueta de viveiro do login; cada pessoa é uma "muda" com um caule à esquerda.
+// Passe 2 anti-default: recusa a data-table cinza de Material e o dashboard de cards genérico;
+//   superfície verde-vidro (não creme), lista-registro em fichas, dália gasta só na ação.
+@use '../../shared/styles/atelie-tokens' as atelie;
+
+// A família Fraunces é carregada uma vez, globalmente, via <link> no index.html
+// (evita inline por-componente e o estouro do budget anyComponentStyle).
+
+:host {
+  @include atelie.base;
+
+  // Assume a viewport (cobre o shell/hero M0 sem alterá-lo — mesma decisão do login).
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: block;
+  overflow-y: auto;
+  background: var(--estufa);
+  color: var(--tinta);
+}
+
+.canteiro {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3rem;
+}
+
+/* ---- Placa de canteiro (cabeçalho) ---- */
+.placa {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+  padding: 1.5rem 1.5rem 1.25rem;
+  background: radial-gradient(120% 140% at 100% 0%, #274a3a 0%, var(--folhagem) 60%);
+  color: var(--estufa);
+  border-radius: 14px;
+  box-shadow: 0 18px 40px -30px rgba(20, 36, 28, 0.6);
+}
+
+.placa__furo {
+  position: absolute;
+  top: -11px;
+  left: 2rem;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--estufa);
+  border: 1.5px solid var(--caule);
+}
+
+.placa__texto {
+  flex: 1 1 16rem;
+}
+
+.placa__eyebrow {
+  font: 600 0.72rem/1 var(--display);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--sais);
+}
+
+.placa__titulo {
+  margin: 0.35rem 0 0;
+  font: 400 clamp(1.7rem, 4.5vw, 2.4rem) / 1.05 var(--display);
+  font-optical-sizing: auto;
+  letter-spacing: -0.01em;
+}
+
+.placa__sub {
+  margin: 0.4rem 0 0;
+  max-width: 30rem;
+  font: var(--mat-sys-body-medium);
+  color: color-mix(in srgb, var(--sais) 92%, white);
+}
+
+.placa__acao {
+  align-self: center;
+}
+
+/* ---- Ação primária em dália (reservada; §gaste a ousadia num lugar só) ---- */
+.acao {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px; // alvo de toque (dono: ~90% mobile)
+  --mat-button-filled-container-color: var(--dalia);
+  --mat-button-filled-label-text-color: #fff;
+  --mat-button-filled-state-layer-color: #fff;
+  --mat-button-filled-ripple-color: color-mix(in srgb, white 30%, transparent);
+  --mat-button-filled-disabled-container-color: color-mix(in srgb, #c4326b 35%, white);
+  --mat-button-filled-disabled-label-text-color: #fff;
+}
+
+app-usuario-form {
+  display: block;
+  margin-bottom: 1.5rem;
+}
+
+/* ---- Estados (carregando / erro / vazio) — telas honestas, não "nada por aqui :(" ---- */
+.estado {
+  display: flex;
+  flex-wrap: wrap; // no mobile o botão "Tentar de novo" quebra em vez de estourar
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1.25rem;
+  border: 1px solid var(--orvalho);
+  border-radius: 12px;
+  background: #fff;
+  color: color-mix(in srgb, var(--tinta) 70%, var(--estufa));
+  font: var(--mat-sys-body-medium);
+}
+
+.estado--erro {
+  border-color: color-mix(in srgb, var(--dalia) 40%, white);
+  color: #8f2450;
+}
+
+.estado--vazio {
+  flex-direction: column;
+  text-align: center;
+  padding: 2.5rem 1.5rem;
+
+  mat-icon {
+    color: var(--caule);
+    font-size: 2rem;
+    width: 2rem;
+    height: 2rem;
+  }
+
+  p {
+    margin: 0.75rem 0 0;
+  }
+}
+
+/* ---- Lista de mudas (pessoas) ---- */
+.mudas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.muda {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.6rem 1rem;
+  padding: 1rem 1.25rem 1rem 1.5rem;
+  background: #fff;
+  border: 1px solid var(--orvalho);
+  border-radius: 12px;
+  box-shadow: 0 12px 30px -30px rgba(20, 36, 28, 0.5);
+  overflow: hidden;
+}
+
+.muda__caule {
+  position: absolute;
+  top: 0.9rem;
+  bottom: 0.9rem;
+  left: 0.55rem;
+  width: 2px;
+  border-radius: 2px;
+  background: linear-gradient(var(--caule), color-mix(in srgb, var(--caule) 20%, white));
+}
+
+.muda--repouso {
+  background: color-mix(in srgb, var(--orvalho) 45%, white);
+
+  .muda__caule {
+    background: color-mix(in srgb, var(--tinta) 22%, var(--orvalho));
+  }
+
+  .muda__nome {
+    color: color-mix(in srgb, var(--tinta) 60%, var(--estufa));
+  }
+}
+
+.muda__nome {
+  display: block;
+  font: 600 1.05rem/1.2 var(--display);
+  color: var(--tinta);
+}
+
+.muda__email {
+  display: block;
+  margin-top: 0.15rem;
+  font: var(--mat-sys-body-small);
+  color: color-mix(in srgb, var(--tinta) 55%, var(--estufa));
+  word-break: break-all;
+}
+
+.muda__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.tag {
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font: 600 0.72rem/1.4 var(--mat-sys-body-small);
+  letter-spacing: 0.02em;
+  border: 1px solid var(--orvalho);
+  color: color-mix(in srgb, var(--tinta) 70%, var(--estufa));
+  background: var(--estufa);
+}
+
+.tag--admin {
+  border-color: color-mix(in srgb, var(--folhagem) 35%, white);
+  color: var(--folhagem);
+  background: color-mix(in srgb, var(--caule) 14%, white);
+}
+
+.tag--status {
+  background: color-mix(in srgb, var(--tinta) 8%, white);
+}
+
+.tag--ativo {
+  border-color: color-mix(in srgb, var(--caule) 55%, white);
+  color: #2f6b41;
+  background: color-mix(in srgb, var(--caule) 18%, white);
+}
+
+.tag--prov {
+  border-color: color-mix(in srgb, var(--dalia) 40%, white);
+  color: #8f2450;
+  background: color-mix(in srgb, var(--dalia) 10%, white);
+}
+
+.muda__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+
+  // Botões de texto em cor de paleta (folhagem) + ÍCONE também — nada de azul do Material.
+  .mat-mdc-button {
+    --mat-button-text-label-text-color: var(--folhagem);
+    --mat-button-text-icon-color: var(--folhagem);
+    min-height: 44px; // alvo de toque (dono: ~90% mobile)
+  }
+}
+
+.muda__toggle--desativar {
+  --mat-button-text-label-text-color: #8f2450;
+  --mat-button-text-icon-color: #8f2450;
+}
+
+/* ---- Diálogos (confirmação de status / reset de senha) ---- */
+.veu {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(20, 36, 28, 0.45);
+}
+
+.dialogo {
+  position: fixed;
+  z-index: 41;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(30rem, calc(100vw - 2rem));
+  box-sizing: border-box;
+  padding: 1.75rem 1.5rem 1.25rem;
+  background: #fff;
+  border: 1px solid var(--orvalho);
+  border-top: 3px solid var(--caule);
+  border-radius: 14px;
+  box-shadow: 0 30px 60px -30px rgba(20, 36, 28, 0.7);
+
+  --mdc-outlined-text-field-focus-outline-color: var(--caule);
+  --mdc-outlined-text-field-caret-color: var(--caule);
+  --mdc-outlined-text-field-focus-label-text-color: var(--folhagem);
+}
+
+.dialogo__titulo {
+  margin: 0 0 0.5rem;
+  font: 600 1.4rem/1.15 var(--display);
+  color: var(--tinta);
+}
+
+.dialogo__corpo {
+  margin: 0 0 1rem;
+  font: var(--mat-sys-body-medium);
+  color: color-mix(in srgb, var(--tinta) 78%, var(--estufa));
+}
+
+.dialogo__campo {
+  width: 100%;
+}
+
+.dialogo__erro {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--dalia) 45%, white);
+  background: color-mix(in srgb, var(--dalia) 10%, white);
+  color: #8f2450;
+  font: var(--mat-sys-body-small);
+
+  mat-icon {
+    flex: none;
+  }
+}
+
+.dialogo__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+
+  // Botões >= 44px de toque; a ação primária mantém a dália, o secundário vira folhagem.
+  .mat-mdc-button,
+  .mat-mdc-unelevated-button {
+    min-height: 44px;
+  }
+
+  .mat-mdc-button {
+    --mat-button-text-label-text-color: var(--folhagem);
+    --mat-button-text-icon-color: var(--folhagem);
+  }
+}
+
+// "Tentar de novo" (estado de erro) em cor de paleta — sem azul.
+.estado .mat-mdc-button {
+  --mat-button-text-label-text-color: var(--folhagem);
+  --mat-button-text-icon-color: var(--folhagem);
+  min-height: 44px;
+}
+
+/* ---- Foco de teclado visível (piso de qualidade §9) ---- */
+:host ::ng-deep .mdc-button:focus-visible,
+.muda:focus-within {
+  outline: 2px solid var(--caule);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* ---- Desktop: a ficha da muda vira uma linha da bancada ---- */
+@media (min-width: 720px) {
+  .muda {
+    grid-template-columns: minmax(12rem, 1.4fr) auto auto;
+    align-items: center;
+  }
+
+  .muda__acoes {
+    justify-content: flex-end;
+  }
+}
+
+/* ---- Movimento deliberado (um só), respeitando reduced-motion ---- */
+@media (prefers-reduced-motion: no-preference) {
+  .muda {
+    animation: muda-assenta 320ms ease-out both;
+  }
+
+  .dialogo {
+    animation: dialogo-abre 200ms ease-out both;
+  }
+
+  @keyframes muda-assenta {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  }
+
+  @keyframes dialogo-abre {
+    from {
+      opacity: 0;
+      transform: translate(-50%, calc(-50% + 8px));
+    }
+  }
+}

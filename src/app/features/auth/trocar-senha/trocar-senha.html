@@ -1,0 +1,129 @@
+<main class="renovo">
+  <section class="tag" aria-labelledby="troca-titulo">
+    <span class="tag__furo" aria-hidden="true"></span>
+
+    @if (sucesso() && !ehAdmin()) {
+      <!-- Confirmação honesta para USER (sem home no M1): a troca foi feita. -->
+      <div class="feito" role="status" aria-live="polite">
+        <span class="feito__selo" aria-hidden="true">
+          <mat-icon>check</mat-icon>
+        </span>
+        <h1 class="tag__titulo">Senha atualizada</h1>
+        <p class="tag__sub">
+          Sua senha foi trocada. Use a nova senha nos próximos acessos ao ateliê.
+        </p>
+      </div>
+    } @else {
+      <header class="tag__cabecalho">
+        <span class="tag__eyebrow">Ateliê · Acesso</span>
+        <h1 id="troca-titulo" class="tag__titulo">
+          {{ forcado() ? 'Defina sua senha' : 'Trocar senha' }}
+        </h1>
+        <p class="tag__sub">
+          @if (forcado()) {
+            Primeiro acesso: escolha uma senha só sua para continuar.
+          } @else {
+            Informe a senha atual e escolha uma nova.
+          }
+        </p>
+      </header>
+
+      <form class="tag__form" [formGroup]="form" (ngSubmit)="salvar()" novalidate>
+        @if (erroGeral(); as msg) {
+          <p class="tag__alerta" role="alert" aria-live="assertive">
+            <mat-icon aria-hidden="true">error_outline</mat-icon>
+            <span>{{ msg }}</span>
+          </p>
+        }
+
+        <mat-form-field appearance="outline" class="tag__campo">
+          <mat-label>Senha atual</mat-label>
+          <input
+            matInput
+            [type]="senhasVisiveis() ? 'text' : 'password'"
+            formControlName="senhaAtual"
+            autocomplete="current-password"
+          />
+          <mat-icon matPrefix aria-hidden="true">vpn_key</mat-icon>
+          @if (form.controls.senhaAtual.hasError('required')) {
+            <mat-error>Informe a senha atual.</mat-error>
+          } @else if (form.controls.senhaAtual.hasError('servidor')) {
+            <mat-error>{{ form.controls.senhaAtual.getError('servidor') }}</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="tag__campo">
+          <mat-label>Nova senha</mat-label>
+          <input
+            matInput
+            [type]="senhasVisiveis() ? 'text' : 'password'"
+            formControlName="novaSenha"
+            autocomplete="new-password"
+          />
+          <mat-icon matPrefix aria-hidden="true">spa</mat-icon>
+          <button
+            type="button"
+            mat-icon-button
+            matSuffix
+            (click)="alternarSenhas()"
+            [attr.aria-label]="senhasVisiveis() ? 'Ocultar senhas' : 'Mostrar senhas'"
+            [attr.aria-pressed]="senhasVisiveis()"
+          >
+            <mat-icon aria-hidden="true">{{ senhasVisiveis() ? 'visibility_off' : 'visibility' }}</mat-icon>
+          </button>
+          @if (form.controls.novaSenha.hasError('required')) {
+            <mat-error>Informe a nova senha.</mat-error>
+          } @else if (form.controls.novaSenha.hasError('minlength')) {
+            <mat-error>A senha precisa de ao menos 8 caracteres.</mat-error>
+          } @else if (form.controls.novaSenha.hasError('servidor')) {
+            <mat-error>{{ form.controls.novaSenha.getError('servidor') }}</mat-error>
+          }
+          @if (!form.controls.novaSenha.errors) {
+            <mat-hint>Mínimo de 8 caracteres.</mat-hint>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="tag__campo">
+          <mat-label>Confirmar nova senha</mat-label>
+          <input
+            matInput
+            [type]="senhasVisiveis() ? 'text' : 'password'"
+            formControlName="confirmarNovaSenha"
+            autocomplete="new-password"
+          />
+          <mat-icon matPrefix aria-hidden="true">done_all</mat-icon>
+          @if (form.controls.confirmarNovaSenha.hasError('required')) {
+            <mat-error>Confirme a nova senha.</mat-error>
+          } @else if (form.controls.confirmarNovaSenha.hasError('diferente')) {
+            <mat-error>As senhas não conferem.</mat-error>
+          }
+        </mat-form-field>
+
+        <button
+          type="submit"
+          mat-flat-button
+          class="tag__enviar"
+          [disabled]="enviando()"
+        >
+          <span>{{ enviando() ? 'Salvando…' : 'Salvar nova senha' }}</span>
+          @if (enviando()) {
+            <mat-progress-spinner class="tag__spin" diameter="18" mode="indeterminate" aria-hidden="true" />
+          } @else {
+            <mat-icon iconPositionEnd aria-hidden="true">arrow_forward</mat-icon>
+          }
+        </button>
+      </form>
+
+      <footer class="tag__rodape">
+        <mat-icon aria-hidden="true">local_florist</mat-icon>
+        <span>
+          @if (forcado()) {
+            Depois de trocar, você segue para o ateliê.
+          } @else {
+            Escolha uma senha que só você conheça.
+          }
+        </span>
+      </footer>
+    }
+  </section>
+</main>

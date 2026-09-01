@@ -1,0 +1,99 @@
+<div class="login">
+  <!-- Painel ateliê: folhagem profunda + marca. É a "tese" da tela (design-distintivo §hero). -->
+  <aside class="login__atelier" aria-hidden="true">
+    <span class="login__caule"></span>
+    <div class="login__marca">
+      <span class="login__eyebrow">Ateliê</span>
+      <span class="login__wordmark">Floricultura</span>
+    </div>
+    <p class="login__lema">Cuidamos dos pedidos do dia, uma haste de cada vez.</p>
+  </aside>
+
+  <!-- Painel estufa: a etiqueta de viveiro onde se entra. -->
+  <main class="login__estufa">
+    <section class="tag" aria-labelledby="login-titulo">
+      <span class="tag__furo" aria-hidden="true"></span>
+
+      <header class="tag__cabecalho">
+        <h1 id="login-titulo" class="tag__titulo">Entrar no ateliê</h1>
+        <p class="tag__sub">Use o e-mail e a senha cadastrados para você.</p>
+      </header>
+
+      <form class="tag__form" [formGroup]="form" (ngSubmit)="entrar()" novalidate>
+        @if (erroGeral(); as msg) {
+          <p class="tag__alerta" role="alert" aria-live="assertive">
+            <mat-icon aria-hidden="true">error_outline</mat-icon>
+            <span>{{ msg }}</span>
+          </p>
+        }
+
+        <mat-form-field appearance="outline" class="tag__campo">
+          <mat-label>E-mail</mat-label>
+          <input
+            matInput
+            type="email"
+            formControlName="email"
+            autocomplete="username"
+            inputmode="email"
+            autocapitalize="off"
+            spellcheck="false"
+            placeholder="voce@floricultura.local"
+          />
+          <mat-icon matPrefix aria-hidden="true">alternate_email</mat-icon>
+          @if (form.controls.email.hasError('required')) {
+            <mat-error>Informe seu e-mail.</mat-error>
+          } @else if (form.controls.email.hasError('email')) {
+            <mat-error>E-mail em formato inválido.</mat-error>
+          } @else if (form.controls.email.hasError('servidor')) {
+            <mat-error>{{ form.controls.email.getError('servidor') }}</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="tag__campo">
+          <mat-label>Senha</mat-label>
+          <input
+            matInput
+            [type]="senhaVisivel() ? 'text' : 'password'"
+            formControlName="senha"
+            autocomplete="current-password"
+          />
+          <mat-icon matPrefix aria-hidden="true">vpn_key</mat-icon>
+          <button
+            type="button"
+            mat-icon-button
+            matSuffix
+            (click)="alternarSenha()"
+            [attr.aria-label]="senhaVisivel() ? 'Ocultar senha' : 'Mostrar senha'"
+            [attr.aria-pressed]="senhaVisivel()"
+          >
+            <mat-icon aria-hidden="true">{{ senhaVisivel() ? 'visibility_off' : 'visibility' }}</mat-icon>
+          </button>
+          @if (form.controls.senha.hasError('required')) {
+            <mat-error>Informe sua senha.</mat-error>
+          } @else if (form.controls.senha.hasError('servidor')) {
+            <mat-error>{{ form.controls.senha.getError('servidor') }}</mat-error>
+          }
+        </mat-form-field>
+
+        <button
+          type="submit"
+          mat-flat-button
+          class="tag__enviar"
+          [disabled]="!podeEnviar()"
+        >
+          <span>{{ carregando() ? 'Entrando…' : 'Entrar' }}</span>
+          @if (carregando()) {
+            <mat-progress-spinner class="tag__spin" diameter="18" mode="indeterminate" aria-hidden="true" />
+          } @else {
+            <mat-icon iconPositionEnd aria-hidden="true">arrow_forward</mat-icon>
+          }
+        </button>
+      </form>
+
+      <footer class="tag__rodape">
+        <mat-icon aria-hidden="true">local_florist</mat-icon>
+        <span>Primeiro acesso? O administrador prepara sua conta.</span>
+      </footer>
+    </section>
+  </main>
+</div>

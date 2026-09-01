@@ -1,0 +1,141 @@
+<section class="canteiro">
+  <!-- Placa de canteiro: ecoa a etiqueta de viveiro do login (design-distintivo §hero). -->
+  <header class="placa">
+    <span class="placa__furo" aria-hidden="true"></span>
+    <div class="placa__texto">
+      <span class="placa__eyebrow">Ateliê · Equipe</span>
+      <h1 class="placa__titulo">Canteiro de pessoas</h1>
+      <p class="placa__sub">Cadastre, ative ou redefina o acesso de quem cuida dos pedidos.</p>
+    </div>
+    <button
+      type="button"
+      mat-flat-button
+      class="acao placa__acao"
+      (click)="alternarForm()"
+      [attr.aria-expanded]="formAberto()"
+    >
+      <mat-icon aria-hidden="true">{{ formAberto() ? 'close' : 'add' }}</mat-icon>
+      <span>{{ formAberto() ? 'Fechar' : 'Cadastrar pessoa' }}</span>
+    </button>
+  </header>
+
+  @if (formAberto()) {
+    <app-usuario-form (criado)="aoCriar($event)" (cancelado)="formAberto.set(false)" />
+  }
+
+  @if (carregando()) {
+    <p class="estado" aria-live="polite">
+      <mat-progress-spinner diameter="22" mode="indeterminate" aria-hidden="true" />
+      <span>Carregando o canteiro…</span>
+    </p>
+  } @else if (erroLista(); as msg) {
+    <p class="estado estado--erro" role="alert">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span>{{ msg }}</span>
+      <button mat-button (click)="carregar()">Tentar de novo</button>
+    </p>
+  } @else if (vazia()) {
+    <div class="estado estado--vazio">
+      <mat-icon aria-hidden="true">local_florist</mat-icon>
+      <p>O canteiro ainda está sem pessoas. Cadastre a primeira para começar.</p>
+    </div>
+  } @else {
+    <ul class="mudas" aria-label="Pessoas cadastradas">
+      @for (u of usuarios(); track u.id) {
+        <li class="muda" [class.muda--repouso]="!u.ativo">
+          <span class="muda__caule" aria-hidden="true"></span>
+          <div class="muda__id">
+            <span class="muda__nome">{{ u.nome }}</span>
+            <span class="muda__email">{{ u.email }}</span>
+          </div>
+          <div class="muda__tags">
+            <span class="tag tag--role" [class.tag--admin]="u.role === 'ADMIN'">
+              {{ u.role === 'ADMIN' ? 'Administrador' : 'Usuário' }}
+            </span>
+            <span class="tag tag--status" [class.tag--ativo]="u.ativo">
+              {{ u.ativo ? 'Ativo' : 'Inativo' }}
+            </span>
+            @if (u.senhaProvisoria) {
+              <span class="tag tag--prov">Senha provisória</span>
+            }
+          </div>
+          <div class="muda__acoes">
+            <button mat-button (click)="pedirReset(u)">
+              <mat-icon aria-hidden="true">lock_reset</mat-icon>
+              <span>Redefinir senha</span>
+            </button>
+            <button
+              mat-button
+              class="muda__toggle"
+              [class.muda__toggle--desativar]="u.ativo"
+              (click)="pedirStatus(u)"
+            >
+              <mat-icon aria-hidden="true">{{ u.ativo ? 'toggle_off' : 'toggle_on' }}</mat-icon>
+              <span>{{ u.ativo ? 'Desativar' : 'Ativar' }}</span>
+            </button>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</section>
+
+<!-- Confirmação de ativar/desativar -->
+@if (alvoStatus(); as alvo) {
+  <div class="veu" (click)="cancelarStatus()"></div>
+  <div class="dialogo" role="dialog" aria-modal="true" aria-labelledby="dlg-status-titulo">
+    <h2 id="dlg-status-titulo" class="dialogo__titulo">
+      {{ alvo.ativo ? 'Desativar acesso' : 'Reativar acesso' }}
+    </h2>
+    <p class="dialogo__corpo">
+      @if (alvo.ativo) {
+        <strong>{{ alvo.nome }}</strong> deixará de acessar o sistema. Dá para reativar depois.
+      } @else {
+        <strong>{{ alvo.nome }}</strong> volta a acessar o sistema.
+      }
+    </p>
+    @if (erroStatus(); as msg) {
+      <p class="dialogo__erro" role="alert">
+        <mat-icon aria-hidden="true">error_outline</mat-icon>
+        <span>{{ msg }}</span>
+      </p>
+    }
+    <div class="dialogo__acoes">
+      <button mat-button (click)="cancelarStatus()">Cancelar</button>
+      <button mat-flat-button class="acao" (click)="confirmarStatus()" [disabled]="processandoStatus()">
+        {{ alvo.ativo ? 'Desativar' : 'Ativar' }}
+      </button>
+    </div>
+  </div>
+}
+
+<!-- Reset de senha por ADMIN -->
+@if (alvoReset(); as alvo) {
+  <div class="veu" (click)="cancelarReset()"></div>
+  <div class="dialogo" role="dialog" aria-modal="true" aria-labelledby="dlg-reset-titulo">
+    <h2 id="dlg-reset-titulo" class="dialogo__titulo">Redefinir senha</h2>
+    <p class="dialogo__corpo">
+      Defina uma senha provisória para <strong>{{ alvo.nome }}</strong>. No próximo acesso, a troca
+      será obrigatória.
+    </p>
+    <form [formGroup]="resetForm" (ngSubmit)="confirmarReset()" novalidate>
+      <mat-form-field appearance="outline" class="dialogo__campo">
+        <mat-label>Nova senha provisória</mat-label>
+        <input matInput type="password" formControlName="novaSenha" autocomplete="new-password" />
+        @if (resetForm.controls.novaSenha.hasError('required')) {
+          <mat-error>Informe a nova senha.</mat-error>
+        } @else if (resetForm.controls.novaSenha.hasError('minlength')) {
+          <mat-error>A senha precisa de ao menos 8 caracteres.</mat-error>
+        } @else if (resetForm.controls.novaSenha.hasError('servidor')) {
+          <mat-error>{{ resetForm.controls.novaSenha.getError('servidor') }}</mat-error>
+        }
+      </mat-form-field>
+      <div class="dialogo__acoes">
+        <button type="button" mat-button (click)="cancelarReset()">Cancelar</button>
+        <button type="submit" mat-flat-button class="acao" [disabled]="processandoReset()">
+          Definir senha
+        </button>
+      </div>
+    </form>
+  </div>
+}

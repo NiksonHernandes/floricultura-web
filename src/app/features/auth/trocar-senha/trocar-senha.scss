@@ -1,0 +1,221 @@
+// Troca de senha — "re-etiquetar a muda" (SPEC-M1 §9, CA-14).
+//
+// Passe 1 (tokens nomeados, reusados do login via _atelie-tokens.scss — MESMO produto):
+//   folhagem/estufa/tinta/caule/dalia/orvalho/sais + Fraunces (display, com contenção).
+//   Layout: UMA etiqueta de viveiro centralizada sobre o vidro de estufa — sem o painel-marca
+//   em duas colunas do login, porque esta é uma ação pontual e focada (uma coisa só).
+//   Assinatura: o furo real + a cor da estufa no topo do card, ecoando login/gestão.
+// Passe 2 anti-default: recusado o "card branco Material no meio da tela" genérico de IA;
+//   superfície verde-vidro (não creme/branco), acento dália só na ação, foco dos campos em
+//   caule (sem azul Material), botão de texto em folhagem (lição do P1 da T-M1-9). Um só
+//   movimento (a etiqueta assenta), respeitando prefers-reduced-motion.
+@use '../../../shared/styles/atelie-tokens' as atelie;
+
+// Fraunces é carregada globalmente no index.html (evita @import por-componente e o budget
+// de anyComponentStyle).
+
+:host {
+  @include atelie.base;
+
+  // Assume a viewport (cobre o shell/hero M0 sem alterá-lo — mesma decisão de login/gestão).
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: block;
+  overflow-y: auto;
+  background:
+    radial-gradient(130% 80% at 100% 0%, color-mix(in srgb, var(--caule) 22%, var(--estufa)) 0%, var(--estufa) 55%);
+  color: var(--tinta);
+}
+
+.renovo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 100%;
+  box-sizing: border-box;
+  padding: 2.5rem 1.25rem 3rem;
+}
+
+.tag {
+  position: relative;
+  width: 100%;
+  max-width: 27rem;
+  box-sizing: border-box;
+  margin-top: 0.5rem;
+  padding: 2.5rem 1.5rem 1.5rem;
+  background: #fff;
+  border: 1px solid var(--orvalho);
+  border-top: 3px solid var(--caule); // o "caule" da muda que se renova
+  border-radius: 14px;
+  box-shadow: 0 18px 40px -28px rgba(20, 36, 28, 0.55);
+}
+
+.tag__furo {
+  position: absolute;
+  top: -11px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--estufa);
+  border: 1.5px solid var(--caule);
+}
+
+.tag__cabecalho {
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.tag__eyebrow {
+  font: 600 0.72rem/1 var(--display);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--caule);
+}
+
+.tag__titulo {
+  margin: 0.4rem 0 0;
+  font: 600 clamp(1.5rem, 4.5vw, 1.9rem) / 1.1 var(--display);
+  color: var(--tinta);
+}
+
+.tag__sub {
+  margin: 0.5rem 0 0;
+  font: var(--mat-sys-body-medium);
+  color: color-mix(in srgb, var(--tinta) 62%, var(--estufa));
+}
+
+.tag__form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+
+  // Foco/traço dos campos em caule (verde); a dália fica reservada só à ação.
+  --mdc-outlined-text-field-focus-outline-color: var(--caule);
+  --mdc-outlined-text-field-caret-color: var(--caule);
+  --mdc-outlined-text-field-focus-label-text-color: var(--folhagem);
+}
+
+.tag__campo {
+  width: 100%;
+}
+
+.tag__alerta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--dalia) 45%, white);
+  background: color-mix(in srgb, var(--dalia) 10%, white);
+  color: #8f2450;
+  font: var(--mat-sys-body-small);
+
+  mat-icon {
+    flex: none;
+  }
+}
+
+.tag__enviar {
+  margin-top: 0.75rem;
+  min-height: 3rem; // alvo de toque >= 44px (dono: ~90% mobile)
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+
+  // A ação em dália carmim — a ÚNICA ousadia (design-distintivo §gaste a ousadia num lugar só).
+  --mat-button-filled-container-color: var(--dalia);
+  --mat-button-filled-label-text-color: #fff;
+  --mat-button-filled-state-layer-color: #fff;
+  --mat-button-filled-ripple-color: color-mix(in srgb, white 30%, transparent);
+  --mat-button-filled-disabled-container-color: color-mix(in srgb, #c4326b 35%, white);
+  --mat-button-filled-disabled-label-text-color: #fff;
+
+  mat-icon {
+    transition: transform 160ms ease;
+  }
+
+  &:hover:not([disabled]) mat-icon {
+    transform: translateX(3px);
+  }
+
+  .tag__spin {
+    margin-left: 0.4rem;
+    --mdc-circular-progress-active-indicator-color: #fff;
+  }
+}
+
+.tag__rodape {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px dashed var(--orvalho);
+  font: var(--mat-sys-body-small);
+  color: color-mix(in srgb, var(--tinta) 55%, var(--estufa));
+
+  mat-icon {
+    flex: none;
+    color: var(--caule);
+    font-size: 1.1rem;
+    width: 1.1rem;
+    height: 1.1rem;
+  }
+}
+
+/* ---- Confirmação de sucesso (USER, sem home no M1) ---- */
+.feito {
+  text-align: center;
+  padding: 0.5rem 0 0.75rem;
+}
+
+.feito__selo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  margin-bottom: 0.75rem;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--caule) 18%, white);
+  border: 1.5px solid color-mix(in srgb, var(--caule) 55%, white);
+  color: #2f6b41;
+}
+
+/* ---- Foco de teclado visível (piso de qualidade §9) ---- */
+:host ::ng-deep .mdc-button:focus-visible {
+  outline: 2px solid var(--caule);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* ---- Desktop: a etiqueta assenta no centro da bancada ---- */
+@media (min-width: 720px) {
+  .renovo {
+    align-items: center;
+    padding: 3rem;
+  }
+
+  .tag {
+    margin-top: 0;
+  }
+}
+
+/* ---- Movimento deliberado (um só), respeitando reduced-motion ---- */
+@media (prefers-reduced-motion: no-preference) {
+  .tag {
+    animation: etiqueta-assenta 520ms ease-out both;
+  }
+
+  @keyframes etiqueta-assenta {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+  }
+}

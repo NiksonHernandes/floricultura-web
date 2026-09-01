@@ -1,0 +1,63 @@
+<form class="muda" [formGroup]="form" (ngSubmit)="cadastrar()" novalidate>
+  <p class="muda__legenda">Uma nova pessoa entra no canteiro com senha provisória — troca no 1º acesso.</p>
+
+  <div class="muda__grade">
+    <mat-form-field appearance="outline" class="muda__campo">
+      <mat-label>Nome</mat-label>
+      <input matInput formControlName="nome" autocomplete="name" maxlength="120" />
+      @if (form.controls.nome.hasError('required')) {
+        <mat-error>Informe o nome.</mat-error>
+      } @else if (form.controls.nome.hasError('minlength')) {
+        <mat-error>Nome muito curto (mínimo 2 caracteres).</mat-error>
+      } @else if (form.controls.nome.hasError('servidor')) {
+        <mat-error>{{ form.controls.nome.getError('servidor') }}</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="muda__campo">
+      <mat-label>E-mail</mat-label>
+      <input
+        matInput
+        type="email"
+        formControlName="email"
+        autocomplete="off"
+        inputmode="email"
+        autocapitalize="off"
+        spellcheck="false"
+        maxlength="180"
+        placeholder="pessoa@floricultura.local"
+      />
+      @if (form.controls.email.hasError('required')) {
+        <mat-error>Informe o e-mail.</mat-error>
+      } @else if (form.controls.email.hasError('email')) {
+        <mat-error>E-mail em formato inválido.</mat-error>
+      } @else if (form.controls.email.hasError('servidor')) {
+        <mat-error>{{ form.controls.email.getError('servidor') }}</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="muda__campo">
+      <mat-label>Senha provisória</mat-label>
+      <input matInput type="password" formControlName="senha" autocomplete="new-password" />
+      @if (form.controls.senha.hasError('required')) {
+        <mat-error>Informe uma senha provisória.</mat-error>
+      } @else if (form.controls.senha.hasError('minlength')) {
+        <mat-error>A senha precisa de ao menos 8 caracteres.</mat-error>
+      } @else if (form.controls.senha.hasError('servidor')) {
+        <mat-error>{{ form.controls.senha.getError('servidor') }}</mat-error>
+      }
+    </mat-form-field>
+  </div>
+
+  <p class="muda__papel">Cadastrado como <strong>Usuário</strong>. Promoções de papel ficam para outra etapa.</p>
+
+  <div class="muda__acoes">
+    <button type="button" mat-button class="botao-secundario" (click)="cancelar()">Cancelar</button>
+    <button type="submit" mat-flat-button class="acao" [disabled]="enviando()">
+      <span>{{ enviando() ? 'Cadastrando…' : 'Cadastrar' }}</span>
+      @if (!enviando()) {
+        <mat-icon iconPositionEnd aria-hidden="true">arrow_forward</mat-icon>
+      }
+    </button>
+  </div>
+</form>
