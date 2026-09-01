@@ -50,7 +50,7 @@ export class UsuariosService {
       .pipe(map((r) => r.data!));
   }
 
-  /** PATCH /usuarios/{id}/senha → 204 (reset por ADMIN; força troca no próximo login do alvo). */
+  /** PATCH /usuarios/{id}/senha → 204 (reset por ADMIN; define a nova senha — não força troca, AD-SQ-24/26). */
   resetarSenha(id: number, novaSenha: string): Observable<void> {
     return this.http
       .patch<void>(`${this.baseUrl}/${id}/senha`, { novaSenha })
