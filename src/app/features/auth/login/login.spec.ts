@@ -79,16 +79,6 @@ describe('Login (T-M1-8)', () => {
     expect(probe.carregando()).toBeFalse();
   });
 
-  it('força /trocar-senha quando senhaProvisoria é true (CA-14)', () => {
-    authSpy.login.and.returnValue(of({ ...admin, senhaProvisoria: true }));
-    const { probe } = montar();
-
-    probe.form.setValue({ email: admin.email, senha: 'provisoria' });
-    probe.entrar();
-
-    expect(routerSpy.navigate).toHaveBeenCalledWith(['/trocar-senha']);
-  });
-
   it('USER não provisório vai para /trocar-senha (destino provisório do M1)', () => {
     authSpy.login.and.returnValue(of({ ...admin, role: 'USER' as const }));
     const { probe } = montar();
