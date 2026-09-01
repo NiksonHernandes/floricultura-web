@@ -20,17 +20,19 @@ import { AuthService } from '../../../core/services/auth.service';
 import { ApiResponse } from '../../../core/models/api-response.model';
 
 /**
- * Troca da própria senha + 1º login forçado (SPEC-M1 §7 T-M1-10, CA-14 · §10 item 16).
+ * Troca VOLUNTÁRIA da própria senha (SPEC-M1 §7 T-M1-10, CA-14; troca forçada removida no
+ * M1.1 — AD-SQ-24).
  *
  * Form reativo `senhaAtual` + `novaSenha` (≥8) + `confirmarNovaSenha` (=== nova) →
  * `AuthService.trocarSenha` → PATCH `/auth/senha` (§3.2). Trata `400 VALIDATION_ERROR`
  * aplicando o `details` no campo (`senhaAtual` → "Senha atual incorreta.") SEM deslogar —
  * só o `401` desloga (interceptor). Estados: carregando / erro / sucesso.
  *
- * Fluxo forçado: quem chega com `senhaProvisoria` (seed/reset por ADMIN) é retido aqui pela
- * `senhaProvisoriaGuard` até trocar. Ao sucesso o serviço zera a flag; então:
+ * Acesso: rota autenticada, sem enforce de senha provisória (o `senhaProvisoriaGuard` foi
+ * removido no M1.1). É também o stopgap de destino do USER pós-login enquanto não há home de
+ * USER no M1 (CRUDs vêm no M2). Ao sucesso:
  * - ADMIN → navega a `/usuarios` (destino real do M1) + snackbar de confirmação;
- * - USER  → permanece na confirmação de sucesso (não há home de USER no M1; CRUDs vêm no M2).
+ * - USER  → permanece na confirmação de sucesso.
  *
  * Design (§9): reusa a "etiqueta de viveiro" do login (tokens do ateliê) — MESMO produto.
  */
