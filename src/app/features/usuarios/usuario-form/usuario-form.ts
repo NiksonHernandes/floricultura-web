@@ -1,6 +1,13 @@
 import { Component, inject, output, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormBuilder,
+  ReactiveFormsModule,
+  ValidationErrors,
+  Validators,
+} from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -13,7 +20,9 @@ import { ApiResponse } from '../../../core/models/api-response.model';
 /**
  * Formulário de cadastro de usuário (SPEC-M1 §7 T-M1-9, CA-14 — fatia "form").
  *
- * Form reativo nome+e-mail+senha → `UsuariosService.criar` (POST /usuarios).
+ * Form reativo nome+e-mail+senha(+confirmação) → `UsuariosService.criar` (POST /usuarios).
+ * A senha nasce definitiva (não há "provisória" nem troca no 1º acesso — AD-SQ-26 adendo);
+ * a confirmação é só do client (mesmo padrão do reset), NÃO viaja no payload ao back.
  * Todo cadastro nasce `USER` (regra do dono) — não há seletor de papel; o back grava USER.
  * Tratamento de erro contra o contrato §3.2:
  * - `409 CONFLICT` (e-mail duplicado) → erro no campo e-mail "E-mail já cadastrado.";
@@ -43,12 +52,26 @@ export class UsuarioForm {
 
   protected readonly enviando = signal(false);
 
+  /** Confere que a confirmação bate com a senha (mesmo padrão do trocar-senha/reset). */
+  private readonly confereConfirmacao = (controle: AbstractControl): ValidationErrors | null => {
+    const senha = controle.parent?.get('senha')?.value;
+    return senha && controle.value && senha !== controle.value ? { diferente: true } : null;
+  };
+
   /** Validação de campo espelha as regras do §3.2 (a validação forte é do back). */
   protected readonly form = this.fb.nonNullable.group({
     nome: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(120)]],
     email: ['', [Validators.required, Validators.email, Validators.maxLength(180)]],
     senha: ['', [Validators.required, Validators.minLength(8)]],
+    confirmarSenha: ['', [Validators.required, this.confereConfirmacao]],
   });
+
+  constructor() {
+    // Reavalia a confirmação quando a senha muda (mantém o "não confere" vivo).
+    this.form.controls.senha.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
+      this.form.controls.confirmarSenha.updateValueAndValidity({ emitEvent: false });
+    });
+  }
 
   protected cadastrar(): void {
     if (this.enviando()) {
@@ -59,12 +82,14 @@ export class UsuarioForm {
       return;
     }
 
+    // `confirmarSenha` é só do client — o payload ao back leva apenas nome/e-mail/senha.
+    const { nome, email, senha } = this.form.getRawValue();
     this.enviando.set(true);
-    this.service.criar(this.form.getRawValue()).subscribe({
+    this.service.criar({ nome, email, senha }).subscribe({
       next: (novo) => {
         this.enviando.set(false);
         this.criado.emit(novo);
-        this.form.reset({ nome: '', email: '', senha: '' });
+        this.form.reset({ nome: '', email: '', senha: '', confirmarSenha: '' });
       },
       error: (erro: HttpErrorResponse) => {
         this.enviando.set(false);
@@ -74,7 +99,7 @@ export class UsuarioForm {
   }
 
   protected cancelar(): void {
-    this.form.reset({ nome: '', email: '', senha: '' });
+    this.form.reset({ nome: '', email: '', senha: '', confirmarSenha: '' });
     this.cancelado.emit();
   }
 

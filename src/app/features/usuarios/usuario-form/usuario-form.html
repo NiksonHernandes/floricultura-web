@@ -1,5 +1,5 @@
 <form class="muda" [formGroup]="form" (ngSubmit)="cadastrar()" novalidate>
-  <p class="muda__legenda">Uma nova pessoa entra no canteiro com senha provisória — troca no 1º acesso.</p>
+  <p class="muda__legenda">Defina o acesso da nova pessoa — a senha já é definitiva.</p>
 
   <div class="muda__grade">
     <mat-form-field appearance="outline" class="muda__campo">
@@ -37,14 +37,24 @@
     </mat-form-field>
 
     <mat-form-field appearance="outline" class="muda__campo">
-      <mat-label>Senha provisória</mat-label>
+      <mat-label>Senha</mat-label>
       <input matInput type="password" formControlName="senha" autocomplete="new-password" />
       @if (form.controls.senha.hasError('required')) {
-        <mat-error>Informe uma senha provisória.</mat-error>
+        <mat-error>Informe a senha.</mat-error>
       } @else if (form.controls.senha.hasError('minlength')) {
         <mat-error>A senha precisa de ao menos 8 caracteres.</mat-error>
       } @else if (form.controls.senha.hasError('servidor')) {
         <mat-error>{{ form.controls.senha.getError('servidor') }}</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="muda__campo">
+      <mat-label>Confirmar senha</mat-label>
+      <input matInput type="password" formControlName="confirmarSenha" autocomplete="new-password" />
+      @if (form.controls.confirmarSenha.hasError('required')) {
+        <mat-error>Confirme a senha.</mat-error>
+      } @else if (form.controls.confirmarSenha.hasError('diferente')) {
+        <mat-error>As senhas não conferem.</mat-error>
       }
     </mat-form-field>
   </div>

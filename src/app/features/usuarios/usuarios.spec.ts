@@ -15,7 +15,7 @@ interface UsuariosProbe {
   alvoStatus(): Usuario | null;
   alvoReset(): Usuario | null;
   formAberto: { set(v: boolean): void };
-  resetForm: { setValue(v: { novaSenha: string }): void };
+  resetForm: { setValue(v: { novaSenha: string; confirmarNovaSenha: string }): void };
   aoCriar(u: Usuario): void;
   pedirStatus(u: Usuario): void;
   confirmarStatus(): void;
@@ -109,24 +109,33 @@ describe('Usuarios (T-M1-9)', () => {
     expect(probe.alvoStatus()).not.toBeNull();
   });
 
-  it('confirmarReset envia a nova senha e marca senhaProvisoria no alvo (CA-14)', () => {
+  it('confirmarReset envia a nova senha DEFINITIVA e limpa senhaProvisoria no alvo (CA-14, AD-SQ-26)', () => {
     serviceSpy.resetarSenha.and.returnValue(of(void 0));
     const probe = montar([ana]);
 
     probe.pedirReset(ana);
-    probe.resetForm.setValue({ novaSenha: 'temporaria8' });
+    probe.resetForm.setValue({ novaSenha: 'definitiva8', confirmarNovaSenha: 'definitiva8' });
     probe.confirmarReset();
 
-    expect(serviceSpy.resetarSenha).toHaveBeenCalledWith(2, 'temporaria8');
-    expect(probe.usuarios().find((u) => u.id === 2)?.senhaProvisoria).toBeTrue();
+    expect(serviceSpy.resetarSenha).toHaveBeenCalledWith(2, 'definitiva8');
+    expect(probe.usuarios().find((u) => u.id === 2)?.senhaProvisoria).toBeFalse();
     expect(probe.alvoReset()).toBeNull();
   });
 
   it('reset não chama o serviço quando a senha é curta', () => {
     const probe = montar([ana]);
     probe.pedirReset(ana);
-    probe.resetForm.setValue({ novaSenha: 'curta1' });
+    probe.resetForm.setValue({ novaSenha: 'curta1', confirmarNovaSenha: 'curta1' });
     probe.confirmarReset();
     expect(serviceSpy.resetarSenha).not.toHaveBeenCalled();
+  });
+
+  it('reset não chama o serviço quando a confirmação diverge da nova senha (AD-SQ-26)', () => {
+    const probe = montar([ana]);
+    probe.pedirReset(ana);
+    probe.resetForm.setValue({ novaSenha: 'definitiva8', confirmarNovaSenha: 'diferente9' });
+    probe.confirmarReset();
+    expect(serviceSpy.resetarSenha).not.toHaveBeenCalled();
+    expect(probe.alvoReset()).not.toBeNull();
   });
 });

@@ -1,6 +1,13 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormBuilder,
+  ReactiveFormsModule,
+  ValidationErrors,
+  Validators,
+} from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -52,12 +59,26 @@ export class Usuarios implements OnInit {
   protected readonly processandoStatus = signal(false);
   protected readonly erroStatus = signal<string | null>(null);
 
+  /** Confere que a confirmação bate com a nova senha (mesmo padrão do trocar-senha). */
+  private readonly confereConfirmacao = (controle: AbstractControl): ValidationErrors | null => {
+    const nova = controle.parent?.get('novaSenha')?.value;
+    return nova && controle.value && nova !== controle.value ? { diferente: true } : null;
+  };
+
   /** Alvo do reset de senha (null = diálogo fechado). */
   protected readonly alvoReset = signal<Usuario | null>(null);
   protected readonly processandoReset = signal(false);
   protected readonly resetForm = this.fb.nonNullable.group({
     novaSenha: ['', [Validators.required, Validators.minLength(8)]],
+    confirmarNovaSenha: ['', [Validators.required, this.confereConfirmacao]],
   });
+
+  constructor() {
+    // Reavalia a confirmação quando a nova senha muda (mantém o "não confere" vivo).
+    this.resetForm.controls.novaSenha.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
+      this.resetForm.controls.confirmarNovaSenha.updateValueAndValidity({ emitEvent: false });
+    });
+  }
 
   ngOnInit(): void {
     this.carregar();
@@ -133,7 +154,7 @@ export class Usuarios implements OnInit {
 
   // --- Reset de senha por ADMIN ---
   protected pedirReset(u: Usuario): void {
-    this.resetForm.reset({ novaSenha: '' });
+    this.resetForm.reset({ novaSenha: '', confirmarNovaSenha: '' });
     this.alvoReset.set(u);
   }
 
@@ -154,8 +175,8 @@ export class Usuarios implements OnInit {
     this.service.resetarSenha(alvo.id, this.resetForm.getRawValue().novaSenha).subscribe({
       next: () => {
         this.processandoReset.set(false);
-        this.substituir({ ...alvo, senhaProvisoria: true });
-        this.snack.open(`Senha provisória definida para ${alvo.nome}.`, 'Fechar', { duration: 4000 });
+        this.substituir({ ...alvo, senhaProvisoria: false });
+        this.snack.open(`Senha redefinida para ${alvo.nome}.`, 'Fechar', { duration: 4000 });
         this.alvoReset.set(null);
       },
       error: (erro: HttpErrorResponse) => {
