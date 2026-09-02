@@ -1,12 +1,116 @@
-<section class="produtos">
-  <header class="produtos__cabecalho">
-    <span class="produtos__eyebrow">Ateliê · Estoque</span>
-    <h1 class="produtos__titulo">Produtos</h1>
-    <p class="produtos__sub">O catálogo e o controle de estoque abrem aqui.</p>
+<section class="prateleira">
+  <!-- Placa da prateleira: ecoa a etiqueta de viveiro do login/canteiro (design-distintivo §hero). -->
+  <header class="placa">
+    <span class="placa__furo" aria-hidden="true"></span>
+    <div class="placa__texto">
+      <span class="placa__eyebrow">Ateliê · Estoque</span>
+      <h1 class="placa__titulo">Produtos</h1>
+      <p class="placa__sub">O catálogo e o controle de estoque da floricultura, vaso a vaso.</p>
+    </div>
   </header>
 
-  <div class="produtos__vazio">
-    <mat-icon aria-hidden="true">local_florist</mat-icon>
-    <p>Estamos preparando o canteiro de produtos. A lista chega no próximo passo.</p>
-  </div>
+  <mat-form-field appearance="outline" class="busca">
+    <mat-icon matPrefix aria-hidden="true">search</mat-icon>
+    <mat-label>Buscar por nome</mat-label>
+    <input
+      matInput
+      type="text"
+      [formControl]="filtro"
+      autocomplete="off"
+      aria-label="Buscar produtos por nome"
+    />
+    @if (filtro.value) {
+      <button
+        matSuffix
+        mat-icon-button
+        type="button"
+        aria-label="Limpar busca"
+        (click)="limparFiltro()"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
+    }
+  </mat-form-field>
+
+  @if (carregando()) {
+    <p class="estado" aria-live="polite">
+      <mat-progress-spinner diameter="22" mode="indeterminate" aria-hidden="true" />
+      <span>Carregando a prateleira…</span>
+    </p>
+  } @else if (erro(); as msg) {
+    <p class="estado estado--erro" role="alert">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span>{{ msg }}</span>
+      <button mat-button (click)="carregar()">Tentar de novo</button>
+    </p>
+  } @else if (vazia()) {
+    <div class="estado estado--vazio">
+      <mat-icon aria-hidden="true">local_florist</mat-icon>
+      @if (filtro.value) {
+        <p>Nenhum produto encontrado para “{{ filtro.value }}”. Tente outro nome.</p>
+      } @else {
+        <p>A prateleira ainda está vazia. Os produtos aparecem aqui assim que forem cadastrados.</p>
+      }
+    </div>
+  } @else {
+    <ul class="vasos" aria-label="Produtos cadastrados">
+      @for (p of produtos(); track p.id) {
+        <li class="vaso" [class.vaso--alerta]="p.estoqueBaixo">
+          <div class="vaso__planta">
+            @if (semImagem(p)) {
+              <div class="vaso__placeholder" aria-hidden="true">
+                <mat-icon>local_florist</mat-icon>
+              </div>
+            } @else {
+              <img
+                class="vaso__img"
+                [src]="p.imagemUrl"
+                [alt]="p.nome"
+                loading="lazy"
+                (error)="aoErroImagem(p.id)"
+              />
+            }
+            @if (p.estoqueBaixo) {
+              <span class="selo-baixo">
+                <mat-icon aria-hidden="true">warning_amber</mat-icon>
+                Estoque baixo
+              </span>
+            }
+          </div>
+
+          <div class="vaso__corpo">
+            <h2 class="vaso__nome">{{ p.nome }}</h2>
+            @if (p.descricao) {
+              <p class="vaso__descricao">{{ p.descricao }}</p>
+            }
+            <dl class="vaso__meta">
+              <div class="meta">
+                <dt>Estoque</dt>
+                <dd>{{ p.estoqueAtual }} {{ rotuloUnidade(p.unidadeMedida) }}</dd>
+              </div>
+              <div class="meta">
+                <dt>Preço</dt>
+                <dd>
+                  @if (precoFormatado(p); as preco) {
+                    {{ preco }}
+                  } @else {
+                    <span class="meta__vazio">a definir</span>
+                  }
+                </dd>
+              </div>
+            </dl>
+          </div>
+        </li>
+      }
+    </ul>
+
+    <mat-paginator
+      class="paginacao"
+      [length]="totalElementos()"
+      [pageIndex]="pagina()"
+      [pageSize]="tamanho()"
+      [pageSizeOptions]="[12, 24, 48]"
+      (page)="aoPaginar($event)"
+    />
+  }
 </section>
