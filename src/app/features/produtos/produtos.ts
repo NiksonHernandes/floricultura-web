@@ -113,6 +113,13 @@ export class Produtos implements OnInit {
   protected readonly formAberto = signal(false);
   protected readonly produtoEmEdicao = signal<Produto | null>(null);
 
+  /**
+   * Marca transitória (T-M2-11/CA-22): o form emite `entradaInicialFalhou` ANTES de `salvo` quando o
+   * produto é criado mas a ENTRADA inicial falha. `aoSalvar` lê e limpa esta marca para escolher o
+   * snackbar de warning em vez do de sucesso — o produto existe (estoque 0), só o lançamento faltou.
+   */
+  private entradaInicialFalhou = false;
+
   constructor() {
     this.filtro.valueChanges
       .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed())
@@ -177,17 +184,37 @@ export class Produtos implements OnInit {
   protected fecharForm(): void {
     this.formAberto.set(false);
     this.produtoEmEdicao.set(null);
+    this.entradaInicialFalhou = false;
+  }
+
+  /**
+   * Form sinalizou que o produto foi criado mas a ENTRADA inicial de estoque falhou (AD-SQ-35/CA-22).
+   * Emitido ANTES de `salvo` → só registra a marca; `aoSalvar` (a seguir) escolhe o snackbar.
+   */
+  protected aoEntradaInicialFalhou(): void {
+    this.entradaInicialFalhou = true;
   }
 
   /** Form emitiu um produto salvo: confirma, fecha e recarrega a fatia atual da lista. */
   protected aoSalvar(p: Produto): void {
     const criado = this.produtoEmEdicao() === null;
+    const entradaFalhou = this.entradaInicialFalhou;
     this.fecharForm();
-    this.snack.open(
-      criado ? `${p.nome} entrou na prateleira.` : `${p.nome} foi atualizado.`,
-      'Fechar',
-      { duration: 4000 },
-    );
+    if (entradaFalhou) {
+      // Falha parcial (CA-22): produto existe com estoque 0; orienta usar "Movimentar".
+      this.snack.open(
+        `Produto criado, mas a entrada inicial de estoque não foi registrada. ` +
+          `Use "Movimentar" para lançar o estoque.`,
+        'Fechar',
+        { duration: 8000 },
+      );
+    } else {
+      this.snack.open(
+        criado ? `${p.nome} entrou na prateleira.` : `${p.nome} foi atualizado.`,
+        'Fechar',
+        { duration: 4000 },
+      );
+    }
     this.carregar();
   }
 
