@@ -1,0 +1,123 @@
+<div class="ficha" role="dialog" aria-modal="true" aria-labelledby="ficha-titulo">
+  <header class="ficha__cabecalho">
+    <div>
+      <span class="ficha__eyebrow">Ateliê · Estoque</span>
+      <h2 id="ficha-titulo" class="ficha__titulo">
+        {{ editando() ? 'Editar produto' : 'Novo produto' }}
+      </h2>
+    </div>
+    <button
+      type="button"
+      mat-icon-button
+      class="ficha__fechar"
+      aria-label="Fechar sem salvar"
+      (click)="cancelar()"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
+
+  <form class="ficha__form" [formGroup]="form" (ngSubmit)="salvar()" novalidate>
+    @if (erroGeral(); as msg) {
+      <p class="ficha__erro" role="alert">
+        <mat-icon aria-hidden="true">error_outline</mat-icon>
+        <span>{{ msg }}</span>
+      </p>
+    }
+
+    <div class="ficha__grade">
+      <mat-form-field appearance="outline" class="ficha__campo ficha__campo--largo">
+        <mat-label>Nome</mat-label>
+        <input matInput formControlName="nome" autocomplete="off" maxlength="150" />
+        @if (form.controls.nome.hasError('required')) {
+          <mat-error>Informe o nome do produto.</mat-error>
+        } @else if (form.controls.nome.hasError('minlength')) {
+          <mat-error>Nome muito curto (mínimo 2 caracteres).</mat-error>
+        } @else if (form.controls.nome.hasError('servidor')) {
+          <mat-error>{{ form.controls.nome.getError('servidor') }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="ficha__campo ficha__campo--largo">
+        <mat-label>Descrição</mat-label>
+        <textarea
+          matInput
+          formControlName="descricao"
+          rows="2"
+          maxlength="2000"
+          placeholder="Opcional — detalhes do produto"
+        ></textarea>
+        @if (form.controls.descricao.hasError('servidor')) {
+          <mat-error>{{ form.controls.descricao.getError('servidor') }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="ficha__campo">
+        <mat-label>Unidade de medida</mat-label>
+        <mat-select formControlName="unidadeMedida">
+          @for (op of opcoesUnidade; track op.valor) {
+            <mat-option [value]="op.valor">{{ op.rotulo }}</mat-option>
+          }
+        </mat-select>
+        @if (form.controls.unidadeMedida.hasError('required')) {
+          <mat-error>Escolha a unidade de medida.</mat-error>
+        } @else if (form.controls.unidadeMedida.hasError('servidor')) {
+          <mat-error>{{ form.controls.unidadeMedida.getError('servidor') }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="ficha__campo">
+        <mat-label>Estoque mínimo</mat-label>
+        <input matInput type="number" formControlName="estoqueMinimo" min="0" step="0.001" />
+        <span matTextSuffix>p/ alerta</span>
+        @if (form.controls.estoqueMinimo.hasError('required')) {
+          <mat-error>Informe o estoque mínimo.</mat-error>
+        } @else if (form.controls.estoqueMinimo.hasError('min')) {
+          <mat-error>Não pode ser negativo.</mat-error>
+        } @else if (form.controls.estoqueMinimo.hasError('servidor')) {
+          <mat-error>{{ form.controls.estoqueMinimo.getError('servidor') }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="ficha__campo">
+        <mat-label>Preço</mat-label>
+        <span matTextPrefix>R$&nbsp;</span>
+        <input matInput type="number" formControlName="preco" min="0" step="0.01" placeholder="Opcional" />
+        @if (form.controls.preco.hasError('min')) {
+          <mat-error>Não pode ser negativo.</mat-error>
+        } @else if (form.controls.preco.hasError('servidor')) {
+          <mat-error>{{ form.controls.preco.getError('servidor') }}</mat-error>
+        }
+        <mat-hint>Deixe em branco se ainda não há preço definido.</mat-hint>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="ficha__campo ficha__campo--largo">
+        <mat-label>URL da imagem</mat-label>
+        <input
+          matInput
+          type="url"
+          formControlName="imagemUrl"
+          autocomplete="off"
+          inputmode="url"
+          maxlength="1000"
+          placeholder="https://…"
+        />
+        @if (form.controls.imagemUrl.hasError('maxlength')) {
+          <mat-error>URL muito longa (máximo 1000 caracteres).</mat-error>
+        } @else if (form.controls.imagemUrl.hasError('servidor')) {
+          <mat-error>{{ form.controls.imagemUrl.getError('servidor') }}</mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    <div class="ficha__acoes">
+      <button type="button" mat-button class="botao-secundario" (click)="cancelar()">Cancelar</button>
+      <button type="submit" mat-flat-button class="acao" [disabled]="enviando()">
+        <span>{{ enviando() ? 'Salvando…' : editando() ? 'Salvar alterações' : 'Cadastrar produto' }}</span>
+        @if (!enviando()) {
+          <mat-icon iconPositionEnd aria-hidden="true">arrow_forward</mat-icon>
+        }
+      </button>
+    </div>
+  </form>
+</div>

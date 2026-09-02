@@ -7,6 +7,12 @@
       <h1 class="placa__titulo">Produtos</h1>
       <p class="placa__sub">O catálogo e o controle de estoque da floricultura, vaso a vaso.</p>
     </div>
+    @if (ehAdmin()) {
+      <button type="button" mat-flat-button class="acao placa__acao" (click)="novoProduto()">
+        <mat-icon aria-hidden="true">add</mat-icon>
+        <span>Novo produto</span>
+      </button>
+    }
   </header>
 
   <mat-form-field appearance="outline" class="busca">
@@ -99,6 +105,21 @@
                 </dd>
               </div>
             </dl>
+
+            @if (ehAdmin()) {
+              <div class="vaso__acoes">
+                <button
+                  type="button"
+                  mat-button
+                  class="vaso__editar"
+                  (click)="editarProduto(p)"
+                  [attr.aria-label]="'Editar ' + p.nome"
+                >
+                  <mat-icon aria-hidden="true">edit</mat-icon>
+                  <span>Editar</span>
+                </button>
+              </div>
+            }
           </div>
         </li>
       }
@@ -114,3 +135,13 @@
     />
   }
 </section>
+
+<!-- Form de criar/editar produto (T-M2-8, CA-20 — só ADMIN abre) -->
+@if (formAberto()) {
+  <div class="veu" (click)="fecharForm()"></div>
+  <app-produto-form
+    [produto]="produtoEmEdicao()"
+    (salvo)="aoSalvar($event)"
+    (cancelado)="fecharForm()"
+  />
+}

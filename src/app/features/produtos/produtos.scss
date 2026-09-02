@@ -49,11 +49,43 @@
   border: 1.5px solid var(--caule);
 }
 
+// A placa vira grade quando há ação (Novo produto): texto + botão, empilhados no celular.
+.placa:has(.placa__acao) {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.9rem;
+}
+
 .placa__eyebrow {
   font: 600 0.72rem/1 var(--display);
   letter-spacing: 0.3em;
   text-transform: uppercase;
   color: var(--sais);
+}
+
+// Ação primária "Novo produto" na placa — a única dália desta região (assinatura do sistema).
+.placa__acao {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+
+  --mat-button-filled-container-color: var(--dalia);
+  --mat-button-filled-label-text-color: #fff;
+  --mat-button-filled-state-layer-color: #fff;
+  --mat-button-filled-ripple-color: color-mix(in srgb, white 30%, transparent);
+}
+
+@media (min-width: 640px) {
+  .placa:has(.placa__acao) {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+  }
+
+  .placa__acao {
+    justify-self: end;
+  }
 }
 
 .placa__titulo {
@@ -261,6 +293,28 @@
   font-weight: 400;
   font-style: italic;
   color: color-mix(in srgb, var(--tinta) 50%, var(--estufa));
+}
+
+/* Ações do card (Editar — só ADMIN); alvo de toque >= 44px */
+.vaso__acoes {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.75rem;
+}
+
+.vaso__editar {
+  min-height: 44px;
+  --mat-button-text-label-text-color: var(--folhagem);
+  --mat-button-text-icon-color: var(--folhagem);
+}
+
+/* ---- Véu do diálogo do form (T-M2-8) ---- */
+.veu {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: color-mix(in srgb, var(--tinta) 55%, transparent);
+  backdrop-filter: blur(2px);
 }
 
 /* ---- Paginação ---- */

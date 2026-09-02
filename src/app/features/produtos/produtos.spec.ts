@@ -1,14 +1,18 @@
+import { WritableSignal, signal } from '@angular/core';
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 
 import { Produtos } from './produtos';
+import { AuthService } from '../../core/services/auth.service';
 import { ApiResponse } from '../../core/models/api-response.model';
 import { PaginaResponse, Produto } from '../../core/models/produto.model';
 
 describe('Produtos (lista — T-M2-7, CA-19/CA-15)', () => {
   let httpMock: HttpTestingController;
+  // RBAC de UX (T-M2-8): controla `authService.ehAdmin` por teste (default = USER/não-admin).
+  let ehAdmin: WritableSignal<boolean>;
 
   const BASE = 'http://localhost:8080/api/v1/produtos';
 
@@ -44,9 +48,16 @@ describe('Produtos (lista — T-M2-7, CA-19/CA-15)', () => {
   }
 
   beforeEach(() => {
+    ehAdmin = signal(false);
     TestBed.configureTestingModule({
       imports: [Produtos],
-      providers: [provideNoopAnimations(), provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        provideNoopAnimations(),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        // Stub só do que a tela usa do AuthService: o signal `ehAdmin` (RBAC de UX).
+        { provide: AuthService, useValue: { ehAdmin } },
+      ],
     });
     httpMock = TestBed.inject(HttpTestingController);
   });
@@ -176,5 +187,55 @@ describe('Produtos (lista — T-M2-7, CA-19/CA-15)', () => {
     fixture.detectChanges();
     expect(el.querySelector('.estado--erro')).toBeNull();
     expect(el.querySelectorAll('.vaso').length).toBe(1);
+  });
+
+  // --- Integração do form + RBAC das ações de escrita (T-M2-8, CA-20) ---
+
+  it('USER não vê as ações de escrita "Novo produto"/"Editar" (RBAC — CA-20)', () => {
+    ehAdmin.set(false);
+    const fixture = iniciar([base]);
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.placa__acao')).toBeNull();
+    expect(el.querySelector('.vaso__editar')).toBeNull();
+  });
+
+  it('ADMIN vê "Novo produto" na placa e "Editar" no card (RBAC — CA-20)', () => {
+    ehAdmin.set(true);
+    const fixture = iniciar([base]);
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.placa__acao')?.textContent).toContain('Novo produto');
+    expect(el.querySelector('.vaso__editar')).toBeTruthy();
+    // Guard herdado: mesmo com as ações, segue existindo um único <h1>.
+    expect(el.querySelectorAll('h1').length).toBe(1);
+  });
+
+  it('ADMIN abre o diálogo do form ao clicar em "Novo produto"', () => {
+    ehAdmin.set(true);
+    const fixture = iniciar([base]);
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('app-produto-form')).toBeNull();
+
+    (el.querySelector('.placa__acao') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(el.querySelector('.veu')).toBeTruthy();
+    expect(el.querySelector('app-produto-form')).toBeTruthy();
+  });
+
+  it('ao salvar, o form fecha e a lista recarrega (nova chamada ao back)', () => {
+    ehAdmin.set(true);
+    const fixture = iniciar([base]);
+    const el = fixture.nativeElement as HTMLElement;
+
+    (el.querySelector('.placa__acao') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    // Simula o emit `salvo` do form filho → a lista deve refazer o GET e fechar o diálogo.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (fixture.componentInstance as any).aoSalvar({ ...base, nome: 'Novo' });
+    httpMock.expectOne((r) => r.url === BASE).flush(envelope(pagina([base])));
+    fixture.detectChanges();
+
+    expect(el.querySelector('app-produto-form')).toBeNull();
   });
 });

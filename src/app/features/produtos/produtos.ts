@@ -8,8 +8,11 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatPaginatorModule, MatPaginatorIntl, PageEvent } from '@angular/material/paginator';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { ProdutosService } from './produtos.service';
+import { ProdutoForm } from './produto-form/produto-form';
+import { AuthService } from '../../core/services/auth.service';
 import { Produto, UnidadeMedida } from '../../core/models/produto.model';
 
 /** MatPaginator em pt-BR — sem o "Items per page" em inglês do default (design-distintivo §texto). */
@@ -45,8 +48,12 @@ const ROTULOS_UNIDADE: Record<UnidadeMedida, string> = {
  * Fatia de LISTA: cards mobile-first (paginação server-side via `MatPaginator` 0-based —
  * casa `pagina` do §3.3; AD-SQ-29), filtro por nome com `debounceTime(300)`, selo de
  * estoque baixo (FC-13/CA-15), fallback de imagem no `(error)` do `<img>` (AD-SQ-32) e
- * estados honestos de carregando/erro (com "tentar de novo")/vazio. Form, exclusão e
- * movimentação são as T-M2-8/T-M2-9.
+ * estados honestos de carregando/erro (com "tentar de novo")/vazio.
+ *
+ * T-M2-8 (CA-20, parte form): hospeda o `ProdutoForm` num diálogo modal para ADMIN criar/editar
+ * (POST/PUT); ao salvar, a lista recarrega. As ações de escrita ("Novo produto"/"Editar") só
+ * aparecem para ADMIN (FC-07, via `authService.ehAdmin`) — o RBAC de verdade é do back.
+ * Exclusão e movimentação chegam com a T-M2-9.
  */
 @Component({
   selector: 'app-produtos',
@@ -58,6 +65,7 @@ const ROTULOS_UNIDADE: Record<UnidadeMedida, string> = {
     MatIconModule,
     MatProgressSpinnerModule,
     MatPaginatorModule,
+    ProdutoForm,
   ],
   providers: [{ provide: MatPaginatorIntl, useFactory: paginatorPtBr }],
   templateUrl: './produtos.html',
@@ -65,6 +73,11 @@ const ROTULOS_UNIDADE: Record<UnidadeMedida, string> = {
 })
 export class Produtos implements OnInit {
   private readonly service = inject(ProdutosService);
+  private readonly auth = inject(AuthService);
+  private readonly snack = inject(MatSnackBar);
+
+  /** RBAC de UX (FC-07): só ADMIN vê/usa as ações de escrita. O back é a fonte de verdade. */
+  protected readonly ehAdmin = this.auth.ehAdmin;
 
   protected readonly produtos = signal<Produto[]>([]);
   protected readonly carregando = signal(false);
@@ -81,6 +94,10 @@ export class Produtos implements OnInit {
 
   /** Ids cujo `<img>` falhou ao carregar → caem no placeholder botânico (AD-SQ-32). */
   private readonly imagensQuebradas = signal<Set<number>>(new Set());
+
+  /** Diálogo do form (T-M2-8): aberto? e produto em edição (null = criar). */
+  protected readonly formAberto = signal(false);
+  protected readonly produtoEmEdicao = signal<Produto | null>(null);
 
   constructor() {
     this.filtro.valueChanges
@@ -121,6 +138,43 @@ export class Produtos implements OnInit {
 
   protected limparFiltro(): void {
     this.filtro.setValue('');
+  }
+
+  // --- Form de criar/editar (T-M2-8, CA-20 — só ADMIN) ---
+
+  /** Abre o form em modo criação. Guarda de UX: ignora se não for ADMIN (o back também barra). */
+  protected novoProduto(): void {
+    if (!this.ehAdmin()) {
+      return;
+    }
+    this.produtoEmEdicao.set(null);
+    this.formAberto.set(true);
+  }
+
+  /** Abre o form em modo edição do produto escolhido (só ADMIN). */
+  protected editarProduto(p: Produto): void {
+    if (!this.ehAdmin()) {
+      return;
+    }
+    this.produtoEmEdicao.set(p);
+    this.formAberto.set(true);
+  }
+
+  protected fecharForm(): void {
+    this.formAberto.set(false);
+    this.produtoEmEdicao.set(null);
+  }
+
+  /** Form emitiu um produto salvo: confirma, fecha e recarrega a fatia atual da lista. */
+  protected aoSalvar(p: Produto): void {
+    const criado = this.produtoEmEdicao() === null;
+    this.fecharForm();
+    this.snack.open(
+      criado ? `${p.nome} entrou na prateleira.` : `${p.nome} foi atualizado.`,
+      'Fechar',
+      { duration: 4000 },
+    );
+    this.carregar();
   }
 
   /** Exibe placeholder quando não há URL ou o carregamento falhou (AD-SQ-32). */

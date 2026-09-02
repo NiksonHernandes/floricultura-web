@@ -7,8 +7,9 @@
  * - `Produto`: item de `PaginaResponse.conteudo` e `data` de GET detalhe (§3.2). `preco`,
  *   `descricao` e `imagemUrl` são anuláveis; `estoqueBaixo` é computado no back (FC-13).
  *
- * Escopo T-M2-7 = leitura (lista + detalhe). Os tipos de escrita (`ProdutoRequest`) e de
- * movimentação vêm com seus consumidores nas T-M2-8/T-M2-9 (sem tipo órfão agora).
+ * Escopo T-M2-7 = leitura (lista + detalhe). A escrita (`ProdutoRequest` + aliases
+ * `CriarProdutoRequest`/`AtualizarProdutoRequest`) entra com a T-M2-8 (form). A
+ * movimentação chega com a T-M2-9 (sem tipo órfão antes do consumidor).
  */
 
 /** Envelope de listagem paginada — `data` de todo GET de lista (§3.3, AD-SQ-29). */
@@ -39,3 +40,24 @@ export interface Produto {
   criadoEm: string;
   atualizadoEm: string;
 }
+
+/**
+ * Payload de escrita de produto (§3.2, T-M2-8). `POST /produtos` e `PUT /produtos/{id}`
+ * carregam os MESMOS campos — só de cadastro; `estoqueAtual` NUNCA viaja aqui (só muda por
+ * movimentação — AD-SQ-30). `descricao`, `preco` e `imagemUrl` são opcionais (ausência = `null`;
+ * `preco` ausente = sem preço, AD-SQ-28). `unidadeMedida` ∈ enum fixo (AD-SQ-31).
+ */
+export interface ProdutoRequest {
+  nome: string;
+  descricao?: string | null;
+  unidadeMedida: UnidadeMedida;
+  estoqueMinimo: number;
+  preco?: number | null;
+  imagemUrl?: string | null;
+}
+
+/** Alias semântico do payload de criação (`POST /produtos`) — mesma forma de `ProdutoRequest`. */
+export type CriarProdutoRequest = ProdutoRequest;
+
+/** Alias semântico do payload de edição (`PUT /produtos/{id}`) — mesma forma de `ProdutoRequest`. */
+export type AtualizarProdutoRequest = ProdutoRequest;
