@@ -7,6 +7,7 @@ import {
 
 import { UsuariosService } from './usuarios.service';
 import { ApiResponse } from '../../core/models/api-response.model';
+import { PaginaResponse } from '../../core/models/produto.model';
 import { Usuario } from '../../core/models/auth.model';
 
 describe('UsuariosService (T-M1-9)', () => {
@@ -28,6 +29,18 @@ describe('UsuariosService (T-M1-9)', () => {
     return { success: true, data, error: null, timestamp: '', path: '' };
   }
 
+  function pagina(conteudo: Usuario[]): PaginaResponse<Usuario> {
+    return {
+      conteudo,
+      pagina: 0,
+      tamanho: 20,
+      totalElementos: conteudo.length,
+      totalPaginas: 1,
+      primeira: true,
+      ultima: true,
+    };
+  }
+
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [provideHttpClient(), provideHttpClientTesting()],
@@ -38,15 +51,39 @@ describe('UsuariosService (T-M1-9)', () => {
 
   afterEach(() => httpMock.verify());
 
-  it('listar() faz GET e desembrulha o array do envelope', () => {
-    let recebido: Usuario[] | undefined;
-    service.listar().subscribe((l) => (recebido = l));
+  // Retrofit T-M2-10/CA-21 (AD-SQ-29): `listar` migra de `Usuario[]` para `PaginaResponse<Usuario>`,
+  // enviando pagina/tamanho (0-based) e o filtro `nome` — mesmo padrão de `ProdutosService`.
+  it('listar() faz GET com pagina/tamanho e desembrulha a PaginaResponse do envelope', () => {
+    let recebido: PaginaResponse<Usuario> | undefined;
+    service.listar(0, 20).subscribe((p) => (recebido = p));
 
-    const req = httpMock.expectOne(BASE);
+    const req = httpMock.expectOne(
+      (r) => r.url === BASE && r.params.get('pagina') === '0' && r.params.get('tamanho') === '20',
+    );
     expect(req.request.method).toBe('GET');
-    req.flush(envelope([maria]));
+    expect(req.request.params.has('nome')).toBeFalse();
+    req.flush(envelope(pagina([maria])));
 
-    expect(recebido).toEqual([maria]);
+    expect(recebido?.conteudo).toEqual([maria]);
+    expect(recebido?.totalElementos).toBe(1);
+  });
+
+  it('listar() com nome inclui o filtro (trimado) nos params', () => {
+    service.listar(1, 50, '  ma  ').subscribe();
+
+    const req = httpMock.expectOne(
+      (r) => r.url === BASE && r.params.get('pagina') === '1' && r.params.get('tamanho') === '50',
+    );
+    expect(req.request.params.get('nome')).toBe('ma');
+    req.flush(envelope(pagina([])));
+  });
+
+  it('listar() com nome só de espaços NÃO envia o param nome', () => {
+    service.listar(0, 20, '   ').subscribe();
+
+    const req = httpMock.expectOne((r) => r.url === BASE);
+    expect(req.request.params.has('nome')).toBeFalse();
+    req.flush(envelope(pagina([])));
   });
 
   it('detalhar() faz GET /{id}', () => {

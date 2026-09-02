@@ -101,6 +101,21 @@ app-usuario-form {
   margin-bottom: 1.5rem;
 }
 
+/* ---- Busca por nome (retrofit T-M2-10 — mesmo padrão de Produtos) ---- */
+.busca {
+  width: 100%;
+  margin-bottom: 1.25rem;
+
+  --mdc-outlined-text-field-focus-outline-color: var(--caule);
+  --mdc-outlined-text-field-caret-color: var(--caule);
+  --mdc-outlined-text-field-focus-label-text-color: var(--folhagem);
+
+  mat-icon[matPrefix] {
+    margin-right: 0.5rem;
+    color: var(--caule);
+  }
+}
+
 /* ---- Estados (carregando / erro / vazio) — telas honestas, não "nada por aqui :(" ---- */
 .estado {
   display: flex;
@@ -247,6 +262,17 @@ app-usuario-form {
   --mat-button-text-icon-color: #8f2450;
 }
 
+/* ---- Paginação (retrofit T-M2-10 — mesmo padrão de Produtos) ---- */
+.paginacao {
+  margin-top: 1.25rem;
+  border-radius: 12px;
+  border: 1px solid var(--orvalho);
+  background: #fff;
+
+  --mat-paginator-container-text-color: color-mix(in srgb, var(--tinta) 78%, var(--estufa));
+  --mat-paginator-enabled-icon-color: var(--folhagem);
+}
+
 /* ---- Diálogos (confirmação de status / reset de senha) ---- */
 .veu {
   position: fixed;
@@ -336,6 +362,7 @@ app-usuario-form {
 
 /* ---- Foco de teclado visível (piso de qualidade §9) ---- */
 :host ::ng-deep .mdc-button:focus-visible,
+:host ::ng-deep .mat-mdc-paginator .mdc-icon-button:focus-visible,
 .muda:focus-within {
   outline: 2px solid var(--caule);
   outline-offset: 2px;

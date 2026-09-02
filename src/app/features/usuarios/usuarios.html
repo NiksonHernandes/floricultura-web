@@ -23,6 +23,29 @@
     <app-usuario-form (criado)="aoCriar($event)" (cancelado)="formAberto.set(false)" />
   }
 
+  <mat-form-field appearance="outline" class="busca">
+    <mat-icon matPrefix aria-hidden="true">search</mat-icon>
+    <mat-label>Buscar por nome</mat-label>
+    <input
+      matInput
+      type="text"
+      [formControl]="filtro"
+      autocomplete="off"
+      aria-label="Buscar pessoas por nome"
+    />
+    @if (filtro.value) {
+      <button
+        matSuffix
+        mat-icon-button
+        type="button"
+        aria-label="Limpar busca"
+        (click)="limparFiltro()"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
+    }
+  </mat-form-field>
+
   @if (carregando()) {
     <p class="estado" aria-live="polite">
       <mat-progress-spinner diameter="22" mode="indeterminate" aria-hidden="true" />
@@ -37,7 +60,11 @@
   } @else if (vazia()) {
     <div class="estado estado--vazio">
       <mat-icon aria-hidden="true">local_florist</mat-icon>
-      <p>O canteiro ainda está sem pessoas. Cadastre a primeira para começar.</p>
+      @if (filtro.value) {
+        <p>Nenhuma pessoa encontrada para “{{ filtro.value }}”. Tente outro nome.</p>
+      } @else {
+        <p>O canteiro ainda está sem pessoas. Cadastre a primeira para começar.</p>
+      }
     </div>
   } @else {
     <ul class="mudas" aria-label="Pessoas cadastradas">
@@ -74,6 +101,15 @@
         </li>
       }
     </ul>
+
+    <mat-paginator
+      class="paginacao"
+      [length]="totalElementos()"
+      [pageIndex]="pagina()"
+      [pageSize]="tamanho()"
+      [pageSizeOptions]="[20, 50, 100]"
+      (page)="aoPaginar($event)"
+    />
   }
 </section>
 

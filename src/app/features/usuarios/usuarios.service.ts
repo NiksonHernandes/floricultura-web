@@ -1,9 +1,10 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../../core/models/api-response.model';
+import { PaginaResponse } from '../../core/models/produto.model';
 import { Usuario } from '../../core/models/auth.model';
 
 /**
@@ -17,20 +18,32 @@ export interface CriarUsuarioRequest {
 }
 
 /**
- * Serviço da gestão de usuários (SPEC-M1 §3.1, T-M1-9, CA-14).
+ * Serviço da gestão de usuários (SPEC-M1 §3.1, T-M1-9, CA-14; retrofit T-M2-10/CA-21).
  *
- * Consome os 5 endpoints de `/usuarios` DENTRO do envelope §3.1 do M0 (reusa
- * `ApiResponse<T>`; não redefine envelope). Os endpoints do back (T-M1-4/5) ainda não
- * existem — os componentes/testes exercitam este serviço via `HttpTestingController`.
+ * Consome os endpoints de `/usuarios` DENTRO do envelope §3.1 do M0 (reusa `ApiResponse<T>`;
+ * não redefine envelope). A LISTAGEM foi retrofitada para o contrato paginado reutilizável
+ * (§3.3, `PaginaResponse<T>`, AD-SQ-29) — mesmo padrão de Produtos. Os demais fluxos (detalhar/
+ * criar/status/reset) seguem INTACTOS.
  */
 @Injectable({ providedIn: 'root' })
 export class UsuariosService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiBaseUrl}/usuarios`;
 
-  /** GET /usuarios → lista completa (o back ordena por nome; §3.2). */
-  listar(): Observable<Usuario[]> {
-    return this.http.get<ApiResponse<Usuario[]>>(this.baseUrl).pipe(map((r) => r.data ?? []));
+  /**
+   * GET /usuarios?pagina&tamanho&nome → página de usuários (§3.3, 0-based; retrofit AD-SQ-29).
+   * O back ordena por `nome ASC` e filtra por `nome` (ILIKE substring). `nome` só entra no
+   * request quando há filtro (evita `nome=` vazio na URL) — mesmo padrão de `ProdutosService`.
+   */
+  listar(pagina: number, tamanho: number, nome?: string): Observable<PaginaResponse<Usuario>> {
+    let params = new HttpParams().set('pagina', pagina).set('tamanho', tamanho);
+    const termo = nome?.trim();
+    if (termo) {
+      params = params.set('nome', termo);
+    }
+    return this.http
+      .get<ApiResponse<PaginaResponse<Usuario>>>(this.baseUrl, { params })
+      .pipe(map((r) => r.data!));
   }
 
   /** GET /usuarios/{id} → detalhe (inexistente → 404 tratado pelo chamador). */
