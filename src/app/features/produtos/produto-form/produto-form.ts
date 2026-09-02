@@ -11,6 +11,12 @@ import { ProdutosService } from '../produtos.service';
 import { ApiResponse } from '../../../core/models/api-response.model';
 import { Produto, ProdutoRequest, UnidadeMedida } from '../../../core/models/produto.model';
 
+/**
+ * Motivo padrão da ENTRADA lançada na criação do produto (AD-SQ-35/CA-22). Grava no ledger
+ * o rastro de que o estoque nasceu junto do cadastro (auditável — o estoque nunca fura o ledger).
+ */
+export const MOTIVO_ENTRADA_INICIAL = 'Estoque inicial (cadastro)';
+
 /** Opções do select de unidade (AD-SQ-31): valor = código ASCII persistido; rótulo amigável (`m³`, `L`). */
 export const OPCOES_UNIDADE: ReadonlyArray<{ valor: UnidadeMedida; rotulo: string }> = [
   { valor: 'un', rotulo: 'Unidade (un)' },
@@ -34,6 +40,14 @@ export const OPCOES_UNIDADE: ReadonlyArray<{ valor: UnidadeMedida; rotulo: strin
  * Erro contra o contrato §3.2: `400 VALIDATION_ERROR` → aplica `error.details` por campo;
  * demais falhas → banner geral. Só ADMIN escreve (FC-07) — a lista só abre este form p/ ADMIN.
  * Ao sucesso emite `salvo` (a lista recarrega).
+ *
+ * T-M2-11 (CA-22, AD-SQ-35): SÓ no modo criação, oferece um campo OPCIONAL de **entrada inicial**
+ * de estoque (`FormControl` standalone, FORA do form group — a quantidade NUNCA entra no
+ * `ProdutoRequest`). Orquestra 2 chamadas: `POST /produtos` (nasce estoque 0 — AD-SQ-30) → se
+ * `entradaInicial > 0`, `POST /produtos/{id}/movimentacoes` (ENTRADA, motivo default). Se a criação
+ * dá 201 mas a ENTRADA falha, o produto JÁ existe: emite `salvo` (não recria/deleta) e sinaliza
+ * `entradaInicialFalhou` para a lista-mãe avisar (snackbar de warning). O diálogo "Movimentar"
+ * (T-M2-9) permanece intacto.
  */
 @Component({
   selector: 'app-produto-form',
@@ -59,6 +73,12 @@ export class ProdutoForm implements OnInit {
   readonly salvo = output<Produto>();
   /** Emite quando o operador cancela/fecha sem salvar. */
   readonly cancelado = output<void>();
+  /**
+   * Sinaliza que o produto foi criado (201) mas a ENTRADA inicial de estoque falhou (AD-SQ-35).
+   * Emitido ANTES de `salvo` no ramo de falha; a lista-mãe troca o snackbar de sucesso pelo de
+   * warning (o produto existe com estoque 0 — não é desfeito).
+   */
+  readonly entradaInicialFalhou = output<void>();
 
   protected readonly enviando = signal(false);
   protected readonly erroGeral = signal<string | null>(null);
@@ -80,6 +100,13 @@ export class ProdutoForm implements OnInit {
     imagemUrl: this.fb.nonNullable.control('', [Validators.maxLength(1000)]),
   });
 
+  /**
+   * Entrada inicial de estoque (AD-SQ-35/CA-22) — controle STANDALONE, FORA do `form` group: a
+   * quantidade NUNCA entra no `ProdutoRequest`, só no `MovimentacaoRequest` da 2ª chamada. Opcional
+   * (vazio/`null`/`0` = sem ENTRADA); `min(0)` bloqueia negativo. Só é lido/exibido no modo criação.
+   */
+  protected readonly entradaInicial = this.fb.control<number | null>(null, [Validators.min(0)]);
+
   ngOnInit(): void {
     const p = this.produto();
     if (p) {
@@ -99,8 +126,11 @@ export class ProdutoForm implements OnInit {
     if (this.enviando()) {
       return;
     }
-    if (this.form.invalid) {
+    // No modo criação, a entrada inicial (standalone) também precisa ser válida (não negativa).
+    const entradaInvalida = !this.editando() && this.entradaInicial.invalid;
+    if (this.form.invalid || entradaInvalida) {
       this.form.markAllAsTouched();
+      this.entradaInicial.markAsTouched();
       return;
     }
 
@@ -108,18 +138,64 @@ export class ProdutoForm implements OnInit {
     this.erroGeral.set(null);
     const req = this.montarPayload();
     const alvo = this.produto();
-    const requisicao = alvo ? this.service.atualizar(alvo.id, req) : this.service.criar(req);
 
-    requisicao.subscribe({
-      next: (salvo) => {
-        this.enviando.set(false);
-        this.salvo.emit(salvo);
+    if (alvo) {
+      // Edição: PUT nunca toca estoque (AD-SQ-30); a entrada inicial não existe/age aqui.
+      this.service.atualizar(alvo.id, req).subscribe({
+        next: (salvo) => {
+          this.enviando.set(false);
+          this.salvo.emit(salvo);
+        },
+        error: (erro: HttpErrorResponse) => {
+          this.enviando.set(false);
+          this.tratarErro(erro);
+        },
+      });
+      return;
+    }
+
+    // Criação: POST /produtos (nasce estoque 0). Só encadeia a 2ª chamada se houver entrada > 0.
+    this.service.criar(req).subscribe({
+      next: (criado) => {
+        const entrada = this.entradaInicial.value;
+        if (entrada !== null && entrada > 0) {
+          this.registrarEntradaInicial(criado, entrada);
+        } else {
+          this.enviando.set(false);
+          this.salvo.emit(criado);
+        }
       },
       error: (erro: HttpErrorResponse) => {
         this.enviando.set(false);
         this.tratarErro(erro);
       },
     });
+  }
+
+  /**
+   * 2ª chamada da orquestração (AD-SQ-35): lança a ENTRADA inicial no ledger via
+   * `POST /produtos/{id}/movimentacoes`. No sucesso, emite `salvo` (a lista recarrega o estoque real).
+   * Na falha, o produto JÁ existe com estoque 0: sinaliza `entradaInicialFalhou` e AINDA emite `salvo`
+   * — NÃO desfaz/deleta o produto e NÃO re-chama `criar` (evita duplicata; semântica de falha CA-22).
+   */
+  private registrarEntradaInicial(criado: Produto, quantidade: number): void {
+    this.service
+      .movimentar(criado.id, {
+        tipo: 'ENTRADA',
+        quantidade,
+        motivo: MOTIVO_ENTRADA_INICIAL,
+      })
+      .subscribe({
+        next: () => {
+          this.enviando.set(false);
+          this.salvo.emit(criado);
+        },
+        error: () => {
+          this.enviando.set(false);
+          this.entradaInicialFalhou.emit();
+          this.salvo.emit(criado);
+        },
+      });
   }
 
   protected cancelar(): void {

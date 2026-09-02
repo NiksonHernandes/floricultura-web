@@ -185,14 +185,25 @@
   border-color: color-mix(in srgb, var(--dalia) 40%, var(--orvalho));
 }
 
-/* Planta (imagem / placeholder) + selo */
+/* Planta (imagem / placeholder) + selo.
+   Faixa da foto com altura UNIFORME em todos os cards (bug RUN-LOCAL do dono):
+   como filha de flex-column, o `aspect-ratio` sozinho não trava a altura — o
+   `min-height:auto` do item flex deixa a altura intrínseca da imagem vazar e
+   empurrar o card. Fix determinístico: item flex que não estica nem encolhe
+   (`flex:0 0 auto` + `min-height:0`) e a imagem/placeholder posicionados em
+   absoluto preenchendo a faixa — a dimensão da foto nunca influencia a altura. */
 .vaso__planta {
   position: relative;
+  flex: 0 0 auto;
+  min-height: 0;
   aspect-ratio: 16 / 10;
+  overflow: hidden;
   background: color-mix(in srgb, var(--caule) 12%, white);
 }
 
 .vaso__img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -200,6 +211,8 @@
 }
 
 .vaso__placeholder {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   display: flex;

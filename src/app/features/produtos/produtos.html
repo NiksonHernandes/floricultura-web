@@ -162,6 +162,7 @@
   <app-produto-form
     [produto]="produtoEmEdicao()"
     (salvo)="aoSalvar($event)"
+    (entradaInicialFalhou)="aoEntradaInicialFalhou()"
     (cancelado)="fecharForm()"
   />
 }
