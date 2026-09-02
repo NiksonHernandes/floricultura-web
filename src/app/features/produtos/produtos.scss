@@ -1,0 +1,68 @@
+// Produtos (Home) — placeholder honesto do M2/Onda 1 (AD-SQ-33, CA-16).
+// Reusa os tokens do ateliê (_atelie-tokens.scss) para falar do MESMO produto do shell.
+@use '../../shared/styles/atelie-tokens' as atelie;
+
+:host {
+  @include atelie.base;
+  display: block;
+  min-height: 100%;
+  background: var(--estufa);
+  color: var(--tinta);
+}
+
+.produtos {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3rem;
+}
+
+.produtos__eyebrow {
+  font: 600 0.72rem/1 var(--display);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--caule);
+}
+
+.produtos__titulo {
+  margin: 0.35rem 0 0;
+  font: 400 clamp(1.7rem, 4.5vw, 2.4rem) / 1.05 var(--display);
+  font-optical-sizing: auto;
+  letter-spacing: -0.01em;
+  color: var(--tinta);
+}
+
+.produtos__sub {
+  margin: 0.4rem 0 0;
+  font: var(--mat-sys-body-medium);
+  color: color-mix(in srgb, var(--tinta) 62%, var(--estufa));
+}
+
+.produtos__vazio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+  padding: 2.5rem 1.5rem;
+  border: 1px dashed var(--orvalho);
+  border-radius: 14px;
+  background: #fff;
+  color: color-mix(in srgb, var(--tinta) 70%, var(--estufa));
+  font: var(--mat-sys-body-medium);
+
+  mat-icon {
+    color: var(--caule);
+    font-size: 2.25rem;
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  p {
+    margin: 0;
+    // `width:100%` fixa a base no container (sem overflow no mobile); `max-width` só limita
+    // a largura de leitura no desktop. Texto centralizado via `text-align` do pai.
+    width: 100%;
+    max-width: 26rem;
+  }
+}

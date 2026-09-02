@@ -1,0 +1,68 @@
+<mat-sidenav-container class="shell">
+  <mat-sidenav
+    class="shell__nav"
+    [mode]="ehMobile() ? 'over' : 'side'"
+    [opened]="drawerAberto()"
+    (openedChange)="drawerAberto.set($event)"
+    [fixedInViewport]="ehMobile()"
+    role="navigation"
+    aria-label="Navegação principal"
+  >
+    <div class="marca">
+      <span class="marca__caule" aria-hidden="true"></span>
+      <span class="marca__eyebrow">Ateliê</span>
+      <span class="marca__wordmark">Floricultura</span>
+    </div>
+
+    <mat-nav-list class="menu">
+      @for (item of itensVisiveis(); track item.rota) {
+        <a
+          mat-list-item
+          class="menu__item"
+          [routerLink]="item.rota"
+          routerLinkActive="menu__item--ativo"
+          #rla="routerLinkActive"
+          [attr.aria-current]="rla.isActive ? 'page' : null"
+          (click)="aoNavegar()"
+        >
+          <mat-icon matListItemIcon aria-hidden="true">{{ item.icone }}</mat-icon>
+          <span matListItemTitle>{{ item.rotulo }}</span>
+        </a>
+      }
+    </mat-nav-list>
+
+    <div class="rodape">
+      @if (usuario(); as u) {
+        <div class="rodape__usuario">
+          <span class="rodape__nome">{{ u.nome }}</span>
+          <span class="rodape__papel">{{ u.role === 'ADMIN' ? 'Administrador' : 'Equipe' }}</span>
+        </div>
+      }
+      <button type="button" mat-button class="rodape__sair" (click)="sair()">
+        <mat-icon aria-hidden="true">logout</mat-icon>
+        <span>Sair</span>
+      </button>
+    </div>
+  </mat-sidenav>
+
+  <mat-sidenav-content class="shell__content">
+    @if (ehMobile()) {
+      <mat-toolbar class="barra">
+        <button
+          type="button"
+          mat-icon-button
+          class="barra__menu"
+          (click)="alternarDrawer()"
+          aria-label="Abrir menu de navegação"
+        >
+          <mat-icon aria-hidden="true">menu</mat-icon>
+        </button>
+        <span class="barra__wordmark">Floricultura</span>
+      </mat-toolbar>
+    }
+
+    <main class="shell__outlet">
+      <router-outlet />
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>
