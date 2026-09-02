@@ -17,12 +17,10 @@
 :host {
   @include atelie.base;
 
-  // Assume a viewport (cobre o shell/hero M0 sem alterá-lo — mesma decisão de login/gestão).
-  position: fixed;
-  inset: 0;
-  z-index: 10;
+  // Filha do shell (AD-SQ-33): preenche a área de conteúdo, sem `position:fixed` (que cobriria
+  // a sidenav). O scroll é do `mat-sidenav-content`. Resolve a DT-M1-1 também aqui.
   display: block;
-  overflow-y: auto;
+  min-height: 100%;
   background:
     radial-gradient(130% 80% at 100% 0%, color-mix(in srgb, var(--caule) 22%, var(--estufa)) 0%, var(--estufa) 55%);
   color: var(--tinta);

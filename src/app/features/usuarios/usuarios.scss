@@ -13,12 +13,10 @@
 :host {
   @include atelie.base;
 
-  // Assume a viewport (cobre o shell/hero M0 sem alterá-lo — mesma decisão do login).
-  position: fixed;
-  inset: 0;
-  z-index: 10;
+  // Filha do shell (AD-SQ-33): preenche a área de conteúdo, sem `position:fixed` (que cobriria
+  // a sidenav). O scroll é do `mat-sidenav-content`. Resolve a DT-M1-1 também aqui.
   display: block;
-  overflow-y: auto;
+  min-height: 100%;
   background: var(--estufa);
   color: var(--tinta);
 }
@@ -101,6 +99,21 @@
 app-usuario-form {
   display: block;
   margin-bottom: 1.5rem;
+}
+
+/* ---- Busca por nome (retrofit T-M2-10 — mesmo padrão de Produtos) ---- */
+.busca {
+  width: 100%;
+  margin-bottom: 1.25rem;
+
+  --mdc-outlined-text-field-focus-outline-color: var(--caule);
+  --mdc-outlined-text-field-caret-color: var(--caule);
+  --mdc-outlined-text-field-focus-label-text-color: var(--folhagem);
+
+  mat-icon[matPrefix] {
+    margin-right: 0.5rem;
+    color: var(--caule);
+  }
 }
 
 /* ---- Estados (carregando / erro / vazio) — telas honestas, não "nada por aqui :(" ---- */
@@ -249,6 +262,17 @@ app-usuario-form {
   --mat-button-text-icon-color: #8f2450;
 }
 
+/* ---- Paginação (retrofit T-M2-10 — mesmo padrão de Produtos) ---- */
+.paginacao {
+  margin-top: 1.25rem;
+  border-radius: 12px;
+  border: 1px solid var(--orvalho);
+  background: #fff;
+
+  --mat-paginator-container-text-color: color-mix(in srgb, var(--tinta) 78%, var(--estufa));
+  --mat-paginator-enabled-icon-color: var(--folhagem);
+}
+
 /* ---- Diálogos (confirmação de status / reset de senha) ---- */
 .veu {
   position: fixed;
@@ -338,6 +362,7 @@ app-usuario-form {
 
 /* ---- Foco de teclado visível (piso de qualidade §9) ---- */
 :host ::ng-deep .mdc-button:focus-visible,
+:host ::ng-deep .mat-mdc-paginator .mdc-icon-button:focus-visible,
 .muda:focus-within {
   outline: 2px solid var(--caule);
   outline-offset: 2px;

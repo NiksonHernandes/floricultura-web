@@ -1,0 +1,102 @@
+<div class="livro">
+  <header class="livro__cabecalho">
+    <div>
+      <span class="livro__eyebrow">Ateliê · Estoque</span>
+      <h2 mat-dialog-title class="livro__titulo">Movimentar estoque</h2>
+      <p class="livro__produto">{{ produto.nome }}</p>
+    </div>
+    <span class="livro__saldo">
+      <span class="livro__saldo-num">{{ produto.estoqueAtual }}</span>
+      <span class="livro__saldo-un">{{ rotuloUnidade() }} em estoque</span>
+    </span>
+  </header>
+
+  <div mat-dialog-content class="livro__corpo">
+    <form class="livro__form" [formGroup]="form" (ngSubmit)="registrar()" novalidate>
+      @if (erroGeral(); as msg) {
+        <p class="livro__erro" role="alert">
+          <mat-icon aria-hidden="true">error_outline</mat-icon>
+          <span>{{ msg }}</span>
+        </p>
+      }
+
+      <mat-form-field appearance="outline" class="livro__campo">
+        <mat-label>Tipo de movimentação</mat-label>
+        <mat-select formControlName="tipo">
+          @for (op of opcoesTipo; track op.valor) {
+            <mat-option [value]="op.valor">{{ op.rotulo }}</mat-option>
+          }
+        </mat-select>
+        @if (form.controls.tipo.hasError('required')) {
+          <mat-error>Escolha o tipo de movimentação.</mat-error>
+        }
+        @if (dicaTipo(); as dica) {
+          <mat-hint>{{ dica }}</mat-hint>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="livro__campo">
+        <mat-label>Quantidade</mat-label>
+        <input matInput type="number" formControlName="quantidade" min="0" step="0.001" inputmode="decimal" />
+        <span matTextSuffix>{{ rotuloUnidade() }}</span>
+        @if (form.controls.quantidade.hasError('required')) {
+          <mat-error>Informe a quantidade.</mat-error>
+        } @else if (form.controls.quantidade.hasError('min')) {
+          <mat-error>Não pode ser negativo.</mat-error>
+        } @else if (form.controls.quantidade.hasError('servidor')) {
+          <mat-error>{{ form.controls.quantidade.getError('servidor') }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="livro__campo">
+        <mat-label>Motivo</mat-label>
+        <input matInput formControlName="motivo" autocomplete="off" maxlength="255" placeholder="Opcional — ex.: Venda no balcão" />
+        @if (form.controls.motivo.hasError('servidor')) {
+          <mat-error>{{ form.controls.motivo.getError('servidor') }}</mat-error>
+        }
+      </mat-form-field>
+    </form>
+
+    <section class="historico" aria-label="Últimas movimentações">
+      <h3 class="historico__titulo">Últimas movimentações</h3>
+      @if (carregandoHistorico()) {
+        <p class="historico__estado" aria-live="polite">
+          <mat-progress-spinner diameter="18" mode="indeterminate" aria-hidden="true" />
+          <span>Carregando…</span>
+        </p>
+      } @else if (erroHistorico()) {
+        <p class="historico__estado historico__estado--erro">
+          <span>Não foi possível carregar o histórico.</span>
+          <button type="button" mat-button (click)="carregarHistorico()">Tentar de novo</button>
+        </p>
+      } @else if (historico().length === 0) {
+        <p class="historico__estado historico__estado--vazio">
+          Nenhuma movimentação registrada ainda.
+        </p>
+      } @else {
+        <ul class="historico__lista">
+          @for (m of historico(); track m.id) {
+            <li class="historico__item">
+              <span class="historico__tipo historico__tipo--{{ m.tipo }}">{{ rotuloTipo(m.tipo) }}</span>
+              <span class="historico__qtd">{{ m.quantidade }} {{ rotuloUnidade() }}</span>
+              <span class="historico__resultante">→ {{ m.quantidadeResultante }}</span>
+              @if (m.motivo) {
+                <span class="historico__motivo">{{ m.motivo }}</span>
+              }
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  </div>
+
+  <div mat-dialog-actions class="livro__acoes">
+    <button type="button" mat-button class="botao-secundario" (click)="cancelar()">Cancelar</button>
+    <button type="button" mat-flat-button class="acao" [disabled]="enviando()" (click)="registrar()">
+      <span>{{ enviando() ? 'Registrando…' : 'Registrar movimentação' }}</span>
+      @if (!enviando()) {
+        <mat-icon iconPositionEnd aria-hidden="true">arrow_forward</mat-icon>
+      }
+    </button>
+  </div>
+</div>

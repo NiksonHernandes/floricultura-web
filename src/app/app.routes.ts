@@ -4,36 +4,47 @@ import { authGuard } from './core/guards/auth.guard';
 import { adminGuard } from './core/guards/admin.guard';
 
 /**
- * Rotas da aplicação (SPEC-M1 §3.6; SPEC-M1.1 §3.4, AD-SQ-24).
- * - `''` → `/login` (a tela de login, T-M1-8, redireciona a home se já autenticado).
- * - `login`        público (T-M1-8 preenche).
- * - `usuarios`     protegida por autenticação + papel ADMIN. A troca de senha forçada foi
- *                  descontinuada (AD-SQ-24): sem `senhaProvisoriaGuard` no encadeamento.
- * - `trocar-senha` protegida por autenticação; ação VOLUNTÁRIA de troca de senha e destino
- *                  stopgap do `USER` no M1 (não há home ainda). Ninguém é retido aqui.
- * - `health`       preservada do M0 (prova de integração; NÃO remover).
+ * Rotas da aplicação (SPEC-M2 §4, AD-SQ-33 — resolve a DT-M1-1).
+ *
+ * - `login`   PÚBLICA e **fora** do shell (sem sidenav/toolbar por baixo → um único `<h1>`
+ *             no DOM; sem `position:fixed` sobre um shell montado — CA-18).
+ * - `health`  prova de integração front↔API do M0 (standalone, fora do shell; NÃO remover).
+ * - Shell (`layout/shell`): parent das rotas AUTENTICADAS. `authGuard` cobre o grupo; sem
+ *             token → `/login`. Home pós-login = `/produtos` (ADMIN e USER — CA-16).
+ *   - `produtos`     Home (todos os autenticados).
+ *   - `usuarios`     protegida por `adminGuard` (ADMIN); o item some do menu p/ USER (CA-17).
+ *   - `trocar-senha` ação VOLUNTÁRIA de troca de senha (AD-SQ-24); ninguém é retido aqui.
  */
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', redirectTo: 'login' },
   {
     path: 'login',
     loadComponent: () => import('./features/auth/login/login').then((m) => m.Login),
   },
   {
-    path: 'usuarios',
-    canActivate: [authGuard, adminGuard],
-    loadComponent: () => import('./features/usuarios/usuarios').then((m) => m.Usuarios),
-  },
-  {
-    path: 'trocar-senha',
-    canActivate: [authGuard],
-    loadComponent: () =>
-      import('./features/auth/trocar-senha/trocar-senha').then((m) => m.TrocarSenha),
-  },
-  {
     path: 'health',
-    // Prova de integração front↔API (SPEC-M0 §3.5, T-M0-5). Lazy-loaded.
     loadComponent: () => import('./features/health/health').then((m) => m.Health),
   },
-  { path: '**', redirectTo: 'login' },
+  {
+    path: '',
+    canActivate: [authGuard],
+    loadComponent: () => import('./layout/shell').then((m) => m.Shell),
+    children: [
+      { path: '', pathMatch: 'full', redirectTo: 'produtos' },
+      {
+        path: 'produtos',
+        loadComponent: () => import('./features/produtos/produtos').then((m) => m.Produtos),
+      },
+      {
+        path: 'usuarios',
+        canActivate: [adminGuard],
+        loadComponent: () => import('./features/usuarios/usuarios').then((m) => m.Usuarios),
+      },
+      {
+        path: 'trocar-senha',
+        loadComponent: () =>
+          import('./features/auth/trocar-senha/trocar-senha').then((m) => m.TrocarSenha),
+      },
+    ],
+  },
+  { path: '**', redirectTo: '' },
 ];

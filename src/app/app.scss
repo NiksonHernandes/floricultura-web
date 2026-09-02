@@ -1,49 +1,5 @@
-// Shell mobile-first (FC-02). Layout base para todos os milestones seguintes.
+// Raiz = router-outlet puro (AD-SQ-33). O layout real vem do shell/telas filhas.
 :host {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-}
-
-.app-toolbar {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  gap: 0.5rem;
-
-  &__title {
-    font: var(--mat-sys-title-medium);
-    letter-spacing: 0.02em;
-  }
-}
-
-.app-content {
-  flex: 1;
-  // Padding mobile-first; cresce em telas maiores.
-  padding: 1rem;
-  box-sizing: border-box;
-}
-
-.app-hero {
-  max-width: 40rem;
-  margin: 2rem auto;
-  text-align: center;
-
-  &__title {
-    font: var(--mat-sys-headline-medium);
-    margin: 0 0 0.75rem;
-  }
-
-  &__subtitle {
-    font: var(--mat-sys-body-large);
-    color: var(--mat-sys-on-surface-variant);
-    margin: 0;
-  }
-}
-
-// Breakpoint tablet/desktop: respira mais sem quebrar o mobile-first.
-@media (min-width: 600px) {
-  .app-content {
-    padding: 2rem;
-  }
+  display: block;
+  height: 100%;
 }

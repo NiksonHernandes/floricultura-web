@@ -1,0 +1,184 @@
+// Shell do ateliê — "a bancada de trabalho" (SPEC-M2 §9, AD-SQ-33, CA-16/17/18).
+//
+// Passe 1 (tokens nomeados, reusados via _atelie-tokens.scss — MESMO produto do login/gestão):
+//   folhagem  estante lateral de navegação (o painel-marca do login vira a lateral fixa)
+//   estufa    área de conteúdo + wordmark sobre a folhagem   caule   item ativo / foco / hairline
+//   sais      eyebrow e texto secundário sobre a folhagem    dalia   nó vivo do item ativo (ÚNICO acento)
+//   orvalho   hairlines                                      Fraunces  wordmark (serifa botânica, contida)
+// Passe 2 anti-default: recusa o "app-bar azul + drawer branco genérico" do Material de IA. A
+//   navegação é uma estante de folhagem; o item ativo NÃO é um retângulo azul cheio, e sim caule
+//   à esquerda + nó de dália; o hambúrguer/toolbar mobile herda a mesma folhagem. Mobile-first (FC-02).
+@use '../shared/styles/atelie-tokens' as atelie;
+
+:host {
+  @include atelie.base;
+  display: block;
+  height: 100%;
+}
+
+.shell {
+  height: 100%;
+  background: var(--estufa);
+}
+
+/* ---- Estante lateral (folhagem) ---- */
+.shell__nav {
+  width: 16rem;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem 0.75rem 1rem;
+  border: none;
+  background: radial-gradient(130% 60% at 0% 0%, #274a3a 0%, var(--folhagem) 60%);
+  color: var(--estufa);
+}
+
+.marca {
+  position: relative;
+  padding: 0.25rem 0.75rem 1.25rem 1.5rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--caule) 35%, transparent);
+}
+
+.marca__caule {
+  position: absolute;
+  top: 0.35rem;
+  left: 0.75rem;
+  width: 2px;
+  height: 2.4rem;
+  background: linear-gradient(var(--caule), transparent);
+}
+
+.marca__eyebrow {
+  display: block;
+  font: 600 0.7rem/1 var(--display);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--sais);
+}
+
+.marca__wordmark {
+  display: block;
+  margin-top: 0.35rem;
+  font: 400 1.7rem/1 var(--display);
+  font-optical-sizing: auto;
+  letter-spacing: -0.01em;
+  color: var(--estufa);
+}
+
+/* ---- Menu ---- */
+.menu {
+  flex: 1;
+  padding-top: 0.5rem;
+
+  --mat-list-list-item-label-text-color: var(--estufa);
+  --mat-list-list-item-leading-icon-color: var(--sais);
+  --mat-list-list-item-hover-label-text-color: #fff;
+}
+
+.menu__item {
+  position: relative;
+  margin: 0.15rem 0;
+  border-radius: 10px;
+
+  &:hover {
+    background: color-mix(in srgb, var(--caule) 20%, transparent);
+  }
+}
+
+// Item ativo: caule (fundo clareado) + nó de dália à esquerda — a ÚNICA ousadia (§gaste num lugar só).
+.menu__item--ativo {
+  background: color-mix(in srgb, var(--caule) 26%, transparent);
+
+  --mat-list-list-item-label-text-color: #fff;
+  --mat-list-list-item-leading-icon-color: #fff;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--dalia);
+    box-shadow: 0 0 0 4px rgba(196, 50, 107, 0.22);
+  }
+}
+
+/* ---- Rodapé da estante (usuário + sair) ---- */
+.rodape {
+  margin-top: auto;
+  padding: 0.75rem 0.5rem 0.25rem;
+  border-top: 1px solid color-mix(in srgb, var(--caule) 35%, transparent);
+}
+
+.rodape__usuario {
+  padding: 0 0.75rem 0.5rem;
+  line-height: 1.2;
+}
+
+.rodape__nome {
+  display: block;
+  font: 600 0.95rem/1.2 var(--display);
+  color: var(--estufa);
+  word-break: break-word;
+}
+
+.rodape__papel {
+  display: block;
+  font: var(--mat-sys-body-small);
+  color: var(--sais);
+}
+
+.rodape__sair {
+  width: 100%;
+  justify-content: flex-start;
+  min-height: 44px; // alvo de toque (dono: ~90% mobile)
+  --mat-button-text-label-text-color: var(--sais);
+  --mat-button-text-icon-color: var(--sais);
+
+  &:hover {
+    --mat-button-text-label-text-color: #fff;
+    --mat-button-text-icon-color: #fff;
+  }
+}
+
+/* ---- Conteúdo (vidro de estufa) ---- */
+.shell__content {
+  background: var(--estufa);
+}
+
+.barra {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  gap: 0.5rem;
+  background: var(--folhagem);
+  color: var(--estufa);
+
+  --mat-toolbar-container-text-color: var(--estufa);
+}
+
+.barra__menu {
+  color: var(--estufa);
+}
+
+.barra__wordmark {
+  font: 400 1.35rem/1 var(--display);
+  letter-spacing: -0.01em;
+}
+
+.shell__outlet {
+  display: block;
+  min-height: 100%;
+}
+
+/* ---- Foco de teclado visível (piso de qualidade §9) ---- */
+:host ::ng-deep .mdc-list-item:focus-visible,
+:host ::ng-deep .mdc-button:focus-visible {
+  outline: 2px solid var(--caule);
+  outline-offset: -2px;
+  border-radius: 10px;
+}

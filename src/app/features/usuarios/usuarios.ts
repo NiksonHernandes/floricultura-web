@@ -4,27 +4,52 @@ import { HttpErrorResponse } from '@angular/common/http';
 import {
   AbstractControl,
   FormBuilder,
+  FormControl,
   ReactiveFormsModule,
   ValidationErrors,
   Validators,
 } from '@angular/forms';
+import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatPaginatorModule, MatPaginatorIntl, PageEvent } from '@angular/material/paginator';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { UsuariosService } from './usuarios.service';
 import { UsuarioForm } from './usuario-form/usuario-form';
 import { Usuario } from '../../core/models/auth.model';
 
+/** MatPaginator em pt-BR (mesmo padrão de Produtos), com rótulos do "canteiro de pessoas". */
+function paginatorPtBr(): MatPaginatorIntl {
+  const intl = new MatPaginatorIntl();
+  intl.itemsPerPageLabel = 'Pessoas por página';
+  intl.nextPageLabel = 'Próxima página';
+  intl.previousPageLabel = 'Página anterior';
+  intl.firstPageLabel = 'Primeira página';
+  intl.lastPageLabel = 'Última página';
+  intl.getRangeLabel = (page, size, length) => {
+    if (length === 0) return '0 de 0';
+    const inicio = page * size + 1;
+    const fim = Math.min((page + 1) * size, length);
+    return `${inicio}–${fim} de ${length}`;
+  };
+  return intl;
+}
+
 /**
  * Gestão de usuários — "o canteiro de pessoas do ateliê" (SPEC-M1 §7 T-M1-9, CA-14).
  *
- * Container da fatia "lista": carrega/ordena por nome, hospeda o form de cadastro (filho
- * `UsuarioForm`), e conduz ativar/desativar (com confirmação e 409 último-admin) e o reset
- * de senha por ADMIN (PATCH /{id}/senha). Consome `UsuariosService` (§3.1/§3.2).
+ * Container da fatia "lista": carrega a página do back (retrofit paginado — §3.3/CA-21),
+ * hospeda o form de cadastro (filho `UsuarioForm`), e conduz ativar/desativar (com confirmação
+ * e 409 último-admin) e o reset de senha por ADMIN (PATCH /{id}/senha). Consome `UsuariosService`.
+ *
+ * Retrofit T-M2-10 (CA-21, AD-SQ-29): a LISTAGEM migra para o mesmo padrão de Produtos —
+ * paginação server-side via `MatPaginator` (0-based) + filtro por nome com `debounceTime(300)`.
+ * A ordenação por nome passa a ser do back (`nome ASC`); a ordenação client-side no carregamento
+ * some. Os fluxos de criar/status/reset (T-M1) seguem INTACTOS.
  *
  * Design (§9): reusa a paleta/tipografia do login (tokens em _atelie-tokens.scss) — a placa
  * de canteiro ecoa a etiqueta de viveiro; a dália segue reservada só à ação primária.
@@ -38,8 +63,10 @@ import { Usuario } from '../../core/models/auth.model';
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    MatPaginatorModule,
     UsuarioForm,
   ],
+  providers: [{ provide: MatPaginatorIntl, useFactory: paginatorPtBr }],
   templateUrl: './usuarios.html',
   styleUrl: './usuarios.scss',
 })
@@ -52,7 +79,15 @@ export class Usuarios implements OnInit {
   protected readonly carregando = signal(false);
   protected readonly erroLista = signal<string | null>(null);
   protected readonly formAberto = signal(false);
-  protected readonly vazia = computed(() => !this.carregando() && this.usuarios().length === 0);
+  protected readonly totalElementos = signal(0);
+  protected readonly pagina = signal(0);
+  protected readonly tamanho = signal(20);
+  protected readonly vazia = computed(
+    () => !this.carregando() && !this.erroLista() && this.usuarios().length === 0,
+  );
+
+  /** Campo de busca por nome (filtro server-side com debounce — §3.3 `nome` ILIKE). */
+  protected readonly filtro = new FormControl('', { nonNullable: true });
 
   /** Alvo da confirmação de ativar/desativar (null = diálogo fechado). */
   protected readonly alvoStatus = signal<Usuario | null>(null);
@@ -78,18 +113,29 @@ export class Usuarios implements OnInit {
     this.resetForm.controls.novaSenha.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
       this.resetForm.controls.confirmarNovaSenha.updateValueAndValidity({ emitEvent: false });
     });
+
+    // Filtro por nome com debounce (retrofit T-M2-10, CA-21) — mesmo padrão de Produtos.
+    this.filtro.valueChanges
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed())
+      .subscribe(() => {
+        // Novo filtro sempre reinicia na 1ª página (evita cair numa página vazia).
+        this.pagina.set(0);
+        this.carregar();
+      });
   }
 
   ngOnInit(): void {
     this.carregar();
   }
 
+  /** GET /usuarios?pagina&tamanho&nome → a página vem ordenada por `nome ASC` do back (§3.3). */
   protected carregar(): void {
     this.carregando.set(true);
     this.erroLista.set(null);
-    this.service.listar().subscribe({
-      next: (lista) => {
-        this.usuarios.set(this.ordenar(lista));
+    this.service.listar(this.pagina(), this.tamanho(), this.filtro.value).subscribe({
+      next: (pagina) => {
+        this.usuarios.set(pagina.conteudo);
+        this.totalElementos.set(pagina.totalElementos);
         this.carregando.set(false);
       },
       error: () => {
@@ -97,6 +143,17 @@ export class Usuarios implements OnInit {
         this.carregando.set(false);
       },
     });
+  }
+
+  /** Troca de página do `MatPaginator` (0-based) → recarrega a mesma fatia do back. */
+  protected aoPaginar(evento: PageEvent): void {
+    this.pagina.set(evento.pageIndex);
+    this.tamanho.set(evento.pageSize);
+    this.carregar();
+  }
+
+  protected limparFiltro(): void {
+    this.filtro.setValue('');
   }
 
   protected alternarForm(): void {
