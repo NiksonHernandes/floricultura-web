@@ -3,16 +3,22 @@ import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testin
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { MatDialog } from '@angular/material/dialog';
+import { of } from 'rxjs';
 
 import { Produtos } from './produtos';
+import { ConfirmarExclusao } from './confirmar-exclusao/confirmar-exclusao';
+import { MovimentarEstoque } from './movimentar-estoque/movimentar-estoque';
 import { AuthService } from '../../core/services/auth.service';
 import { ApiResponse } from '../../core/models/api-response.model';
-import { PaginaResponse, Produto } from '../../core/models/produto.model';
+import { Movimentacao, PaginaResponse, Produto } from '../../core/models/produto.model';
 
 describe('Produtos (lista — T-M2-7, CA-19/CA-15)', () => {
   let httpMock: HttpTestingController;
   // RBAC de UX (T-M2-8): controla `authService.ehAdmin` por teste (default = USER/não-admin).
   let ehAdmin: WritableSignal<boolean>;
+  // Diálogos de exclusão/movimentação abrem via MatDialog (T-M2-9): stub controla o afterClosed.
+  let dialog: jasmine.SpyObj<MatDialog>;
 
   const BASE = 'http://localhost:8080/api/v1/produtos';
 
@@ -49,6 +55,10 @@ describe('Produtos (lista — T-M2-7, CA-19/CA-15)', () => {
 
   beforeEach(() => {
     ehAdmin = signal(false);
+    dialog = jasmine.createSpyObj<MatDialog>('MatDialog', ['open']);
+    // Default: diálogo fecha sem resultado (cancelar) — cada teste sobrescreve o afterClosed.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    dialog.open.and.returnValue({ afterClosed: () => of(undefined) } as any);
     TestBed.configureTestingModule({
       imports: [Produtos],
       providers: [
@@ -57,6 +67,7 @@ describe('Produtos (lista — T-M2-7, CA-19/CA-15)', () => {
         provideHttpClientTesting(),
         // Stub só do que a tela usa do AuthService: o signal `ehAdmin` (RBAC de UX).
         { provide: AuthService, useValue: { ehAdmin } },
+        { provide: MatDialog, useValue: dialog },
       ],
     });
     httpMock = TestBed.inject(HttpTestingController);
@@ -237,5 +248,88 @@ describe('Produtos (lista — T-M2-7, CA-19/CA-15)', () => {
     fixture.detectChanges();
 
     expect(el.querySelector('app-produto-form')).toBeNull();
+  });
+
+  // --- T-M2-9: exclusão (hard delete) + movimentação (CA-20 delete/mov, CA-11) ---
+
+  it('USER não vê as ações "Movimentar"/"Excluir" no card (RBAC — CA-20)', () => {
+    ehAdmin.set(false);
+    const fixture = iniciar([base]);
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.vaso__movimentar')).toBeNull();
+    expect(el.querySelector('.vaso__excluir')).toBeNull();
+  });
+
+  it('ADMIN vê "Movimentar" e "Excluir" no card (RBAC — CA-20)', () => {
+    ehAdmin.set(true);
+    const fixture = iniciar([base]);
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.vaso__movimentar')).toBeTruthy();
+    expect(el.querySelector('.vaso__excluir')).toBeTruthy();
+    // Guard herdado: as ações novas não introduzem um segundo <h1>.
+    expect(el.querySelectorAll('h1').length).toBe(1);
+  });
+
+  it('Excluir abre a confirmação com o NOME e, confirmando, faz DELETE + recarrega (CA-20/FC-08)', () => {
+    ehAdmin.set(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    dialog.open.and.returnValue({ afterClosed: () => of(true) } as any);
+    const fixture = iniciar([base]);
+    const el = fixture.nativeElement as HTMLElement;
+
+    (el.querySelector('.vaso__excluir') as HTMLButtonElement).click();
+
+    // Abriu o diálogo de confirmação passando o nome do produto (FC-08).
+    expect(dialog.open).toHaveBeenCalledWith(
+      ConfirmarExclusao,
+      jasmine.objectContaining({ data: { nome: base.nome } }),
+    );
+    // Confirmado (afterClosed=true) → DELETE e recarga da lista.
+    httpMock.expectOne((r) => r.url === `${BASE}/${base.id}` && r.method === 'DELETE').flush(null, {
+      status: 204,
+      statusText: 'No Content',
+    });
+    httpMock.expectOne((r) => r.url === BASE && r.method === 'GET').flush(envelope(pagina([])));
+  });
+
+  it('Excluir cancelado (afterClosed=false) NÃO faz DELETE', () => {
+    ehAdmin.set(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    dialog.open.and.returnValue({ afterClosed: () => of(false) } as any);
+    const fixture = iniciar([base]);
+    const el = fixture.nativeElement as HTMLElement;
+
+    (el.querySelector('.vaso__excluir') as HTMLButtonElement).click();
+
+    expect(dialog.open).toHaveBeenCalledWith(ConfirmarExclusao, jasmine.anything());
+    httpMock.expectNone((r) => r.method === 'DELETE');
+  });
+
+  it('Movimentar abre o diálogo com o produto e, ao concluir, recarrega a lista (CA-20)', () => {
+    ehAdmin.set(true);
+    const mov: Movimentacao = {
+      id: 100,
+      produtoId: base.id,
+      produtoNome: base.nome,
+      tipo: 'ENTRADA',
+      quantidade: 5,
+      quantidadeResultante: 30,
+      motivo: null,
+      usuarioId: 3,
+      criadoEm: '2026-09-02T14:05:00Z',
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    dialog.open.and.returnValue({ afterClosed: () => of(mov) } as any);
+    const fixture = iniciar([base]);
+    const el = fixture.nativeElement as HTMLElement;
+
+    (el.querySelector('.vaso__movimentar') as HTMLButtonElement).click();
+
+    expect(dialog.open).toHaveBeenCalledWith(
+      MovimentarEstoque,
+      jasmine.objectContaining({ data: { produto: base } }),
+    );
+    // Movimentação concluída → a lista recarrega o estoque.
+    httpMock.expectOne((r) => r.url === BASE && r.method === 'GET').flush(envelope(pagina([base])));
   });
 });

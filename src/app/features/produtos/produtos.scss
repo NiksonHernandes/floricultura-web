@@ -295,17 +295,30 @@
   color: color-mix(in srgb, var(--tinta) 50%, var(--estufa));
 }
 
-/* Ações do card (Editar — só ADMIN); alvo de toque >= 44px */
+/* Ações do card (Movimentar/Editar/Excluir — só ADMIN); alvo de toque >= 44px */
 .vaso__acoes {
   display: flex;
+  flex-wrap: wrap; /* no mobile as 3 ações quebram sem espremer/estourar */
   justify-content: flex-end;
+  gap: 0.25rem;
   margin-top: 0.75rem;
 }
 
-.vaso__editar {
+.vaso__acao {
   min-height: 44px;
+}
+
+/* Movimentar e Editar em folhagem (paleta); nada de azul do Material. */
+.vaso__movimentar,
+.vaso__editar {
   --mat-button-text-label-text-color: var(--folhagem);
   --mat-button-text-icon-color: var(--folhagem);
+}
+
+/* Excluir sinaliza perigo na dália carmim — sem gritar (só o texto/ícone). */
+.vaso__excluir {
+  --mat-button-text-label-text-color: #8f2450;
+  --mat-button-text-icon-color: #8f2450;
 }
 
 /* ---- Véu do diálogo do form (T-M2-8) ---- */

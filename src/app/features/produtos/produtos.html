@@ -111,12 +111,32 @@
                 <button
                   type="button"
                   mat-button
-                  class="vaso__editar"
+                  class="vaso__acao vaso__movimentar"
+                  (click)="movimentarProduto(p)"
+                  [attr.aria-label]="'Movimentar estoque de ' + p.nome"
+                >
+                  <mat-icon aria-hidden="true">swap_vert</mat-icon>
+                  <span>Movimentar</span>
+                </button>
+                <button
+                  type="button"
+                  mat-button
+                  class="vaso__acao vaso__editar"
                   (click)="editarProduto(p)"
                   [attr.aria-label]="'Editar ' + p.nome"
                 >
                   <mat-icon aria-hidden="true">edit</mat-icon>
                   <span>Editar</span>
+                </button>
+                <button
+                  type="button"
+                  mat-button
+                  class="vaso__acao vaso__excluir"
+                  (click)="excluirProduto(p)"
+                  [attr.aria-label]="'Excluir ' + p.nome"
+                >
+                  <mat-icon aria-hidden="true">delete_outline</mat-icon>
+                  <span>Excluir</span>
                 </button>
               </div>
             }

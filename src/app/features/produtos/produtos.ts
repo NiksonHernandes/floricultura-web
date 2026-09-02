@@ -9,11 +9,20 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatPaginatorModule, MatPaginatorIntl, PageEvent } from '@angular/material/paginator';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDialog } from '@angular/material/dialog';
 
 import { ProdutosService } from './produtos.service';
 import { ProdutoForm } from './produto-form/produto-form';
+import {
+  ConfirmarExclusao,
+  ConfirmarExclusaoDados,
+} from './confirmar-exclusao/confirmar-exclusao';
+import {
+  MovimentarEstoque,
+  MovimentarEstoqueDados,
+} from './movimentar-estoque/movimentar-estoque';
 import { AuthService } from '../../core/services/auth.service';
-import { Produto, UnidadeMedida } from '../../core/models/produto.model';
+import { Movimentacao, Produto, UnidadeMedida } from '../../core/models/produto.model';
 
 /** MatPaginator em pt-BR — sem o "Items per page" em inglês do default (design-distintivo §texto). */
 function paginatorPtBr(): MatPaginatorIntl {
@@ -53,7 +62,11 @@ const ROTULOS_UNIDADE: Record<UnidadeMedida, string> = {
  * T-M2-8 (CA-20, parte form): hospeda o `ProdutoForm` num diálogo modal para ADMIN criar/editar
  * (POST/PUT); ao salvar, a lista recarrega. As ações de escrita ("Novo produto"/"Editar") só
  * aparecem para ADMIN (FC-07, via `authService.ehAdmin`) — o RBAC de verdade é do back.
- * Exclusão e movimentação chegam com a T-M2-9.
+ *
+ * T-M2-9 (CA-20 delete + movimentação / CA-11): "Excluir" abre um diálogo de confirmação
+ * (`MatDialog`) exibindo o NOME do produto (FC-08) antes do `DELETE`; "Movimentar" abre o diálogo
+ * de estoque (`MatDialog`) que registra ENTRADA/SAÍDA/AJUSTE (AD-SQ-30) — SAÍDA acima do estoque
+ * mostra o bloqueio (400) sem quebrar (CA-11). Ambos recarregam a lista ao concluir. Só ADMIN.
  */
 @Component({
   selector: 'app-produtos',
@@ -75,6 +88,7 @@ export class Produtos implements OnInit {
   private readonly service = inject(ProdutosService);
   private readonly auth = inject(AuthService);
   private readonly snack = inject(MatSnackBar);
+  private readonly dialog = inject(MatDialog);
 
   /** RBAC de UX (FC-07): só ADMIN vê/usa as ações de escrita. O back é a fonte de verdade. */
   protected readonly ehAdmin = this.auth.ehAdmin;
@@ -175,6 +189,69 @@ export class Produtos implements OnInit {
       { duration: 4000 },
     );
     this.carregar();
+  }
+
+  // --- Exclusão + movimentação (T-M2-9, CA-20 delete/mov + CA-11 — só ADMIN) ---
+
+  /**
+   * Abre a confirmação de exclusão exibindo o NOME (FC-08). Só ao confirmar dispara o `DELETE`;
+   * cancelar/Esc/backdrop não excluem nada. Ao concluir, a lista recarrega. `MatDialog` garante
+   * focus-trap/Esc/backdrop (P2-2/P2-3). Guarda de UX: ignora se não for ADMIN (o back também barra).
+   */
+  protected excluirProduto(p: Produto): void {
+    if (!this.ehAdmin()) {
+      return;
+    }
+    const dados: ConfirmarExclusaoDados = { nome: p.nome };
+    this.dialog
+      .open(ConfirmarExclusao, { data: dados, maxWidth: 'min(28rem, calc(100vw - 2rem))' })
+      .afterClosed()
+      .subscribe((confirmado) => {
+        if (confirmado) {
+          this.confirmarExclusao(p);
+        }
+      });
+  }
+
+  private confirmarExclusao(p: Produto): void {
+    this.service.excluir(p.id).subscribe({
+      next: () => {
+        this.snack.open(`${p.nome} foi excluído da prateleira.`, 'Fechar', { duration: 4000 });
+        this.carregar();
+      },
+      error: () => {
+        this.snack.open('Não foi possível excluir o produto. Tente novamente.', 'Fechar', {
+          duration: 5000,
+        });
+      },
+    });
+  }
+
+  /**
+   * Abre o diálogo de movimentação (`MatDialog`) do produto. Ao registrar com sucesso, o diálogo
+   * fecha devolvendo a `Movimentacao`; a lista recarrega para refletir o novo estoque. O bloqueio
+   * de SAÍDA (400) é tratado DENTRO do diálogo (CA-11), sem quebrar a tela.
+   */
+  protected movimentarProduto(p: Produto): void {
+    if (!this.ehAdmin()) {
+      return;
+    }
+    const dados: MovimentarEstoqueDados = { produto: p };
+    this.dialog
+      .open(MovimentarEstoque, { data: dados, maxWidth: 'min(34rem, calc(100vw - 2rem))' })
+      .afterClosed()
+      .subscribe((mov: Movimentacao | undefined) => {
+        if (mov) {
+          this.snack.open(
+            `Estoque de ${p.nome} atualizado para ${mov.quantidadeResultante} ${this.rotuloUnidade(
+              p.unidadeMedida,
+            )}.`,
+            'Fechar',
+            { duration: 4000 },
+          );
+          this.carregar();
+        }
+      });
   }
 
   /** Exibe placeholder quando não há URL ou o carregamento falhou (AD-SQ-32). */

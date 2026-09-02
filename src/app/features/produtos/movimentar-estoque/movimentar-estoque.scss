@@ -1,0 +1,232 @@
+// Movimentação de estoque — "o livro-caixa da prateleira" (SPEC-M2 §7 T-M2-9, §9, CA-20/CA-11).
+//
+// Mesma linguagem do ateliê (design system canônico vence): reusa _atelie-tokens.scss — zero hex
+// novo além dos estados de tipo. Cabeçalho em folhagem (eco da ficha/placa); a dália carmim é o
+// ÚNICO acento e fica reservada à ação "Registrar". Conteúdo dentro do painel do MatDialog
+// (focus-trap/Esc/backdrop nativos). Mobile-first (FC-02, ~90% celular): campos em 1 coluna,
+// alvos de toque >= 44px, sem overflow horizontal; painel confortável na bancada (desktop).
+@use '../../../shared/styles/atelie-tokens' as atelie;
+
+:host {
+  @include atelie.base;
+  display: block;
+  color: var(--tinta);
+
+  // Foco/traço dos campos em caule (verde) — nada de azul do Material; a dália fica na ação.
+  --mdc-outlined-text-field-focus-outline-color: var(--caule);
+  --mdc-outlined-text-field-caret-color: var(--caule);
+  --mdc-outlined-text-field-focus-label-text-color: var(--folhagem);
+}
+
+.livro__cabecalho {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.1rem 1.5rem 0.9rem;
+  background: radial-gradient(120% 160% at 100% 0%, #274a3a 0%, var(--folhagem) 65%);
+  color: var(--estufa);
+}
+
+.livro__eyebrow {
+  font: 600 0.68rem/1 var(--display);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--sais);
+}
+
+.livro__titulo {
+  margin: 0.3rem 0 0;
+  padding: 0;
+  font: 400 clamp(1.35rem, 3.4vw, 1.7rem) / 1.1 var(--display);
+  font-optical-sizing: auto;
+  letter-spacing: -0.01em;
+  color: var(--estufa);
+}
+
+.livro__produto {
+  margin: 0.2rem 0 0;
+  font: var(--mat-sys-body-medium);
+  color: var(--sais);
+}
+
+.livro__saldo {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+}
+
+.livro__saldo-num {
+  font: 400 1.6rem/1 var(--display);
+  color: var(--estufa);
+}
+
+.livro__saldo-un {
+  font: var(--mat-sys-label-small);
+  color: var(--sais);
+}
+
+.livro__corpo {
+  padding: 1.1rem 1.5rem 0.5rem;
+}
+
+.livro__form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.25rem 1rem;
+}
+
+.livro__campo {
+  width: 100%;
+  min-width: 0;
+}
+
+.livro__erro {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.75rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid color-mix(in srgb, var(--dalia) 40%, white);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--dalia) 8%, white);
+  color: #8f2450;
+  font: var(--mat-sys-body-small);
+
+  mat-icon {
+    flex: none;
+  }
+}
+
+// --- Histórico das últimas movimentações ---
+.historico {
+  margin-top: 0.5rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--orvalho);
+}
+
+.historico__titulo {
+  margin: 0 0 0.6rem;
+  font: 600 0.72rem/1 var(--display);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--caule);
+}
+
+.historico__estado {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font: var(--mat-sys-body-small);
+  color: color-mix(in srgb, var(--tinta) 70%, white);
+}
+
+.historico__estado--erro {
+  flex-wrap: wrap;
+}
+
+.historico__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.historico__item {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.6rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--orvalho) 45%, white);
+  font: var(--mat-sys-body-small);
+}
+
+.historico__tipo {
+  font-weight: 600;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+}
+
+.historico__tipo--ENTRADA {
+  background: color-mix(in srgb, var(--caule) 22%, white);
+  color: var(--folhagem);
+}
+
+.historico__tipo--SAIDA {
+  background: color-mix(in srgb, var(--dalia) 12%, white);
+  color: #8f2450;
+}
+
+.historico__tipo--AJUSTE {
+  background: color-mix(in srgb, var(--sais) 35%, white);
+  color: var(--folhagem);
+}
+
+.historico__resultante {
+  color: color-mix(in srgb, var(--tinta) 65%, white);
+}
+
+.historico__motivo {
+  flex-basis: 100%;
+  color: color-mix(in srgb, var(--tinta) 70%, white);
+  font-style: italic;
+}
+
+.livro__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem 1.25rem;
+}
+
+.livro__acoes .mat-mdc-button,
+.livro__acoes .mat-mdc-unelevated-button {
+  min-height: 44px;
+}
+
+.botao-secundario {
+  --mat-button-text-label-text-color: var(--folhagem);
+  --mat-button-text-icon-color: var(--folhagem);
+}
+
+.acao {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  --mat-button-filled-container-color: var(--dalia);
+  --mat-button-filled-label-text-color: #fff;
+  --mat-button-filled-state-layer-color: #fff;
+  --mat-button-filled-ripple-color: color-mix(in srgb, white 30%, transparent);
+  --mat-button-filled-disabled-container-color: color-mix(in srgb, #c4326b 35%, white);
+  --mat-button-filled-disabled-label-text-color: #fff;
+
+  mat-icon {
+    transition: transform 160ms ease;
+  }
+
+  &:hover:not([disabled]) mat-icon {
+    transform: translateX(3px);
+  }
+}
+
+:host ::ng-deep .mdc-button:focus-visible {
+  outline: 2px solid var(--caule);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .acao mat-icon {
+    transition: none;
+  }
+}

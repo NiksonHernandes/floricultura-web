@@ -1,0 +1,26 @@
+<div class="alerta">
+  <header class="alerta__cabecalho">
+    <span class="alerta__eyebrow">Ateliê · Estoque</span>
+    <h2 mat-dialog-title class="alerta__titulo">Excluir produto</h2>
+  </header>
+
+  <div mat-dialog-content class="alerta__corpo">
+    <p class="alerta__pergunta">
+      Tem certeza que deseja excluir <strong class="alerta__nome">{{ dados.nome }}</strong> da
+      prateleira?
+    </p>
+    <p class="alerta__aviso" role="alert">
+      <mat-icon aria-hidden="true">warning_amber</mat-icon>
+      <span>Esta ação é <strong>irreversível</strong>. O histórico de movimentações é preservado,
+        mas o produto não pode ser recuperado.</span>
+    </p>
+  </div>
+
+  <div mat-dialog-actions class="alerta__acoes">
+    <button type="button" mat-button class="botao-secundario" (click)="cancelar()">Cancelar</button>
+    <button type="button" mat-flat-button class="acao-perigo" (click)="confirmar()">
+      <mat-icon aria-hidden="true">delete_outline</mat-icon>
+      <span>Excluir produto</span>
+    </button>
+  </div>
+</div>

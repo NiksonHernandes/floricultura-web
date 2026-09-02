@@ -1,0 +1,102 @@
+// Confirmação de exclusão — "arrancar o vaso" (SPEC-M2 §7 T-M2-9, §9, CA-20/FC-08).
+//
+// Mesma linguagem do ateliê (design system canônico vence): reusa _atelie-tokens.scss — zero hex
+// novo além do texto de perigo. A dália carmim é o ÚNICO acento e aqui é gasta na ação destrutiva
+// (o gesto irreversível merece o acento). Conteúdo dentro do painel do MatDialog (focus-trap/Esc/
+// backdrop nativos). Mobile-first (FC-02): painel estreito, alvos de toque >= 44px, sem overflow.
+@use '../../../shared/styles/atelie-tokens' as atelie;
+
+:host {
+  @include atelie.base;
+  display: block;
+  color: var(--tinta);
+}
+
+.alerta__cabecalho {
+  padding: 1.1rem 1.5rem 0.5rem;
+}
+
+.alerta__eyebrow {
+  font: 600 0.68rem/1 var(--display);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--caule);
+}
+
+.alerta__titulo {
+  margin: 0.3rem 0 0;
+  padding: 0;
+  font: 400 clamp(1.35rem, 3.4vw, 1.7rem) / 1.1 var(--display);
+  font-optical-sizing: auto;
+  letter-spacing: -0.01em;
+  color: var(--folhagem);
+}
+
+.alerta__corpo {
+  padding: 0 1.5rem;
+}
+
+.alerta__pergunta {
+  margin: 0.25rem 0 1rem;
+  font: var(--mat-sys-body-large);
+  line-height: 1.5;
+}
+
+.alerta__nome {
+  color: var(--folhagem);
+}
+
+.alerta__aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid color-mix(in srgb, var(--dalia) 40%, white);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--dalia) 8%, white);
+  color: #8f2450;
+  font: var(--mat-sys-body-small);
+  line-height: 1.45;
+
+  mat-icon {
+    flex: none;
+  }
+}
+
+.alerta__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 1rem 1.5rem 1.25rem;
+}
+
+.alerta__acoes .mat-mdc-button,
+.alerta__acoes .mat-mdc-unelevated-button {
+  min-height: 44px;
+}
+
+// Cancelar em folhagem (paleta) — nada de azul do Material.
+.botao-secundario {
+  --mat-button-text-label-text-color: var(--folhagem);
+  --mat-button-text-icon-color: var(--folhagem);
+}
+
+// Ação destrutiva em dália carmim — o único acento, gasto no gesto irreversível.
+.acao-perigo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  --mat-button-filled-container-color: var(--dalia);
+  --mat-button-filled-label-text-color: #fff;
+  --mat-button-filled-state-layer-color: #fff;
+  --mat-button-filled-ripple-color: color-mix(in srgb, white 30%, transparent);
+}
+
+// Foco de teclado visível (piso de qualidade §9).
+:host ::ng-deep .mdc-button:focus-visible {
+  outline: 2px solid var(--caule);
+  outline-offset: 2px;
+  border-radius: 8px;
+}

@@ -4,7 +4,12 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 
 import { ProdutosService } from './produtos.service';
 import { ApiResponse } from '../../core/models/api-response.model';
-import { PaginaResponse, Produto } from '../../core/models/produto.model';
+import {
+  Movimentacao,
+  MovimentacaoRequest,
+  PaginaResponse,
+  Produto,
+} from '../../core/models/produto.model';
 
 describe('ProdutosService (T-M2-7)', () => {
   let service: ProdutosService;
@@ -95,5 +100,69 @@ describe('ProdutosService (T-M2-7)', () => {
     req.flush(envelope(rosa));
 
     expect(recebido).toEqual(rosa);
+  });
+
+  // --- T-M2-9: exclusão + movimentação ---
+
+  it('excluir() faz DELETE /{id} (hard delete, 204 sem corpo — FC-08)', () => {
+    let concluiu = false;
+    service.excluir(10).subscribe(() => (concluiu = true));
+
+    const req = httpMock.expectOne(`${BASE}/10`);
+    expect(req.request.method).toBe('DELETE');
+    req.flush(null, { status: 204, statusText: 'No Content' });
+
+    expect(concluiu).toBeTrue();
+  });
+
+  it('movimentar() faz POST /{id}/movimentacoes com o payload e desembrulha a Movimentacao', () => {
+    const req: MovimentacaoRequest = { tipo: 'ENTRADA', quantidade: 30, motivo: 'Compra' };
+    const resposta: Movimentacao = {
+      id: 100,
+      produtoId: 10,
+      produtoNome: 'Rosa Vermelha',
+      tipo: 'ENTRADA',
+      quantidade: 30,
+      quantidadeResultante: 30,
+      motivo: 'Compra',
+      usuarioId: 3,
+      criadoEm: '2026-09-02T14:05:00Z',
+    };
+
+    let recebido: Movimentacao | undefined;
+    service.movimentar(10, req).subscribe((m) => (recebido = m));
+
+    const http = httpMock.expectOne(`${BASE}/10/movimentacoes`);
+    expect(http.request.method).toBe('POST');
+    expect(http.request.body).toEqual(req);
+    http.flush(envelope(resposta));
+
+    expect(recebido).toEqual(resposta);
+  });
+
+  it('movimentacoes() faz GET /{id}/movimentacoes com pagina/tamanho e desembrulha a página', () => {
+    let recebido: PaginaResponse<Movimentacao> | undefined;
+    service.movimentacoes(10, 0, 5).subscribe((p) => (recebido = p));
+
+    const req = httpMock.expectOne(
+      (r) =>
+        r.url === `${BASE}/10/movimentacoes` &&
+        r.params.get('pagina') === '0' &&
+        r.params.get('tamanho') === '5',
+    );
+    expect(req.request.method).toBe('GET');
+    req.flush(
+      envelope<PaginaResponse<Movimentacao>>({
+        conteudo: [],
+        pagina: 0,
+        tamanho: 5,
+        totalElementos: 0,
+        totalPaginas: 1,
+        primeira: true,
+        ultima: true,
+      }),
+    );
+
+    expect(recebido?.conteudo).toEqual([]);
   });
 });

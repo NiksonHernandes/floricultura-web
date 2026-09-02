@@ -7,6 +7,8 @@ import { ApiResponse } from '../../core/models/api-response.model';
 import {
   AtualizarProdutoRequest,
   CriarProdutoRequest,
+  Movimentacao,
+  MovimentacaoRequest,
   PaginaResponse,
   Produto,
 } from '../../core/models/produto.model';
@@ -19,7 +21,10 @@ import {
  * `PUT /produtos/{id}` (atualiza só campos de cadastro; nunca toca estoque). Tudo DENTRO do
  * envelope §3.1 (reusa `ApiResponse<T>`; não redefine envelope), lendo `environment.apiBaseUrl`.
  * A escrita é protegida por RBAC no back (só ADMIN — FC-07); o front só orienta a UX.
- * Exclusão e movimentação chegam com a T-M2-9.
+ *
+ * T-M2-9: `excluir` (hard delete → 204, FC-08), `movimentar` (POST movimentação → 201, AD-SQ-30;
+ * SAÍDA acima do estoque → 400 tratado pelo chamador — CA-11) e `movimentacoes` (histórico
+ * paginado, `criadoEm DESC`).
  */
 @Injectable({ providedIn: 'root' })
 export class ProdutosService {
@@ -62,6 +67,39 @@ export class ProdutosService {
   atualizar(id: number, req: AtualizarProdutoRequest): Observable<Produto> {
     return this.http
       .put<ApiResponse<Produto>>(`${this.baseUrl}/${id}`, req)
+      .pipe(map((r) => r.data!));
+  }
+
+  /**
+   * DELETE /produtos/{id} → hard delete (204 sem corpo, FC-08, IRREVERSÍVEL). O back anula o
+   * vínculo do ledger (`produto_id=NULL`) preservando o snapshot. `403` (USER) / `404` tratados
+   * pelo chamador. A confirmação explícita (com o nome) é responsabilidade do front (§3.2).
+   */
+  excluir(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  }
+
+  /**
+   * POST /produtos/{id}/movimentacoes → registra a movimentação (ADMIN, 201). SAÍDA acima do
+   * estoque → `400 VALIDATION_ERROR` com `message:"Estoque insuficiente (X em estoque)."` — o
+   * chamador exibe a mensagem sem quebrar a tela (CA-11). Retorna o `MovimentacaoResponse`.
+   */
+  movimentar(id: number, req: MovimentacaoRequest): Observable<Movimentacao> {
+    return this.http
+      .post<ApiResponse<Movimentacao>>(`${this.baseUrl}/${id}/movimentacoes`, req)
+      .pipe(map((r) => r.data!));
+  }
+
+  /**
+   * GET /produtos/{id}/movimentacoes?pagina&tamanho → histórico paginado (`criadoEm DESC`, §3.2).
+   * Leitura autenticada (USER+ADMIN). Usado para as últimas movimentações no diálogo de estoque.
+   */
+  movimentacoes(id: number, pagina: number, tamanho: number): Observable<PaginaResponse<Movimentacao>> {
+    const params = new HttpParams().set('pagina', pagina).set('tamanho', tamanho);
+    return this.http
+      .get<ApiResponse<PaginaResponse<Movimentacao>>>(`${this.baseUrl}/${id}/movimentacoes`, {
+        params,
+      })
       .pipe(map((r) => r.data!));
   }
 }

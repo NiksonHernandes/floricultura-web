@@ -61,3 +61,39 @@ export type CriarProdutoRequest = ProdutoRequest;
 
 /** Alias semântico do payload de edição (`PUT /produtos/{id}`) — mesma forma de `ProdutoRequest`. */
 export type AtualizarProdutoRequest = ProdutoRequest;
+
+/**
+ * Movimentação de estoque (§3.2/§3.6, T-M2-9, AD-SQ-30). Tipos do ledger imutável:
+ * - `ENTRADA`: soma ao estoque (quantidade > 0).
+ * - `SAIDA`: subtrai (quantidade > 0, limitada ao estoque — SAÍDA acima do estoque → 400).
+ * - `AJUSTE`: define a quantidade-alvo absoluta (`estoqueAtual = quantidade`, ≥ 0; `0` = "zerar",
+ *   FC-08: zerar é ajuste, NÃO é hard delete).
+ */
+export type TipoMovimentacao = 'ENTRADA' | 'SAIDA' | 'AJUSTE';
+
+/** Request de `POST /produtos/{id}/movimentacoes` (§3.2). `motivo` opcional (≤255). */
+export interface MovimentacaoRequest {
+  tipo: TipoMovimentacao;
+  quantidade: number;
+  motivo?: string | null;
+}
+
+/**
+ * `MovimentacaoResponse` (§3.2) — `data` do POST e item do histórico (GET). O ledger grava
+ * `produtoNome` (snapshot legível mesmo após hard delete → `produtoId=null`), `quantidadeResultante`
+ * (estoque após a operação) e `usuarioId` (do autenticado).
+ */
+export interface Movimentacao {
+  id: number;
+  produtoId: number | null;
+  produtoNome: string;
+  tipo: TipoMovimentacao;
+  quantidade: number;
+  quantidadeResultante: number;
+  motivo: string | null;
+  usuarioId: number | null;
+  criadoEm: string;
+}
+
+/** Alias semântico do payload de resposta da movimentação — mesma forma de `Movimentacao`. */
+export type MovimentacaoResponse = Movimentacao;
