@@ -1,63 +1,99 @@
 # floricultura-web
 
-Front da floricultura — SPA Angular (mobile-first) para a gestão interna da floricultura.
+SPA **Angular (mobile-first)** para a **gestão interna de uma floricultura** — a interface que os
+operadores usam no dia a dia (majoritariamente no celular) para cuidar de produtos, estoque, imagens
+do catálogo e usuários.
 
-> Fundação (M0) entregue pela T-M0-4. Contrato: [`SPEC-M0`](../../squad/specs/SPEC-M0.md).
-> Decisões estruturais: `AD-SQ-5` (estrutura de diretórios), `AD-SQ-10` (versões do front),
-> `AD-SQ-11` (escopo de testes) — ver `DECISOES.md` do squad.
+> Back-end (API REST em Java/Spring Boot) no repositório irmão `floricultura-api`. Este front consome
+> a API sob `/api/v1`, com um envelope de resposta padronizado.
 
-## Stack
+## A ideia do projeto
 
-- **Angular 20.x** (componentes **standalone**, sem NgModules).
-- **Angular Material 20.x** (tema `azure-blue`, tipografia Roboto).
-- **SCSS**, roteamento habilitado, **HttpClient** (`provideHttpClient`).
-- **Node ≥ 20 LTS** (validado em Node 22). Gerenciador: **npm** (o `package-lock.json` é versionado).
+Ferramenta **interna** (não é vitrine/e-commerce), pensada para ser rápida e usável no telefone:
+
+- **Login e perfis:** autenticação por JWT; o menu e as telas se adaptam ao papel — **ADMIN**
+  (gestão completa, inclusive usuários) e **USER** (operação).
+- **Produtos & catálogo:** cadastro/edição/exclusão de produtos, com **imagem** que pode ser um
+  link externo **ou** um arquivo enviado do próprio dispositivo (armazenado no banco pela API).
+- **Estoque:** movimentações (entrada/saída/ajuste) e histórico das últimas movimentações, com
+  alerta de estoque baixo.
+- **Mobile-first (FC-02):** ~90% do uso é celular — toda tela é 100% responsiva (drawer no mobile,
+  sidenav no desktop; listas paginadas server-side).
+
+## Tecnologias
+
+| Área | Tecnologia |
+|---|---|
+| Framework | **Angular 20** — componentes **standalone** (sem NgModules), rotas com lazy `loadComponent` |
+| UI | **Angular Material 20** + **Angular CDK** |
+| Estilo | **SCSS** com tokens de design próprios (`shared/styles/_atelie-tokens.scss`) |
+| HTTP / estado assíncrono | **HttpClient** (`provideHttpClient`) + **RxJS** |
+| i18n | locale **pt-BR** registrado (datas em `America/Sao_Paulo`) |
+| Testes | **Jasmine** + **Karma** (execução headless via ChromeHeadless) |
+| Runtime / gestor | **Node ≥ 20 LTS** (validado em 22) · **npm** (`package-lock.json` versionado) |
+
+## Arquitetura — feature-based
+
+O código vive em `src/app/`, organizado por responsabilidade e por feature (padrão Angular
+escalável, não agrupado por tipo técnico):
+
+```
+src/app/
+├─ core/            # singletons app-wide
+│  ├─ services/     #   ApiService (envelope), AuthService, ProdutosService
+│  ├─ guards/       #   authGuard (exige login), adminGuard (exige ADMIN)
+│  ├─ interceptors/ #   authInterceptor (injeta o Bearer; logout no 401)
+│  └─ models/       #   api-response, auth, produto (tipos do contrato)
+├─ features/        # uma pasta por domínio
+│  ├─ auth/         #   login, trocar-senha
+│  ├─ usuarios/     #   lista paginada + formulário (ADMIN)
+│  ├─ produtos/     #   lista/card, produto-form, movimentar-estoque,
+│  │                #   confirmar-exclusao, imagem-produto (carrega o binário do banco)
+│  └─ health/       #   prova de integração front↔API
+├─ layout/          # shell da aplicação (toolbar + navegação responsiva)
+├─ app.ts           # componente raiz
+├─ app.config.ts    # providers standalone (router, HttpClient, interceptor, locale pt-BR)
+└─ app.routes.ts    # tabela de rotas (login/health fora do shell; demais sob authGuard)
+
+src/environments/
+├─ environment.ts        # dev  — apiBaseUrl: http://localhost:8080/api/v1
+└─ environment.prod.ts   # prod — apiBaseUrl definido no deploy
+```
+
+### Como o front conversa com a API
+
+- **Envelope:** o `ApiService` desembrulha `{ success, data, error, ... }` — as features lidam com
+  o `data` já tipado (interface `ApiResponse<T>`).
+- **Autenticação:** o `authInterceptor` anexa o token JWT no header `Authorization`. Um `401`
+  desloga o usuário; por isso imagens protegidas **nunca** vão em `<img src>` direto ao endpoint.
+- **Imagem do produto (padrão importante):** quando o produto tem imagem no banco, o componente
+  `imagem-produto` carrega o binário por **HttpClient** (`responseType:'blob'`, com Bearer) e usa
+  `URL.createObjectURL` (revogando ao descartar). A prioridade de exibição é **banco → URL externa →
+  placeholder botânico**; falha/404 cai no fallback sem quebrar o card nem deslogar.
+- **Rotas protegidas:** `login` e `health` ficam fora do shell; o restante fica sob `authGuard`
+  (home pós-login = `/produtos`), e `usuarios` exige `adminGuard` (o item some do menu para USER).
+
+### Design
+
+As telas usam tokens de design próprios (`_atelie-tokens.scss`) para não "parecerem template de IA" —
+identidade visual é critério de aceite, com evidência em screenshots desktop **e** mobile.
 
 ## Comandos
 
 ```bash
 npm ci            # instala a partir do package-lock.json (reprodutível)
+npm start         # ng serve em http://localhost:4200 (espera a API em :8080)
 npm run build     # build de produção -> dist/floricultura-web
-npm start         # ng serve em http://localhost:4200
 npm test          # ng test (Karma + Jasmine)
 
 # testes headless (CI)
 npx ng test --watch=false --browsers=ChromeHeadless
 ```
 
-## Arquitetura — estrutura feature-based (SPEC-M0 §3.7 · AD-SQ-5)
+## Convenções
 
-O código de aplicação vive em `src/app/`, organizado por responsabilidade e por feature
-(padrão Angular escalável — não agrupado por tipo técnico):
-
-```
-src/app/
-├─ core/       # ApiService, interceptors, guards, models (ex.: api-response.model.ts)
-│              #   singletons de app-wide. Integração back↔front chega na T-M0-5.
-├─ shared/     # componentes/UI reutilizáveis (sem dependência de feature específica)
-├─ features/   # uma pasta por domínio: produtos/, estoque/, eventos/, clientes/, ... (vazio em M0)
-├─ layout/     # shell/toolbar da aplicação (casca visual)
-├─ app.ts            # componente raiz (shell mobile-first com Material)
-├─ app.config.ts     # providers standalone (router, HttpClient, animações)
-└─ app.routes.ts     # tabela de rotas (as features registram suas rotas aqui)
-
-src/environments/
-├─ environment.ts        # dev  — apiBaseUrl: http://localhost:8080/api/v1
-└─ environment.prod.ts   # prod — apiBaseUrl definido no deploy (fileReplacements no angular.json)
-```
-
-### Convenções
-
-- **Mobile-first (FC-02):** o shell nasce responsivo (Material + `<meta viewport>`); telas de
-  negócio entram a partir de M2.
-- **Contrato REST base (SPEC-M0 §3.1/§3.5):** toda resposta de `/api/v1/**` usa o envelope
-  `{ success, data, error, timestamp, path }`. A interface TypeScript espelho (`ApiResponse<T>`)
-  e o `ApiService` base entram na **T-M0-5** (pasta `core/`).
+- **Mobile-first:** toda tela responsiva é critério de aceite (o uso é ~90% celular).
 - **URL base da API:** lida de `environment.apiBaseUrl` (dev = `http://localhost:8080/api/v1`).
-- **Segredos (FC-15):** nunca em código/commit. `.env` é gitignored; `environment.*.ts` só contém
-  URLs públicas, jamais credenciais.
-
-## Escopo do M0 (o que NÃO está aqui ainda)
-
-Sem telas de negócio, sem consumo de API e sem CRUD — M0 é só a fundação/scaffold. O consumo
-ponta-a-ponta do `GET /api/v1/health-check` (prova de CORS + envelope) é a **T-M0-5**.
+- **Segredos:** nunca em código/commit. `environment.*.ts` só contém URLs públicas, jamais
+  credenciais.
+- **Datas:** exibidas em pt-BR, fuso `America/Sao_Paulo` (ex.: movimentações em `dd/MM/yyyy HH:mm`).
