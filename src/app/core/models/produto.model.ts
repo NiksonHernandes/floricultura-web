@@ -6,6 +6,8 @@
  *   Nasce aqui (1º consumidor = Produtos); o retrofit de Usuários (T-M2-10) reusa este tipo.
  * - `Produto`: item de `PaginaResponse.conteudo` e `data` de GET detalhe (§3.2). `preco`,
  *   `descricao` e `imagemUrl` são anuláveis; `estoqueBaixo` é computado no back (FC-13).
+ *   `temImagem` (SPEC-M3 §3.2/§3.6, AD-SQ-37/39) indica se HÁ binário no banco (`bytea`) — o
+ *   binário NUNCA trafega no JSON; a exibição prioriza banco → `imagemUrl` → placeholder.
  *
  * Escopo T-M2-7 = leitura (lista + detalhe). A escrita (`ProdutoRequest` + aliases
  * `CriarProdutoRequest`/`AtualizarProdutoRequest`) entra com a T-M2-8 (form). A
@@ -39,6 +41,8 @@ export interface Produto {
   ativo: boolean;
   criadoEm: string;
   atualizadoEm: string;
+  /** Há imagem binária no banco (SPEC-M3 §3.2, aditivo — o back sempre envia). */
+  temImagem: boolean;
 }
 
 /**

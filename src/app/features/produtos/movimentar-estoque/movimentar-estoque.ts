@@ -1,4 +1,5 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -62,6 +63,7 @@ export const OPCOES_TIPO: ReadonlyArray<{
 @Component({
   selector: 'app-movimentar-estoque',
   imports: [
+    DatePipe,
     ReactiveFormsModule,
     MatDialogModule,
     MatFormFieldModule,

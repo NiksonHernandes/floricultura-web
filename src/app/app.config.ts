@@ -1,10 +1,13 @@
 import {
   ApplicationConfig,
+  LOCALE_ID,
   inject,
   provideAppInitializer,
   provideBrowserGlobalErrorListeners,
   provideZoneChangeDetection,
 } from '@angular/core';
+import { registerLocaleData } from '@angular/common';
+import localePt from '@angular/common/locales/pt';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
@@ -12,6 +15,10 @@ import { provideAnimationsAsync } from '@angular/platform-browser/animations/asy
 import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { AuthService } from './core/services/auth.service';
+
+// Locale pt-BR precisa ser registrado antes de qualquer DatePipe/DecimalPipe com locale 'pt-BR'
+// (SPEC-M3 §3.7 Ajuste 2 / CA-14). Sem isso o DatePipe quebra em runtime ao formatar em pt-BR.
+registerLocaleData(localePt, 'pt-BR');
 
 /**
  * Configuração raiz da aplicação (standalone).
@@ -27,5 +34,6 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(withFetch(), withInterceptors([authInterceptor])),
     provideAnimationsAsync(),
     provideAppInitializer(() => inject(AuthService).reidratar()),
+    { provide: LOCALE_ID, useValue: 'pt-BR' },
   ],
 };

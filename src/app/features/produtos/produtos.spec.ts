@@ -35,6 +35,7 @@ describe('Produtos (lista — T-M2-7, CA-19/CA-15)', () => {
     ativo: true,
     criadoEm: '2026-09-02T14:00:00Z',
     atualizadoEm: '2026-09-02T14:00:00Z',
+    temImagem: false,
   };
 
   function envelope<T>(data: T): ApiResponse<T> {

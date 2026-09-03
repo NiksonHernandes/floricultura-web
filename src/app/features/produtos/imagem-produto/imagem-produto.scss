@@ -1,0 +1,48 @@
+// Imagem do produto — a "planta" que preenche a faixa do vaso (SPEC-M3 §3.6, T-M3-4).
+// Herda a linguagem do card do M2 (mesmos tokens, mesmo placeholder botânico local_florist):
+// o M3 NÃO redesenha a foto, só troca a FONTE (banco → URL → placeholder). O design system
+// canônico do ateliê vence — sem "cara de template de IA". Inclui os tokens para funcionar
+// também isolado (preview reusável no form da T-M3-5), sem depender do ancestral.
+@use '../../../shared/styles/atelie-tokens' as atelie;
+
+:host {
+  @include atelie.base;
+
+  // Preenche a faixa `.vaso__planta` (position:relative no card); a foto nunca influencia a
+  // altura do card (a altura uniforme é responsabilidade do container no produtos.scss).
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+.vaso__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.vaso__placeholder {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(
+    90% 90% at 50% 30%,
+    color-mix(in srgb, var(--sais) 55%, white),
+    var(--estufa)
+  );
+
+  mat-icon {
+    color: var(--caule);
+    font-size: 2.75rem;
+    width: 2.75rem;
+    height: 2.75rem;
+    opacity: 0.7;
+  }
+}

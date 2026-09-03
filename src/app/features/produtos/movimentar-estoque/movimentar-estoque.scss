@@ -175,6 +175,15 @@
   color: color-mix(in srgb, var(--tinta) 65%, white);
 }
 
+// Carimbo data+hora pt-BR/America/Sao_Paulo (CA-14): encosta no fim da linha; nowrap não quebra.
+.historico__data {
+  margin-left: auto;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.72rem;
+  color: color-mix(in srgb, var(--tinta) 55%, white);
+}
+
 .historico__motivo {
   flex-basis: 100%;
   color: color-mix(in srgb, var(--tinta) 70%, white);
