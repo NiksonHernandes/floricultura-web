@@ -30,6 +30,17 @@
   --mdc-outlined-text-field-focus-label-text-color: var(--folhagem);
 }
 
+// A .ficha é o container real do diálogo (único filho do :host, que é quem carrega
+// max-height:92vh + overflow:hidden). Para o miolo rolar (CA-1/FC-02), a .ficha precisa
+// ser o contexto flex-column que herda a altura limitada do :host — sem isso, o flex dos
+// filhos (.ficha__cabecalho/.ficha__form) seria no-op. min-height:0 deixa a .ficha encolher
+// para caber nos 92vh quando o conteúdo excede (em vez de estourar e ser cortada).
+.ficha {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
 .ficha__cabecalho {
   display: flex;
   align-items: flex-start;
@@ -38,6 +49,7 @@
   padding: 1.1rem 1.25rem 0.75rem;
   background: radial-gradient(120% 160% at 100% 0%, #274a3a 0%, var(--folhagem) 65%);
   color: var(--estufa);
+  flex: none; // topo fixo, não encolhe (§3.4)
 }
 
 .ficha__eyebrow {
@@ -62,6 +74,8 @@
 .ficha__form {
   padding: 1.1rem 1.25rem 1.25rem;
   overflow-y: auto;
+  flex: 1 1 auto; // o miolo ocupa o resto...
+  min-height: 0; // ...e rola de fato (sem isso, min-height:auto do item flex estoura em vez de rolar) (§3.4)
 }
 
 .ficha__erro {
