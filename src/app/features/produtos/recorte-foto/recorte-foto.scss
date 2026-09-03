@@ -1,0 +1,232 @@
+// Recorte da foto — "enquadrar a muda" (SPEC-M3.1 §3.2, T-M3.1-2, CA-9).
+//
+// Mesma linguagem do ateliê (design system canônico vence): reusa _atelie-tokens.scss
+// (folhagem/estufa/tinta/caule/dalia/orvalho/sais + Fraunces) — zero hex novo além do carmim
+// do texto de erro já usado no form. A dália é o ÚNICO acento, gasta só em "Confirmar recorte".
+// Mobile-first (FC-02): painel em coluna, palco elástico que rola/encaixa, alvos de toque >= 44px.
+// Lição do fix de scroll (T-M3.1-1): o miolo (palco) é flex:1 1 auto; min-height:0; cabeçalho,
+// zoom e ações são flex:none — nada estoura a caixa de 92vh.
+@use '../../../shared/styles/atelie-tokens' as atelie;
+
+:host {
+  @include atelie.base;
+
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: 92vh;
+  background: var(--estufa);
+  color: var(--tinta);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.recorte {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.recorte__cabecalho {
+  flex: none;
+  padding: 1.1rem 1.25rem 0.85rem;
+  background: radial-gradient(120% 160% at 100% 0%, #274a3a 0%, var(--folhagem) 65%);
+  color: var(--estufa);
+}
+
+.recorte__eyebrow {
+  font: 600 0.68rem/1 var(--display);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--sais);
+}
+
+.recorte__titulo {
+  margin: 0.3rem 0 0;
+  font: 400 clamp(1.3rem, 3.4vw, 1.7rem) / 1.1 var(--display);
+  font-optical-sizing: auto;
+  letter-spacing: -0.01em;
+}
+
+.recorte__dica {
+  margin: 0.45rem 0 0;
+  max-width: 46ch;
+  font: var(--mat-sys-body-small);
+  color: color-mix(in srgb, var(--estufa) 82%, transparent);
+}
+
+// Palco elástico: fundo de orvalho para a foto respirar; centraliza a moldura do cropper.
+.recorte__palco {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 1.25rem;
+  background:
+    linear-gradient(
+      color-mix(in srgb, var(--folhagem) 6%, transparent),
+      color-mix(in srgb, var(--folhagem) 6%, transparent)
+    ),
+    var(--orvalho);
+}
+
+.recorte__cropper {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  max-height: 50vh;
+
+  // A moldura viva é do <image-cropper>; tematizamos pelas CSS vars públicas da lib para falar
+  // a linguagem do herbário: véu de folhagem fora do recorte e traço de caule na borda (em vez
+  // do véu branco translúcido e do tracejado padrão). São variáveis inerentes (DOM sem shadow).
+  --cropper-outline-color: color-mix(in srgb, var(--folhagem) 42%, transparent);
+  --cropper-color: color-mix(in srgb, var(--estufa) 85%, transparent);
+  --cropper-border: 2px solid color-mix(in srgb, var(--caule) 78%, white);
+}
+
+:host ::ng-deep .recorte__cropper .ngx-ic-move {
+  cursor: move;
+}
+
+// Estados sobre o palco (carregando / erro de imagem).
+.recorte__estado {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: color-mix(in srgb, var(--orvalho) 82%, transparent);
+  color: var(--folhagem);
+  font: 600 0.85rem/1.3 var(--display);
+  letter-spacing: 0.02em;
+
+  mat-icon {
+    font-size: 2.2rem;
+    width: 2.2rem;
+    height: 2.2rem;
+  }
+}
+
+.recorte__estado--erro {
+  color: #8f2450;
+}
+
+// Controle de zoom: menos/slider/mais. Slider nativo tematizado (accent-color) — leve e acessível.
+.recorte__zoom {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 1.25rem 0.3rem;
+}
+
+.recorte__zoom-btn {
+  flex: none;
+  --mat-icon-button-icon-color: var(--folhagem);
+}
+
+.recorte__slider {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 44px; // alvo de toque no trilho (dono: ~90% mobile)
+  accent-color: var(--caule);
+  cursor: pointer;
+}
+
+.recorte__erro {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.15rem 1.25rem 0;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid color-mix(in srgb, var(--dalia) 40%, white);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--dalia) 8%, white);
+  color: #8f2450;
+  font: var(--mat-sys-body-small);
+
+  mat-icon {
+    flex: none;
+    font-size: 1.15rem;
+    width: 1.15rem;
+    height: 1.15rem;
+  }
+}
+
+.recorte__acoes {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem 1.1rem;
+}
+
+// Alvo de toque >= 44px nos botões de ação (dono: ~90% mobile).
+.recorte__acoes .mat-mdc-button,
+.recorte__acoes .mat-mdc-unelevated-button {
+  min-height: 44px;
+}
+
+// Cancelar em cor de paleta (folhagem) — nada de azul do Material.
+.botao-secundario {
+  --mat-button-text-label-text-color: var(--folhagem);
+  --mat-button-text-icon-color: var(--folhagem);
+}
+
+// A ação em dália carmim — a única ousadia (design-distintivo: gaste a ousadia num lugar só).
+.acao {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+
+  --mat-button-filled-container-color: var(--dalia);
+  --mat-button-filled-label-text-color: #fff;
+  --mat-button-filled-state-layer-color: #fff;
+  --mat-button-filled-ripple-color: color-mix(in srgb, white 30%, transparent);
+  --mat-button-filled-disabled-container-color: color-mix(in srgb, #c4326b 35%, white);
+  --mat-button-filled-disabled-label-text-color: #fff;
+}
+
+// Desktop (bancada): caixa mais folgada; o palco pode crescer um pouco mais.
+@media (min-width: 720px) {
+  .recorte__cabecalho {
+    padding: 1.25rem 1.5rem 0.95rem;
+  }
+
+  .recorte__palco {
+    padding: 1.25rem 1.5rem;
+  }
+
+  .recorte__cropper {
+    max-height: 56vh;
+  }
+
+  .recorte__zoom {
+    padding: 0.7rem 1.5rem 0.35rem;
+  }
+
+  .recorte__acoes {
+    padding: 0.85rem 1.5rem 1.25rem;
+  }
+}
+
+// Foco de teclado visível (piso de qualidade).
+:host ::ng-deep .mdc-button:focus-visible,
+:host ::ng-deep .mat-mdc-icon-button:focus-visible {
+  outline: 2px solid var(--sais);
+  outline-offset: -2px;
+  border-radius: 8px;
+}
+
+.recorte__slider:focus-visible {
+  outline: 2px solid var(--caule);
+  outline-offset: 2px;
+  border-radius: 8px;
+}

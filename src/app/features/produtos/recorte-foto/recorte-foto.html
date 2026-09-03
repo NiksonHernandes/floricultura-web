@@ -1,0 +1,99 @@
+<section class="recorte" role="group" aria-label="Enquadrar a foto do produto">
+  <header class="recorte__cabecalho">
+    <span class="recorte__eyebrow">Ateliê · Foto</span>
+    <h2 class="recorte__titulo">Enquadrar a foto</h2>
+    <p class="recorte__dica">Arraste para posicionar e use o zoom para aproximar. A moldura mostra o que aparecerá no card.</p>
+  </header>
+
+  <div class="recorte__palco">
+    <image-cropper
+      class="recorte__cropper"
+      [imageFile]="arquivo()"
+      [maintainAspectRatio]="true"
+      [aspectRatio]="aspectRatio"
+      [output]="'blob'"
+      [format]="formatoSaida"
+      [imageQuality]="qualidade"
+      [resizeToWidth]="larguraMax"
+      [onlyScaleDown]="true"
+      [alignImage]="'center'"
+      [allowMoveImage]="true"
+      [hideResizeSquares]="true"
+      [transform]="transform()"
+      cropperFrameAriaLabel="Área de recorte da foto"
+      (imageCropped)="aoRecortar($event)"
+      (imageLoaded)="aoCarregar()"
+      (cropperReady)="aoCarregar()"
+      (transformChange)="aoTransformar($event)"
+      (loadImageFailed)="aoFalharImagem()"
+    ></image-cropper>
+
+    @if (carregando()) {
+      <div class="recorte__estado" aria-live="polite">
+        <mat-progress-spinner diameter="34" mode="indeterminate" aria-hidden="true" />
+        <span>Preparando a foto…</span>
+      </div>
+    }
+    @if (falhou()) {
+      <div class="recorte__estado recorte__estado--erro" role="alert">
+        <mat-icon aria-hidden="true">broken_image</mat-icon>
+        <span>Não foi possível abrir esta imagem. Escolha outra.</span>
+      </div>
+    }
+  </div>
+
+  <div class="recorte__zoom" role="group" aria-label="Zoom da foto">
+    <button
+      type="button"
+      mat-icon-button
+      class="recorte__zoom-btn"
+      aria-label="Diminuir zoom"
+      [disabled]="!prontoParaZoom() || noZoomMinimo()"
+      (click)="diminuirZoom()"
+    >
+      <mat-icon>remove</mat-icon>
+    </button>
+    <input
+      class="recorte__slider"
+      type="range"
+      [min]="ZOOM_MIN"
+      [max]="ZOOM_MAX"
+      [step]="ZOOM_PASSO"
+      [value]="escala()"
+      [disabled]="!prontoParaZoom()"
+      (input)="aoAjustarZoom($event)"
+      aria-label="Ajustar zoom da foto"
+    />
+    <button
+      type="button"
+      mat-icon-button
+      class="recorte__zoom-btn"
+      aria-label="Aumentar zoom"
+      [disabled]="!prontoParaZoom() || noZoomMaximo()"
+      (click)="aumentarZoom()"
+    >
+      <mat-icon>add</mat-icon>
+    </button>
+  </div>
+
+  @if (erro(); as msg) {
+    <p class="recorte__erro" role="alert">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span>{{ msg }}</span>
+    </p>
+  }
+
+  <div class="recorte__acoes">
+    <button type="button" mat-button class="botao-secundario" (click)="cancelar()">Cancelar</button>
+    <button
+      type="button"
+      mat-flat-button
+      class="acao"
+      [disabled]="!prontoParaZoom()"
+      (click)="confirmar()"
+    >
+      <mat-icon aria-hidden="true">check</mat-icon>
+      <span>Confirmar recorte</span>
+    </button>
+  </div>
+</section>
