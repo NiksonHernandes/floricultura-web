@@ -1,4 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { registerLocaleData } from '@angular/common';
+import localePt from '@angular/common/locales/pt';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
@@ -7,6 +9,10 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MovimentarEstoque, MovimentarEstoqueDados } from './movimentar-estoque';
 import { ApiResponse } from '../../../core/models/api-response.model';
 import { Movimentacao, PaginaResponse, Produto } from '../../../core/models/produto.model';
+
+// CA-14: o DatePipe com locale explícito 'pt-BR' exige a locale data registrada (app.config.ts
+// faz isso em runtime; no teste registramos aqui para a asserção de data+hora rodar).
+registerLocaleData(localePt, 'pt-BR');
 
 /** Probe do interno protegido — dirige o form e dispara o submit sem tocar no DOM do Material. */
 interface Probe {
@@ -105,6 +111,14 @@ describe('MovimentarEstoque (T-M2-9 — CA-20 movimentação / CA-11)', () => {
     expect(probe.historico()).toEqual([movBase]);
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelectorAll('.historico__item').length).toBe(1);
+  });
+
+  it('exibe criadoEm como data+hora pt-BR no fuso America/Sao_Paulo (CA-14)', () => {
+    // '2026-09-02T14:05:00Z' (UTC) → 11:05 em BRT (UTC-3, sem horário de verão) → '02/09/2026 11:05'.
+    iniciar([movBase]);
+    const el = fixture.nativeElement as HTMLElement;
+    const data = el.querySelector('.historico__item .historico__data');
+    expect(data?.textContent?.trim()).toBe('02/09/2026 11:05');
   });
 
   it('exibe o saldo atual do produto no cabeçalho', () => {

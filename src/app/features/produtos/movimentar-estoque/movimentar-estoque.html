@@ -80,6 +80,9 @@
               <span class="historico__tipo historico__tipo--{{ m.tipo }}">{{ rotuloTipo(m.tipo) }}</span>
               <span class="historico__qtd">{{ m.quantidade }} {{ rotuloUnidade() }}</span>
               <span class="historico__resultante">→ {{ m.quantidadeResultante }}</span>
+              <time class="historico__data" [attr.datetime]="m.criadoEm">
+                {{ m.criadoEm | date: 'dd/MM/yyyy HH:mm' : 'America/Sao_Paulo' : 'pt-BR' }}
+              </time>
               @if (m.motivo) {
                 <span class="historico__motivo">{{ m.motivo }}</span>
               }
