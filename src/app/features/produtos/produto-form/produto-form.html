@@ -109,6 +109,72 @@
         }
       </mat-form-field>
 
+      <!-- Imagem do dispositivo (T-M3-5, CA-12 — SPEC-M3 §3.6). Convive com a URL externa (AD-SQ-37). -->
+      <div class="ficha__campo ficha__campo--largo foto">
+        <span class="foto__rotulo">Foto do produto</span>
+        <div class="foto__conteudo">
+          <div class="foto__moldura">
+            @if (previewUrl(); as src) {
+              <img class="foto__img" [src]="src" alt="Pré-visualização da imagem selecionada" />
+            } @else if (editando() && produtoAtual(); as p) {
+              <app-imagem-produto [produto]="p" />
+            } @else {
+              <div class="foto__vazio" aria-hidden="true">
+                <mat-icon>add_photo_alternate</mat-icon>
+                <span>Sem foto</span>
+              </div>
+            }
+            @if (enviandoImagem()) {
+              <div class="foto__enviando" aria-live="polite">
+                <mat-progress-spinner diameter="30" mode="indeterminate" aria-hidden="true" />
+                <span>Enviando…</span>
+              </div>
+            }
+          </div>
+
+          <div class="foto__lado">
+            <div class="foto__acoes">
+              <button
+                type="button"
+                mat-stroked-button
+                class="foto__escolher"
+                [disabled]="enviandoImagem()"
+                (click)="seletor.click()"
+              >
+                <mat-icon aria-hidden="true">photo_camera</mat-icon>
+                <span>{{ temFoto() ? 'Trocar foto' : 'Escolher foto' }}</span>
+              </button>
+              @if (temFoto()) {
+                <button
+                  type="button"
+                  mat-button
+                  class="foto__remover"
+                  [disabled]="enviandoImagem()"
+                  (click)="removerImagem()"
+                >
+                  <mat-icon aria-hidden="true">delete_outline</mat-icon>
+                  <span>Remover foto</span>
+                </button>
+              }
+              <input
+                #seletor
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                hidden
+                (change)="aoSelecionarArquivo($event)"
+              />
+            </div>
+            <p class="foto__dica">Do seu dispositivo — JPG, PNG ou WEBP até 5 MB.</p>
+            @if (erroImagem(); as msg) {
+              <p class="foto__erro" role="alert">
+                <mat-icon aria-hidden="true">error_outline</mat-icon>
+                <span>{{ msg }}</span>
+              </p>
+            }
+          </div>
+        </div>
+      </div>
+
       <!-- Entrada inicial de estoque (T-M2-11, CA-22 — SÓ no modo criação; AD-SQ-35). -->
       @if (!editando()) {
         <mat-form-field appearance="outline" class="ficha__campo ficha__campo--largo">

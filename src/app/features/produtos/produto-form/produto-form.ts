@@ -1,4 +1,13 @@
-import { Component, OnInit, computed, inject, input, output, signal } from '@angular/core';
+import {
+  Component,
+  OnDestroy,
+  OnInit,
+  computed,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -6,8 +15,10 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 import { ProdutosService } from '../produtos.service';
+import { ImagemProduto } from '../imagem-produto/imagem-produto';
 import { ApiResponse } from '../../../core/models/api-response.model';
 import { Produto, ProdutoRequest, UnidadeMedida } from '../../../core/models/produto.model';
 
@@ -16,6 +27,15 @@ import { Produto, ProdutoRequest, UnidadeMedida } from '../../../core/models/pro
  * o rastro de que o estoque nasceu junto do cadastro (auditável — o estoque nunca fura o ledger).
  */
 export const MOTIVO_ENTRADA_INICIAL = 'Estoque inicial (cadastro)';
+
+/**
+ * Whitelist de tipos aceitos no seletor (SPEC-M3 §3.6/CA-12). ESPELHO do back — a validação
+ * FORTE (whitelist + anti-spoofing por magic bytes) é do servidor (§3.3); aqui é só orientação de UX.
+ */
+export const TIPOS_IMAGEM_ACEITOS = ['image/jpeg', 'image/png', 'image/webp'] as const;
+
+/** Limite de 5 MB espelhado do back (`APP_UPLOAD_IMAGEM_MAX_BYTES` default — §3.3). Só orientação. */
+export const TAMANHO_MAX_IMAGEM_BYTES = 5 * 1024 * 1024;
 
 /** Opções do select de unidade (AD-SQ-31): valor = código ASCII persistido; rótulo amigável (`m³`, `L`). */
 export const OPCOES_UNIDADE: ReadonlyArray<{ valor: UnidadeMedida; rotulo: string }> = [
@@ -48,6 +68,14 @@ export const OPCOES_UNIDADE: ReadonlyArray<{ valor: UnidadeMedida; rotulo: strin
  * dá 201 mas a ENTRADA falha, o produto JÁ existe: emite `salvo` (não recria/deleta) e sinaliza
  * `entradaInicialFalhou` para a lista-mãe avisar (snackbar de warning). O diálogo "Movimentar"
  * (T-M2-9) permanece intacto.
+ *
+ * T-M3-5 (CA-12, SPEC-M3 §3.6): seletor de imagem (JPG/PNG/WEBP) com **preview local**
+ * (`URL.createObjectURL`, funciona SEM backend) e validação client-side ESPELHO (tipo/≤5 MB — a
+ * validação forte é do back). **Criação:** o arquivo fica "staged" e sobe DEPOIS do `POST /produtos`
+ * (`enviarImagem`), no mesmo padrão de falha parcial da entrada inicial (deriva AD-SQ-35): upload
+ * falho ⇒ produto EXISTE, emite `salvo` + sinaliza `imagemFalhou` (warning na lista-mãe), sem
+ * recriar/deletar. **Edição:** envio DIRETO/imediato ao selecionar (`enviarImagem`) e botão
+ * "Remover imagem" (`removerImagem`) quando `temImagem`; a imagem atual reusa `ImagemProduto`.
  */
 @Component({
   selector: 'app-produto-form',
@@ -58,11 +86,13 @@ export const OPCOES_UNIDADE: ReadonlyArray<{ valor: UnidadeMedida; rotulo: strin
     MatSelectModule,
     MatButtonModule,
     MatIconModule,
+    MatProgressSpinnerModule,
+    ImagemProduto,
   ],
   templateUrl: './produto-form.html',
   styleUrl: './produto-form.scss',
 })
-export class ProdutoForm implements OnInit {
+export class ProdutoForm implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder);
   private readonly service = inject(ProdutosService);
 
@@ -79,12 +109,37 @@ export class ProdutoForm implements OnInit {
    * warning (o produto existe com estoque 0 — não é desfeito).
    */
   readonly entradaInicialFalhou = output<void>();
+  /**
+   * Sinaliza que o produto foi criado (201) mas o upload da imagem falhou (T-M3-5, deriva AD-SQ-35).
+   * Emitido ANTES de `salvo` no ramo de falha; a lista-mãe troca o snackbar de sucesso pelo de
+   * warning (o produto existe SEM imagem — não é desfeito; a imagem pode ser tentada na edição).
+   */
+  readonly imagemFalhou = output<void>();
 
   protected readonly enviando = signal(false);
   protected readonly erroGeral = signal<string | null>(null);
   protected readonly opcoesUnidade = OPCOES_UNIDADE;
 
   protected readonly editando = computed(() => this.produto() !== null);
+
+  // --- Estado da imagem (T-M3-5, CA-12) ---
+  /** Produto vivo no diálogo (edição): mutado após enviar/remover imagem para refletir `temImagem`. */
+  protected readonly produtoAtual = signal<Produto | null>(null);
+  /** object URL do preview local do arquivo selecionado (revogado ao trocar/descartar/destruir). */
+  protected readonly previewUrl = signal<string | null>(null);
+  /** Erro da imagem (validação client-side ou falha do envio/remoção imediatos na edição). */
+  protected readonly erroImagem = signal<string | null>(null);
+  /** Upload/remoção imediatos em andamento (só na edição — trava os botões da foto). */
+  protected readonly enviandoImagem = signal(false);
+  /** Rótulo do botão de seleção muda conforme já haja imagem/preview. */
+  protected readonly temFoto = computed(
+    () => this.previewUrl() !== null || (this.editando() && (this.produtoAtual()?.temImagem ?? false)),
+  );
+
+  /** Arquivo "staged" na CRIAÇÃO (sobe após o POST). Não é signal: lido só no `salvar`. */
+  private arquivo: File | null = null;
+  /** object URL vivo do preview (fora de signal para revogar sem disparar CD). */
+  private previewObjectUrl: string | null = null;
 
   /** Validação de campo espelha o §3.2; `estoqueAtual` fica de fora (AD-SQ-30). */
   protected readonly form = this.fb.group({
@@ -110,7 +165,9 @@ export class ProdutoForm implements OnInit {
   ngOnInit(): void {
     const p = this.produto();
     if (p) {
-      // Modo edição: pré-preenche do produto (sem `estoqueAtual` — não é editável por CRUD).
+      // Modo edição: guarda o produto vivo (para a foto atual/remover) e pré-preenche o form
+      // (sem `estoqueAtual` — não é editável por CRUD).
+      this.produtoAtual.set(p);
       this.form.setValue({
         nome: p.nome,
         descricao: p.descricao ?? '',
@@ -120,6 +177,10 @@ export class ProdutoForm implements OnInit {
         imagemUrl: p.imagemUrl ?? '',
       });
     }
+  }
+
+  ngOnDestroy(): void {
+    this.limparPreview();
   }
 
   protected salvar(): void {
@@ -154,17 +215,9 @@ export class ProdutoForm implements OnInit {
       return;
     }
 
-    // Criação: POST /produtos (nasce estoque 0). Só encadeia a 2ª chamada se houver entrada > 0.
+    // Criação: POST /produtos (nasce estoque 0). Encadeia entrada inicial e imagem, se houver.
     this.service.criar(req).subscribe({
-      next: (criado) => {
-        const entrada = this.entradaInicial.value;
-        if (entrada !== null && entrada > 0) {
-          this.registrarEntradaInicial(criado, entrada);
-        } else {
-          this.enviando.set(false);
-          this.salvo.emit(criado);
-        }
-      },
+      next: (criado) => this.aposCriar(criado),
       error: (erro: HttpErrorResponse) => {
         this.enviando.set(false);
         this.tratarErro(erro);
@@ -173,29 +226,156 @@ export class ProdutoForm implements OnInit {
   }
 
   /**
-   * 2ª chamada da orquestração (AD-SQ-35): lança a ENTRADA inicial no ledger via
-   * `POST /produtos/{id}/movimentacoes`. No sucesso, emite `salvo` (a lista recarrega o estoque real).
-   * Na falha, o produto JÁ existe com estoque 0: sinaliza `entradaInicialFalhou` e AINDA emite `salvo`
-   * — NÃO desfaz/deleta o produto e NÃO re-chama `criar` (evita duplicata; semântica de falha CA-22).
+   * Pós-criação (orquestração): passo 1 = ENTRADA inicial (se `> 0`); passo 2 = upload da imagem
+   * staged (se houver). Cada passo é NÃO-bloqueante — a falha só sinaliza o output e segue: o produto
+   * já existe (CA-22/CA-12), nunca é desfeito/recriado.
    */
-  private registrarEntradaInicial(criado: Produto, quantidade: number): void {
-    this.service
-      .movimentar(criado.id, {
-        tipo: 'ENTRADA',
-        quantidade,
-        motivo: MOTIVO_ENTRADA_INICIAL,
-      })
-      .subscribe({
-        next: () => {
-          this.enviando.set(false);
-          this.salvo.emit(criado);
-        },
-        error: () => {
-          this.enviando.set(false);
-          this.entradaInicialFalhou.emit();
-          this.salvo.emit(criado);
-        },
-      });
+  private aposCriar(criado: Produto): void {
+    const entrada = this.entradaInicial.value;
+    if (entrada !== null && entrada > 0) {
+      this.service
+        .movimentar(criado.id, { tipo: 'ENTRADA', quantidade: entrada, motivo: MOTIVO_ENTRADA_INICIAL })
+        .subscribe({
+          next: () => this.enviarImagemCriacao(criado),
+          error: () => {
+            this.entradaInicialFalhou.emit();
+            this.enviarImagemCriacao(criado);
+          },
+        });
+    } else {
+      this.enviarImagemCriacao(criado);
+    }
+  }
+
+  /**
+   * Passo 2 da orquestração (T-M3-5): sobe o arquivo staged via `POST /produtos/{id}/imagem`. No
+   * sucesso emite o produto ATUALIZADO (`temImagem:true`). Na falha, o produto JÁ existe SEM imagem:
+   * sinaliza `imagemFalhou` e AINDA emite `salvo` — não desfaz/recria (deriva AD-SQ-35).
+   */
+  private enviarImagemCriacao(criado: Produto): void {
+    if (!this.arquivo) {
+      this.finalizarCriacao(criado);
+      return;
+    }
+    this.service.enviarImagem(criado.id, this.arquivo).subscribe({
+      next: (atualizado) => this.finalizarCriacao(atualizado),
+      error: () => {
+        this.imagemFalhou.emit();
+        this.finalizarCriacao(criado);
+      },
+    });
+  }
+
+  private finalizarCriacao(p: Produto): void {
+    this.enviando.set(false);
+    this.salvo.emit(p);
+  }
+
+  // --- Seleção / preview / envio de imagem (T-M3-5, CA-12) ---
+
+  /**
+   * Arquivo escolhido no seletor: valida (client-side espelho), gera o preview local e — na EDIÇÃO —
+   * envia DIRETO; na CRIAÇÃO fica "staged" para subir após o POST. Limpa o `value` do input para
+   * permitir reescolher o mesmo arquivo.
+   */
+  protected aoSelecionarArquivo(evento: Event): void {
+    const input = evento.target as HTMLInputElement;
+    const arquivo = input.files?.[0] ?? null;
+    input.value = '';
+    if (!arquivo) {
+      return;
+    }
+    const erro = this.validarImagem(arquivo);
+    if (erro) {
+      this.erroImagem.set(erro);
+      return;
+    }
+    this.erroImagem.set(null);
+    this.definirPreview(arquivo);
+    if (this.editando()) {
+      this.enviarImagemEdicao(arquivo);
+    } else {
+      this.arquivo = arquivo;
+    }
+  }
+
+  /** Validação client-side ESPELHO (só orientação; a forte é do back — §3.3): tipo e ≤ 5 MB. */
+  private validarImagem(arquivo: File): string | null {
+    if (!TIPOS_IMAGEM_ACEITOS.includes(arquivo.type as (typeof TIPOS_IMAGEM_ACEITOS)[number])) {
+      return 'Formato não suportado. Use JPG, PNG ou WEBP.';
+    }
+    if (arquivo.size > TAMANHO_MAX_IMAGEM_BYTES) {
+      return 'Imagem acima de 5 MB. Escolha um arquivo menor.';
+    }
+    return null;
+  }
+
+  /** Edição: envio imediato (`enviarImagem`). Sucesso atualiza a foto atual; falha mantém o preview. */
+  private enviarImagemEdicao(arquivo: File): void {
+    const alvo = this.produtoAtual();
+    if (!alvo) {
+      return;
+    }
+    this.enviandoImagem.set(true);
+    this.service.enviarImagem(alvo.id, arquivo).subscribe({
+      next: (atualizado) => {
+        this.enviandoImagem.set(false);
+        this.arquivo = null;
+        this.limparPreview(); // passa a exibir a imagem do banco (temImagem:true, novo atualizadoEm)
+        this.produtoAtual.set(atualizado);
+      },
+      error: () => {
+        this.enviandoImagem.set(false);
+        this.erroImagem.set('Não foi possível enviar a imagem. Tente novamente.');
+      },
+    });
+  }
+
+  /**
+   * Botão "Remover imagem". Na EDIÇÃO com `temImagem`, chama `removerImagem` (o card cai de volta
+   * para `imagemUrl`, se houver — AD-SQ-37). Na CRIAÇÃO, apenas descarta o arquivo staged/preview.
+   */
+  protected removerImagem(): void {
+    if (this.enviandoImagem()) {
+      return;
+    }
+    this.erroImagem.set(null);
+    if (!this.editando()) {
+      this.arquivo = null;
+      this.limparPreview();
+      return;
+    }
+    const alvo = this.produtoAtual();
+    if (!alvo || !alvo.temImagem) {
+      return;
+    }
+    this.enviandoImagem.set(true);
+    this.service.removerImagem(alvo.id).subscribe({
+      next: () => {
+        this.enviandoImagem.set(false);
+        this.arquivo = null;
+        this.limparPreview();
+        this.produtoAtual.set({ ...alvo, temImagem: false });
+      },
+      error: () => {
+        this.enviandoImagem.set(false);
+        this.erroImagem.set('Não foi possível remover a imagem. Tente novamente.');
+      },
+    });
+  }
+
+  private definirPreview(arquivo: File): void {
+    this.limparPreview();
+    this.previewObjectUrl = URL.createObjectURL(arquivo);
+    this.previewUrl.set(this.previewObjectUrl);
+  }
+
+  private limparPreview(): void {
+    if (this.previewObjectUrl) {
+      URL.revokeObjectURL(this.previewObjectUrl);
+      this.previewObjectUrl = null;
+    }
+    this.previewUrl.set(null);
   }
 
   protected cancelar(): void {

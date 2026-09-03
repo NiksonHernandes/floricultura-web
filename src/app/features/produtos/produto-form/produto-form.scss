@@ -92,6 +92,134 @@
   min-width: 0;
 }
 
+// --- Foto do produto (T-M3-5, CA-12) — "a muda no vaso": moldura de herbário + ações ----------
+// Reusa os tokens do ateliê (sais/orvalho/caule/folhagem); a dália segue reservada à ação primária.
+// Mobile-first: moldura em cima, ações embaixo; na bancada (desktop) vira lado a lado.
+.foto {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.35rem 0 0.6rem;
+}
+
+.foto__rotulo {
+  font: 600 0.7rem/1 var(--display);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--folhagem);
+}
+
+.foto__conteudo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.foto__moldura {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  border-radius: 14px;
+  overflow: hidden;
+  // Moldura de herbário: hairline em caule sobre papel de orvalho.
+  border: 1px solid color-mix(in srgb, var(--caule) 45%, var(--orvalho));
+  background: color-mix(in srgb, var(--sais) 30%, white);
+  box-shadow: inset 0 0 0 4px var(--estufa);
+}
+
+.foto__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.foto__vazio {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  color: var(--caule);
+  font: var(--mat-sys-body-small);
+
+  mat-icon {
+    font-size: 2.4rem;
+    width: 2.4rem;
+    height: 2.4rem;
+    opacity: 0.75;
+  }
+}
+
+.foto__enviando {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  background: color-mix(in srgb, var(--folhagem) 55%, transparent);
+  color: var(--estufa);
+  font: 600 0.8rem/1 var(--display);
+  letter-spacing: 0.04em;
+}
+
+.foto__lado {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.foto__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+// Alvo de toque >= 44px (dono: ~90% mobile). "Escolher" em caule; "Remover" discreto.
+.foto__escolher,
+.foto__remover {
+  min-height: 44px;
+}
+
+.foto__escolher {
+  --mat-button-outlined-label-text-color: var(--folhagem);
+  --mat-button-outlined-icon-color: var(--caule);
+  --mat-button-outlined-outline-color: color-mix(in srgb, var(--caule) 60%, var(--orvalho));
+}
+
+.foto__remover {
+  --mat-button-text-label-text-color: #8f2450;
+  --mat-button-text-icon-color: #8f2450;
+}
+
+.foto__dica {
+  margin: 0;
+  color: color-mix(in srgb, var(--tinta) 62%, white);
+  font: var(--mat-sys-body-small);
+}
+
+.foto__erro {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.15rem 0 0;
+  color: #8f2450;
+  font: var(--mat-sys-body-small);
+
+  mat-icon {
+    flex: none;
+    font-size: 1.15rem;
+    width: 1.15rem;
+    height: 1.15rem;
+  }
+}
+
 .ficha__acoes {
   display: flex;
   flex-wrap: wrap; // no mobile as ações podem quebrar sem espremer/estourar
@@ -150,6 +278,22 @@
 
   .ficha__campo--largo {
     grid-column: 1 / -1;
+  }
+
+  // Bancada: moldura à esquerda (largura contida) e ações à direita.
+  .foto__conteudo {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .foto__moldura {
+    width: 15rem;
+    flex: none;
+  }
+
+  .foto__lado {
+    flex: 1 1 auto;
+    padding-top: 0.15rem;
   }
 }
 

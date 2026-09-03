@@ -119,6 +119,13 @@ export class Produtos implements OnInit {
    */
   private entradaInicialFalhou = false;
 
+  /**
+   * Marca transitória (T-M3-5/CA-12): o form emite `imagemFalhou` ANTES de `salvo` quando o produto é
+   * criado mas o upload da imagem falha. `aoSalvar` lê e limpa a marca para avisar (snackbar de
+   * warning) — o produto existe (sem imagem), a foto pode ser enviada depois na edição.
+   */
+  private imagemFalhou = false;
+
   constructor() {
     this.filtro.valueChanges
       .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed())
@@ -184,6 +191,7 @@ export class Produtos implements OnInit {
     this.formAberto.set(false);
     this.produtoEmEdicao.set(null);
     this.entradaInicialFalhou = false;
+    this.imagemFalhou = false;
   }
 
   /**
@@ -194,19 +202,30 @@ export class Produtos implements OnInit {
     this.entradaInicialFalhou = true;
   }
 
+  /**
+   * Form sinalizou que o produto foi criado mas o upload da imagem falhou (T-M3-5/CA-12). Emitido
+   * ANTES de `salvo` → só registra a marca; `aoSalvar` escolhe o snackbar de warning.
+   */
+  protected aoImagemFalhou(): void {
+    this.imagemFalhou = true;
+  }
+
   /** Form emitiu um produto salvo: confirma, fecha e recarrega a fatia atual da lista. */
   protected aoSalvar(p: Produto): void {
     const criado = this.produtoEmEdicao() === null;
     const entradaFalhou = this.entradaInicialFalhou;
+    const imagemFalhou = this.imagemFalhou;
     this.fecharForm();
-    if (entradaFalhou) {
-      // Falha parcial (CA-22): produto existe com estoque 0; orienta usar "Movimentar".
-      this.snack.open(
-        `Produto criado, mas a entrada inicial de estoque não foi registrada. ` +
-          `Use "Movimentar" para lançar o estoque.`,
-        'Fechar',
-        { duration: 8000 },
-      );
+    if (entradaFalhou || imagemFalhou) {
+      // Falha parcial (CA-22/CA-12): o produto EXISTE; avisa o que ficou pendente sem desfazer nada.
+      const pendencias: string[] = [];
+      if (entradaFalhou) {
+        pendencias.push('a entrada inicial de estoque não foi registrada (use "Movimentar")');
+      }
+      if (imagemFalhou) {
+        pendencias.push('a imagem não foi enviada (tente novamente ao editar o produto)');
+      }
+      this.snack.open(`Produto criado, mas ${pendencias.join('; ')}.`, 'Fechar', { duration: 8000 });
     } else {
       this.snack.open(
         criado ? `${p.nome} entrou na prateleira.` : `${p.nome} foi atualizado.`,

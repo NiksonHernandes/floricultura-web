@@ -3,9 +3,14 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { of, throwError } from 'rxjs';
 
-import { ProdutoForm } from './produto-form';
+import { ProdutoForm, TAMANHO_MAX_IMAGEM_BYTES } from './produto-form';
 import { ProdutosService } from '../produtos.service';
 import { Movimentacao, Produto, ProdutoRequest, UnidadeMedida } from '../../../core/models/produto.model';
+
+/** Evento sintético de `<input type="file">` para os testes de seleção (CA-12) — sem DOM real. */
+function eventoArquivo(arquivo: File): Event {
+  return { target: { files: [arquivo], value: '' } } as unknown as Event;
+}
 
 /** Valor completo do form no client (mistura strings e números; `''` = ainda não escolhido). */
 interface FormValor {
@@ -30,10 +35,22 @@ interface Probe {
   salvo: { subscribe(fn: (p: Produto) => void): void };
   /** Saída de falha parcial (T-M2-11/CA-22): produto criado, mas a ENTRADA inicial falhou. */
   entradaInicialFalhou: { subscribe(fn: () => void): void };
+  /** Imagem (T-M3-5/CA-12): seleção + preview + falha parcial de upload na criação. */
+  aoSelecionarArquivo(evento: Event): void;
+  removerImagem(): void;
+  previewUrl(): string | null;
+  erroImagem(): string | null;
+  produtoAtual(): Produto | null;
+  imagemFalhou: { subscribe(fn: () => void): void };
 }
 
 describe('ProdutoForm (T-M2-8, CA-20 — parte form)', () => {
-  let serviceSpy: jasmine.SpyObj<Pick<ProdutosService, 'criar' | 'atualizar' | 'movimentar'>>;
+  let serviceSpy: jasmine.SpyObj<
+    Pick<
+      ProdutosService,
+      'criar' | 'atualizar' | 'movimentar' | 'enviarImagem' | 'removerImagem' | 'urlImagem' | 'imagemBlob'
+    >
+  >;
 
   const rosa: Produto = {
     id: 10,
@@ -98,10 +115,24 @@ describe('ProdutoForm (T-M2-8, CA-20 — parte form)', () => {
   }
 
   beforeEach(() => {
-    serviceSpy = jasmine.createSpyObj<Pick<ProdutosService, 'criar' | 'atualizar' | 'movimentar'>>(
-      'ProdutosService',
-      ['criar', 'atualizar', 'movimentar'],
-    );
+    serviceSpy = jasmine.createSpyObj<
+      Pick<
+        ProdutosService,
+        'criar' | 'atualizar' | 'movimentar' | 'enviarImagem' | 'removerImagem' | 'urlImagem' | 'imagemBlob'
+      >
+    >('ProdutosService', [
+      'criar',
+      'atualizar',
+      'movimentar',
+      'enviarImagem',
+      'removerImagem',
+      'urlImagem',
+      'imagemBlob',
+    ]);
+    // Defaults p/ o `ImagemProduto` embutido no form (edição): resolve a foto atual sem tocar
+    // enviarImagem/removerImagem. `urlImagem`/`imagemBlob` são leitura da foto do banco (T-M3-4).
+    serviceSpy.urlImagem.and.returnValue('http://localhost:8080/api/v1/produtos/10/imagem?v=1');
+    serviceSpy.imagemBlob.and.returnValue(of(new Blob()));
     TestBed.configureTestingModule({
       imports: [ProdutoForm],
       providers: [provideNoopAnimations(), { provide: ProdutosService, useValue: serviceSpy }],
@@ -291,5 +322,100 @@ describe('ProdutoForm (T-M2-8, CA-20 — parte form)', () => {
     // NÃO recria o produto (evita duplicata) — criar chamado uma única vez.
     expect(serviceSpy.criar).toHaveBeenCalledTimes(1);
     expect(probe.enviando()).toBeFalse();
+  });
+
+  // --- Upload de imagem no form (T-M3-5, CA-12) ---
+
+  const jpg = new File(['\xff\xd8\xff'], 'rosa.jpg', { type: 'image/jpeg' });
+
+  it('criação: selecionar imagem gera preview LOCAL (client-side) e NÃO envia antes de salvar (CA-12)', () => {
+    const probe = montar();
+    probe.aoSelecionarArquivo(eventoArquivo(jpg));
+    expect(probe.previewUrl()).toContain('blob:'); // object URL do FileReader/createObjectURL
+    expect(probe.erroImagem()).toBeNull();
+    expect(serviceSpy.enviarImagem).not.toHaveBeenCalled();
+  });
+
+  it('criação: tipo inválido é barrado no cliente — erro, sem preview, sem envio (CA-12)', () => {
+    const probe = montar();
+    probe.aoSelecionarArquivo(eventoArquivo(new File(['x'], 'nota.txt', { type: 'text/plain' })));
+    expect(probe.erroImagem()).toContain('JPG');
+    expect(probe.previewUrl()).toBeNull();
+    expect(serviceSpy.enviarImagem).not.toHaveBeenCalled();
+  });
+
+  it('criação: imagem acima de 5 MB é barrada no cliente (orientação — a forte é do back) (CA-12)', () => {
+    const probe = montar();
+    const grande = new File(['x'], 'grande.jpg', { type: 'image/jpeg' });
+    Object.defineProperty(grande, 'size', { value: TAMANHO_MAX_IMAGEM_BYTES + 1 });
+    probe.aoSelecionarArquivo(eventoArquivo(grande));
+    expect(probe.erroImagem()).toContain('5 MB');
+    expect(serviceSpy.enviarImagem).not.toHaveBeenCalled();
+  });
+
+  it('criação com imagem: após criar, envia a imagem e emite o produto ATUALIZADO (CA-12)', () => {
+    const atualizado: Produto = { ...rosa, temImagem: true };
+    serviceSpy.criar.and.returnValue(of(rosa)); // rosa.id === 10
+    serviceSpy.enviarImagem.and.returnValue(of(atualizado));
+    const probe = montar();
+    let emitido: Produto | undefined;
+    probe.salvo.subscribe((p) => (emitido = p));
+
+    probe.form.setValue(minimo);
+    probe.aoSelecionarArquivo(eventoArquivo(jpg));
+    probe.salvar();
+
+    // A imagem NÃO vaza no ProdutoRequest — vai só pelo endpoint dedicado (parte `arquivo`).
+    expect(serviceSpy.criar).toHaveBeenCalledWith(payloadMinimo);
+    expect(serviceSpy.enviarImagem).toHaveBeenCalledWith(10, jpg);
+    expect(emitido).toEqual(atualizado);
+    expect(probe.enviando()).toBeFalse();
+  });
+
+  it('criação com imagem: upload falho ⇒ salvo emite (produto existe), imagemFalhou dispara, sem recriar (CA-12)', () => {
+    serviceSpy.criar.and.returnValue(of(rosa));
+    serviceSpy.enviarImagem.and.returnValue(
+      throwError(() => new HttpErrorResponse({ status: 400, statusText: 'Bad Request' })),
+    );
+    const probe = montar();
+    let emitido: Produto | undefined;
+    let falhou = false;
+    probe.salvo.subscribe((p) => (emitido = p));
+    probe.imagemFalhou.subscribe(() => (falhou = true));
+
+    probe.form.setValue(minimo);
+    probe.aoSelecionarArquivo(eventoArquivo(jpg));
+    probe.salvar();
+
+    // Produto considerado criado (sem imagem): salvo emite mesmo com o upload falhando.
+    expect(emitido).toEqual(rosa);
+    expect(falhou).toBeTrue();
+    expect(serviceSpy.criar).toHaveBeenCalledTimes(1); // não recria/deleta
+    expect(probe.enviando()).toBeFalse();
+  });
+
+  it('edição: selecionar imagem envia DIRETO (enviarImagem) e reflete temImagem na foto atual (CA-12)', () => {
+    const atualizado: Produto = { ...rosa, temImagem: true };
+    serviceSpy.enviarImagem.and.returnValue(of(atualizado));
+    const fixture = montarEditando(rosa); // rosa.temImagem === false
+    const probe = fixture.componentInstance as unknown as Probe;
+
+    probe.aoSelecionarArquivo(eventoArquivo(jpg));
+
+    expect(serviceSpy.enviarImagem).toHaveBeenCalledWith(10, jpg);
+    expect(serviceSpy.criar).not.toHaveBeenCalled();
+    expect(probe.produtoAtual()?.temImagem).toBeTrue();
+    expect(probe.previewUrl()).toBeNull(); // passa a exibir a foto do banco
+  });
+
+  it('edição: "Remover foto" chama removerImagem e o produto passa a temImagem false (CA-12)', () => {
+    serviceSpy.removerImagem.and.returnValue(of(void 0));
+    const fixture = montarEditando({ ...rosa, temImagem: true });
+    const probe = fixture.componentInstance as unknown as Probe;
+
+    probe.removerImagem();
+
+    expect(serviceSpy.removerImagem).toHaveBeenCalledWith(10);
+    expect(probe.produtoAtual()?.temImagem).toBeFalse();
   });
 });
