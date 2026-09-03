@@ -19,6 +19,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 import { ProdutosService } from '../produtos.service';
 import { ImagemProduto } from '../imagem-produto/imagem-produto';
+import { RecorteFoto } from '../recorte-foto/recorte-foto';
 import { ApiResponse } from '../../../core/models/api-response.model';
 import { Produto, ProdutoRequest, UnidadeMedida } from '../../../core/models/produto.model';
 
@@ -76,6 +77,12 @@ export const OPCOES_UNIDADE: ReadonlyArray<{ valor: UnidadeMedida; rotulo: strin
  * falho ⇒ produto EXISTE, emite `salvo` + sinaliza `imagemFalhou` (warning na lista-mãe), sem
  * recriar/deletar. **Edição:** envio DIRETO/imediato ao selecionar (`enviarImagem`) e botão
  * "Remover imagem" (`removerImagem`) quando `temImagem`; a imagem atual reusa `ImagemProduto`.
+ *
+ * T-M3.1-3 (SPEC-M3.1 §3.3, AD-SQ-41): a seleção deixa de stagear/enviar a fonte crua — ela abre um
+ * cropper (`<app-recorte-foto>`, moldura 16/10, pan+zoom) via `arquivoParaRecorte`; SÓ o recorte
+ * confirmado (`aoRecortar`, File JPEG) segue o fluxo acima (staged na criação / envio direto na
+ * edição), com a guarda de 5 MB no recorte final. Cancelar o cropper preserva o estado. As
+ * assinaturas de `enviarImagem`/`removerImagem` NÃO mudam (o recorte já vem como File).
  */
 @Component({
   selector: 'app-produto-form',
@@ -88,6 +95,7 @@ export const OPCOES_UNIDADE: ReadonlyArray<{ valor: UnidadeMedida; rotulo: strin
     MatIconModule,
     MatProgressSpinnerModule,
     ImagemProduto,
+    RecorteFoto,
   ],
   templateUrl: './produto-form.html',
   styleUrl: './produto-form.scss',
@@ -127,6 +135,12 @@ export class ProdutoForm implements OnInit, OnDestroy {
   protected readonly produtoAtual = signal<Produto | null>(null);
   /** object URL do preview local do arquivo selecionado (revogado ao trocar/descartar/destruir). */
   protected readonly previewUrl = signal<string | null>(null);
+  /**
+   * Foto-fonte aguardando enquadramento no cropper (T-M3.1-3, §3.3). Enquanto `!= null` o overlay
+   * `<app-recorte-foto>` fica aberto sobre a ficha; a fonte crua NUNCA é stageada/enviada — só o
+   * recorte confirmado (`aoRecortar`) entra no fluxo.
+   */
+  protected readonly arquivoParaRecorte = signal<File | null>(null);
   /** Erro da imagem (validação client-side ou falha do envio/remoção imediatos na edição). */
   protected readonly erroImagem = signal<string | null>(null);
   /** Upload/remoção imediatos em andamento (só na edição — trava os botões da foto). */
@@ -274,9 +288,10 @@ export class ProdutoForm implements OnInit, OnDestroy {
   // --- Seleção / preview / envio de imagem (T-M3-5, CA-12) ---
 
   /**
-   * Arquivo escolhido no seletor: valida (client-side espelho), gera o preview local e — na EDIÇÃO —
-   * envia DIRETO; na CRIAÇÃO fica "staged" para subir após o POST. Limpa o `value` do input para
-   * permitir reescolher o mesmo arquivo.
+   * Arquivo escolhido no seletor (T-M3.1-3, §3.3): valida SÓ o TIPO (whitelist espelho) e ABRE o
+   * cropper com a fonte — NÃO stagea/envia a fonte crua. O enquadramento e a guarda de 5 MB ficam
+   * no recorte final (`aoRecortar`). Limpa o `value` do input para permitir reescolher o mesmo arquivo.
+   * "Trocar foto" reusa este handler (nova sessão de cropper).
    */
   protected aoSelecionarArquivo(evento: Event): void {
     const input = evento.target as HTMLInputElement;
@@ -285,27 +300,45 @@ export class ProdutoForm implements OnInit, OnDestroy {
     if (!arquivo) {
       return;
     }
-    const erro = this.validarImagem(arquivo);
+    const erro = this.validarTipoImagem(arquivo);
     if (erro) {
       this.erroImagem.set(erro);
       return;
     }
     this.erroImagem.set(null);
-    this.definirPreview(arquivo);
+    this.arquivoParaRecorte.set(arquivo); // abre o overlay do cropper
+  }
+
+  /**
+   * Recorte confirmado no cropper (File JPEG — §3.3). Fecha o overlay, valida `≤ 5 MB` (senão erro
+   * local, não segue), gera o preview local (objectURL do recorte) e — na EDIÇÃO — envia DIRETO;
+   * na CRIAÇÃO fica "staged" para subir após o POST (mesma semântica de falha parcial, AD-SQ-35).
+   * Confirmar substitui o recorte/preview anteriores (destrutivo — AD-SQ-41).
+   */
+  protected aoRecortar(recorte: File): void {
+    this.arquivoParaRecorte.set(null);
+    if (recorte.size > TAMANHO_MAX_IMAGEM_BYTES) {
+      this.erroImagem.set('Imagem acima de 5 MB. Reduza o zoom ou escolha um arquivo menor.');
+      return;
+    }
+    this.erroImagem.set(null);
+    this.definirPreview(recorte);
     if (this.editando()) {
-      this.enviarImagemEdicao(arquivo);
+      this.enviarImagemEdicao(recorte);
     } else {
-      this.arquivo = arquivo;
+      this.arquivo = recorte;
     }
   }
 
-  /** Validação client-side ESPELHO (só orientação; a forte é do back — §3.3): tipo e ≤ 5 MB. */
-  private validarImagem(arquivo: File): string | null {
+  /** Cancelar o cropper: descarta a fonte, nada muda (o estado anterior do form é preservado). */
+  protected aoCancelarRecorte(): void {
+    this.arquivoParaRecorte.set(null);
+  }
+
+  /** Validação client-side ESPELHO do TIPO (só orientação; a forte é do back — §3.3). */
+  private validarTipoImagem(arquivo: File): string | null {
     if (!TIPOS_IMAGEM_ACEITOS.includes(arquivo.type as (typeof TIPOS_IMAGEM_ACEITOS)[number])) {
       return 'Formato não suportado. Use JPG, PNG ou WEBP.';
-    }
-    if (arquivo.size > TAMANHO_MAX_IMAGEM_BYTES) {
-      return 'Imagem acima de 5 MB. Escolha um arquivo menor.';
     }
     return null;
   }

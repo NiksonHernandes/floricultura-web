@@ -78,6 +78,21 @@
   min-height: 0; // ...e rola de fato (sem isso, min-height:auto do item flex estoura em vez de rolar) (§3.4)
 }
 
+// Overlay do cropper (T-M3.1-3, §3.3): cobre a ficha inteira (o :host é o bloco-contêiner
+// position:fixed) com um véu de folhagem; o <app-recorte-foto> ocupa a área e traz o próprio chrome.
+.ficha__recorte {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  background: color-mix(in srgb, var(--folhagem) 42%, transparent);
+
+  app-recorte-foto {
+    width: 100%;
+    display: flex;
+  }
+}
+
 .ficha__erro {
   display: flex;
   align-items: center;
@@ -132,7 +147,7 @@
 .foto__moldura {
   position: relative;
   width: 100%;
-  aspect-ratio: 3 / 2;
+  aspect-ratio: 16 / 10; // igual à faixa do card (.vaso__planta) e à moldura do cropper (§3.5)
   border-radius: 14px;
   overflow: hidden;
   // Moldura de herbário: hairline em caule sobre papel de orvalho.

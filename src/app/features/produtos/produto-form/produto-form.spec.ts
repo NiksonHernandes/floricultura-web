@@ -42,6 +42,14 @@ interface Probe {
   erroImagem(): string | null;
   produtoAtual(): Produto | null;
   imagemFalhou: { subscribe(fn: () => void): void };
+  /**
+   * Cropper (T-M3.1-3/§3.3, §6 ajuste estrutural SANCIONADO): a seleção abre o cropper
+   * (`arquivoParaRecorte`); o recorte confirmado entra pelo `aoRecortar`; `aoCancelarRecorte`
+   * descarta a fonte. NÃO é afrouxamento — é o novo passo de confirmação de recorte.
+   */
+  aoRecortar(recorte: File): void;
+  aoCancelarRecorte(): void;
+  arquivoParaRecorte(): File | null;
 }
 
 describe('ProdutoForm (T-M2-8, CA-20 — parte form)', () => {
@@ -327,29 +335,45 @@ describe('ProdutoForm (T-M2-8, CA-20 — parte form)', () => {
   // --- Upload de imagem no form (T-M3-5, CA-12) ---
 
   const jpg = new File(['\xff\xd8\xff'], 'rosa.jpg', { type: 'image/jpeg' });
+  /**
+   * Recorte que o `<app-recorte-foto>` emitiria após Confirmar — File JPEG DISTINTO da fonte
+   * (§6: o objeto enviado passa a ser o RECORTE, não a fonte). Dirigimos o form via `aoRecortar`.
+   */
+  const recorte = new File(['\xff\xd8\xff\xe0'], 'rosa-recortada.jpg', { type: 'image/jpeg' });
 
-  it('criação: selecionar imagem gera preview LOCAL (client-side) e NÃO envia antes de salvar (CA-12)', () => {
+  it('criação: seleção ABRE o cropper (não stagea a fonte); ao confirmar gera preview LOCAL e NÃO envia antes de salvar (CA-12/CA-8)', () => {
     const probe = montar();
+    // Passo 1: selecionar abre o cropper com a fonte — sem preview/stage ainda (§3.3).
     probe.aoSelecionarArquivo(eventoArquivo(jpg));
-    expect(probe.previewUrl()).toContain('blob:'); // object URL do FileReader/createObjectURL
+    expect(probe.arquivoParaRecorte()).toBe(jpg);
+    expect(probe.previewUrl()).toBeNull();
+    // Passo 2: confirmar o recorte → preview local do RECORTE; ainda sem envio na criação.
+    probe.aoRecortar(recorte);
+    expect(probe.arquivoParaRecorte()).toBeNull(); // cropper fechou
+    expect(probe.previewUrl()).toContain('blob:'); // object URL do recorte (createObjectURL)
     expect(probe.erroImagem()).toBeNull();
+    // ÂNCORA preservada: enviarImagem NÃO é chamado antes de salvar (criação).
     expect(serviceSpy.enviarImagem).not.toHaveBeenCalled();
   });
 
-  it('criação: tipo inválido é barrado no cliente — erro, sem preview, sem envio (CA-12)', () => {
+  it('criação: tipo inválido é barrado na SELEÇÃO — erro, cropper não abre, sem preview, sem envio (CA-12)', () => {
     const probe = montar();
     probe.aoSelecionarArquivo(eventoArquivo(new File(['x'], 'nota.txt', { type: 'text/plain' })));
-    expect(probe.erroImagem()).toContain('JPG');
+    expect(probe.erroImagem()).toContain('JPG'); // validação de tipo ocorre antes do cropper
+    expect(probe.arquivoParaRecorte()).toBeNull();
     expect(probe.previewUrl()).toBeNull();
     expect(serviceSpy.enviarImagem).not.toHaveBeenCalled();
   });
 
-  it('criação: imagem acima de 5 MB é barrada no cliente (orientação — a forte é do back) (CA-12)', () => {
+  it('criação: RECORTE acima de 5 MB é barrado no cliente (guarda no recorte final) — erro, sem envio (CA-5/CA-8)', () => {
     const probe = montar();
     const grande = new File(['x'], 'grande.jpg', { type: 'image/jpeg' });
     Object.defineProperty(grande, 'size', { value: TAMANHO_MAX_IMAGEM_BYTES + 1 });
-    probe.aoSelecionarArquivo(eventoArquivo(grande));
+    probe.aoSelecionarArquivo(eventoArquivo(jpg)); // abre o cropper
+    probe.aoRecortar(grande); // recorte final estoura 5 MB
     expect(probe.erroImagem()).toContain('5 MB');
+    expect(probe.previewUrl()).toBeNull(); // recorte inválido não vira preview
+    // ÂNCORA preservada: arquivo grande NÃO é enviado.
     expect(serviceSpy.enviarImagem).not.toHaveBeenCalled();
   });
 
@@ -363,11 +387,19 @@ describe('ProdutoForm (T-M2-8, CA-20 — parte form)', () => {
 
     probe.form.setValue(minimo);
     probe.aoSelecionarArquivo(eventoArquivo(jpg));
+    probe.aoRecortar(recorte); // confirma o enquadramento
     probe.salvar();
 
-    // A imagem NÃO vaza no ProdutoRequest — vai só pelo endpoint dedicado (parte `arquivo`).
+    // ÂNCORA: a imagem NÃO vaza no ProdutoRequest — payload de 6 campos intacto.
     expect(serviceSpy.criar).toHaveBeenCalledWith(payloadMinimo);
-    expect(serviceSpy.enviarImagem).toHaveBeenCalledWith(10, jpg);
+    // O objeto enviado agora é o RECORTE (File image/jpeg), não a fonte crua.
+    expect(serviceSpy.enviarImagem).toHaveBeenCalledWith(10, jasmine.any(File));
+    const enviado = serviceSpy.enviarImagem.calls.mostRecent().args[1] as File;
+    expect(enviado.type).toBe('image/jpeg');
+    expect(enviado).toBe(recorte);
+    // ÂNCORA: ordem criar → enviarImagem, e criar chamado uma única vez.
+    expect(serviceSpy.criar).toHaveBeenCalledBefore(serviceSpy.enviarImagem);
+    expect(serviceSpy.criar).toHaveBeenCalledTimes(1);
     expect(emitido).toEqual(atualizado);
     expect(probe.enviando()).toBeFalse();
   });
@@ -385,24 +417,30 @@ describe('ProdutoForm (T-M2-8, CA-20 — parte form)', () => {
 
     probe.form.setValue(minimo);
     probe.aoSelecionarArquivo(eventoArquivo(jpg));
+    probe.aoRecortar(recorte); // confirma o enquadramento
     probe.salvar();
 
-    // Produto considerado criado (sem imagem): salvo emite mesmo com o upload falhando.
+    // ÂNCORA (AD-SQ-35): produto considerado criado (sem imagem); salvo emite mesmo com o upload falho.
     expect(emitido).toEqual(rosa);
     expect(falhou).toBeTrue();
     expect(serviceSpy.criar).toHaveBeenCalledTimes(1); // não recria/deleta
+    // E o objeto que TENTOU subir era o recorte (File), não a fonte.
+    expect(serviceSpy.enviarImagem).toHaveBeenCalledWith(10, jasmine.any(File));
     expect(probe.enviando()).toBeFalse();
   });
 
-  it('edição: selecionar imagem envia DIRETO (enviarImagem) e reflete temImagem na foto atual (CA-12)', () => {
+  it('edição: selecionar + confirmar recorte envia DIRETO (enviarImagem) e reflete temImagem na foto atual (CA-7/CA-12)', () => {
     const atualizado: Produto = { ...rosa, temImagem: true };
     serviceSpy.enviarImagem.and.returnValue(of(atualizado));
     const fixture = montarEditando(rosa); // rosa.temImagem === false
     const probe = fixture.componentInstance as unknown as Probe;
 
-    probe.aoSelecionarArquivo(eventoArquivo(jpg));
+    probe.aoSelecionarArquivo(eventoArquivo(jpg)); // abre o cropper
+    probe.aoRecortar(recorte); // confirma → envia direto
 
-    expect(serviceSpy.enviarImagem).toHaveBeenCalledWith(10, jpg);
+    expect(serviceSpy.enviarImagem).toHaveBeenCalledWith(10, jasmine.any(File));
+    const enviado = serviceSpy.enviarImagem.calls.mostRecent().args[1] as File;
+    expect(enviado.type).toBe('image/jpeg');
     expect(serviceSpy.criar).not.toHaveBeenCalled();
     expect(probe.produtoAtual()?.temImagem).toBeTrue();
     expect(probe.previewUrl()).toBeNull(); // passa a exibir a foto do banco
@@ -417,5 +455,22 @@ describe('ProdutoForm (T-M2-8, CA-20 — parte form)', () => {
 
     expect(serviceSpy.removerImagem).toHaveBeenCalledWith(10);
     expect(probe.produtoAtual()?.temImagem).toBeFalse();
+  });
+
+  it('criação: CANCELAR o cropper não stagea nem envia — estado preservado (CA-8)', () => {
+    serviceSpy.criar.and.returnValue(of(rosa));
+    const probe = montar();
+
+    probe.form.setValue(minimo);
+    probe.aoSelecionarArquivo(eventoArquivo(jpg)); // abre o cropper
+    expect(probe.arquivoParaRecorte()).toBe(jpg);
+    probe.aoCancelarRecorte(); // desiste
+    expect(probe.arquivoParaRecorte()).toBeNull();
+    expect(probe.previewUrl()).toBeNull(); // nada stageado/preview
+
+    probe.salvar();
+    // Cria normalmente (payload de 6 campos), mas SEM imagem — nada foi recortado/enviado.
+    expect(serviceSpy.criar).toHaveBeenCalledWith(payloadMinimo);
+    expect(serviceSpy.enviarImagem).not.toHaveBeenCalled();
   });
 });
