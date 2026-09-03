@@ -102,4 +102,49 @@ export class ProdutosService {
       })
       .pipe(map((r) => r.data!));
   }
+
+  // --- Imagem no banco (SPEC-M3 §3.3/§3.6, T-M3-4) ---
+
+  /**
+   * POST /produtos/{id}/imagem → envia a imagem (`multipart/form-data`, parte **`arquivo`**). Só
+   * ADMIN (RBAC no back, FC-07). Desembrulha o `ProdutoResponse` atualizado (`temImagem:true`,
+   * `atualizadoEm` novo). Erros (`400` tipo/tamanho/spoof/vazio · `403` USER · `404`) são tratados
+   * pelo chamador (o form aplica `error.details` no campo `arquivo`).
+   */
+  enviarImagem(id: number, arquivo: File): Observable<Produto> {
+    const dados = new FormData();
+    dados.append('arquivo', arquivo);
+    return this.http
+      .post<ApiResponse<Produto>>(`${this.baseUrl}/${id}/imagem`, dados)
+      .pipe(map((r) => r.data!));
+  }
+
+  /**
+   * DELETE /produtos/{id}/imagem → remove o binário do banco (`204`, idempotente — remover o que
+   * já não há ainda é sucesso). Só ADMIN. O card cai de volta para `imagemUrl` (se houver). `403`/
+   * `404` tratados pelo chamador.
+   */
+  removerImagem(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${id}/imagem`);
+  }
+
+  /**
+   * URL **versionada** do binário do banco (§3.3): `.../imagem?v=<atualizadoEm epoch>`. Upload/
+   * delete bumpam `atualizadoEm` → novo `?v` invalida o cache imutável ao trocar a foto. **NUNCA**
+   * usar em `<img src>` direto (sem Bearer → `401` → logout do interceptor, §12); é a chave que
+   * `imagemBlob` carrega via `HttpClient`.
+   */
+  urlImagem(p: Produto): string {
+    return `${this.baseUrl}/${p.id}/imagem?v=${Date.parse(p.atualizadoEm)}`;
+  }
+
+  /**
+   * GET do binário como `Blob` (`responseType:'blob'`, Bearer via interceptor). A exibição usa
+   * `URL.createObjectURL` no blob e **revoga** ao descartar/trocar. `404` (sem imagem) **não**
+   * desloga — só `401` dispara o logout do interceptor (§12) —, então o chamador cai para o
+   * fallback sem quebrar o card.
+   */
+  imagemBlob(url: string): Observable<Blob> {
+    return this.http.get(url, { responseType: 'blob' });
+  }
 }

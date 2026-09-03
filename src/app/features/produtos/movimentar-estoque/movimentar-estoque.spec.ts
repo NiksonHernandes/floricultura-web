@@ -41,6 +41,7 @@ describe('MovimentarEstoque (T-M2-9 — CA-20 movimentação / CA-11)', () => {
     ativo: true,
     criadoEm: '2026-09-02T14:00:00Z',
     atualizadoEm: '2026-09-02T14:00:00Z',
+    temImagem: false,
   };
 
   function envelope<T>(data: T): ApiResponse<T> {

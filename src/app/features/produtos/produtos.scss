@@ -201,33 +201,8 @@
   background: color-mix(in srgb, var(--caule) 12%, white);
 }
 
-.vaso__img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.vaso__placeholder {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: radial-gradient(90% 90% at 50% 30%, color-mix(in srgb, var(--sais) 55%, white), var(--estufa));
-
-  mat-icon {
-    color: var(--caule);
-    font-size: 2.75rem;
-    width: 2.75rem;
-    height: 2.75rem;
-    opacity: 0.7;
-  }
-}
+// A imagem/placeholder da foto vivem no <app-imagem-produto> (T-M3-4): ele preenche
+// `.vaso__planta` em absoluto e resolve banco → URL → placeholder. Estilos em imagem-produto.scss.
 
 /* Selo de estoque baixo — a ÚNICA dália desta tela (§gaste a ousadia num lugar só) */
 .selo-baixo {

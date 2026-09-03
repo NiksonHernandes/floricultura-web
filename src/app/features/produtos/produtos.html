@@ -63,19 +63,7 @@
       @for (p of produtos(); track p.id) {
         <li class="vaso" [class.vaso--alerta]="p.estoqueBaixo">
           <div class="vaso__planta">
-            @if (semImagem(p)) {
-              <div class="vaso__placeholder" aria-hidden="true">
-                <mat-icon>local_florist</mat-icon>
-              </div>
-            } @else {
-              <img
-                class="vaso__img"
-                [src]="p.imagemUrl"
-                [alt]="p.nome"
-                loading="lazy"
-                (error)="aoErroImagem(p.id)"
-              />
-            }
+            <app-imagem-produto [produto]="p" />
             @if (p.estoqueBaixo) {
               <span class="selo-baixo">
                 <mat-icon aria-hidden="true">warning_amber</mat-icon>

@@ -48,6 +48,7 @@ describe('ProdutoForm (T-M2-8, CA-20 — parte form)', () => {
     ativo: true,
     criadoEm: '2026-09-02T14:00:00Z',
     atualizadoEm: '2026-09-02T14:00:00Z',
+    temImagem: false,
   };
 
   /** Form mínimo válido em modo criação: só o obrigatório; opcionais vazios. */

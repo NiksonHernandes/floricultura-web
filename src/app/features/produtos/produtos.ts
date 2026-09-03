@@ -13,6 +13,7 @@ import { MatDialog } from '@angular/material/dialog';
 
 import { ProdutosService } from './produtos.service';
 import { ProdutoForm } from './produto-form/produto-form';
+import { ImagemProduto } from './imagem-produto/imagem-produto';
 import {
   ConfirmarExclusao,
   ConfirmarExclusaoDados,
@@ -79,6 +80,7 @@ const ROTULOS_UNIDADE: Record<UnidadeMedida, string> = {
     MatProgressSpinnerModule,
     MatPaginatorModule,
     ProdutoForm,
+    ImagemProduto,
   ],
   providers: [{ provide: MatPaginatorIntl, useFactory: paginatorPtBr }],
   templateUrl: './produtos.html',
@@ -105,9 +107,6 @@ export class Produtos implements OnInit {
 
   /** Campo de busca por nome (filtro server-side com debounce — §3.3 `nome` ILIKE). */
   protected readonly filtro = new FormControl('', { nonNullable: true });
-
-  /** Ids cujo `<img>` falhou ao carregar → caem no placeholder botânico (AD-SQ-32). */
-  private readonly imagensQuebradas = signal<Set<number>>(new Set());
 
   /** Diálogo do form (T-M2-8): aberto? e produto em edição (null = criar). */
   protected readonly formAberto = signal(false);
@@ -279,15 +278,6 @@ export class Produtos implements OnInit {
           this.carregar();
         }
       });
-  }
-
-  /** Exibe placeholder quando não há URL ou o carregamento falhou (AD-SQ-32). */
-  protected semImagem(p: Produto): boolean {
-    return !p.imagemUrl || this.imagensQuebradas().has(p.id);
-  }
-
-  protected aoErroImagem(id: number): void {
-    this.imagensQuebradas.update((s) => new Set(s).add(id));
   }
 
   protected rotuloUnidade(u: UnidadeMedida): string {
