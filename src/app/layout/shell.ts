@@ -72,13 +72,16 @@ export class Shell {
   protected readonly usuario = this.auth.usuarioAtual;
 
   /**
-   * Menu (AD-SQ-33 + SPEC-M4 §12): Produtos/Eventos/Movimentações (todos os autenticados) +
-   * Usuários (ADMIN). Eventos e Movimentações são leitura para USER+ADMIN (`soAdmin:false`).
+   * Menu (AD-SQ-33 + SPEC-M4 §12 + SPEC-M5 §3.6): Produtos/Eventos/Movimentações/Clientes/
+   * Fornecedores (todos os autenticados) + Usuários (ADMIN). Clientes e Fornecedores são leitura
+   * para USER+ADMIN (`soAdmin:false`, CA-10); a escrita é barrada por RBAC no back (FC-07).
    */
   private readonly itens: readonly ItemMenu[] = [
     { rota: '/produtos', rotulo: 'Produtos', icone: 'local_florist', soAdmin: false },
     { rota: '/eventos', rotulo: 'Eventos', icone: 'event', soAdmin: false },
     { rota: '/movimentacoes', rotulo: 'Movimentações', icone: 'swap_vert', soAdmin: false },
+    { rota: '/clientes', rotulo: 'Clientes', icone: 'people', soAdmin: false },
+    { rota: '/fornecedores', rotulo: 'Fornecedores', icone: 'local_shipping', soAdmin: false },
     { rota: '/usuarios', rotulo: 'Usuários', icone: 'group', soAdmin: true },
   ];
 

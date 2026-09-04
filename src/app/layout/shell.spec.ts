@@ -58,8 +58,15 @@ describe('Shell (T-M2-6)', () => {
   it('USER não vê o item "Usuários" no menu (CA-17)', () => {
     const { probe } = montar();
     const rotas = probe.itensVisiveis().map((i) => i.rota);
-    // Menu ampliado no M4 (SPEC-M4 §12): +Eventos +Movimentações (soAdmin:false). "Usuários" só ADMIN.
-    expect(rotas).toEqual(['/produtos', '/eventos', '/movimentacoes']);
+    // Menu ampliado no M4 (SPEC-M4 §12): +Eventos +Movimentações; no M5 (SPEC-M5 §3.6/CA-10):
+    // +Clientes +Fornecedores (todos soAdmin:false). "Usuários" continua só ADMIN (RBAC intacto).
+    expect(rotas).toEqual([
+      '/produtos',
+      '/eventos',
+      '/movimentacoes',
+      '/clientes',
+      '/fornecedores',
+    ]);
     expect(rotas).not.toContain('/usuarios');
   });
 
@@ -67,7 +74,33 @@ describe('Shell (T-M2-6)', () => {
     ehAdmin.set(true);
     const { probe } = montar();
     const rotas = probe.itensVisiveis().map((i) => i.rota);
-    expect(rotas).toEqual(['/produtos', '/eventos', '/movimentacoes', '/usuarios']);
+    expect(rotas).toEqual([
+      '/produtos',
+      '/eventos',
+      '/movimentacoes',
+      '/clientes',
+      '/fornecedores',
+      '/usuarios',
+    ]);
+  });
+
+  it('USER vê "Clientes" e "Fornecedores" no menu (CA-10)', () => {
+    const { probe } = montar();
+    const itens = probe.itensVisiveis();
+    const rotas = itens.map((i) => i.rota);
+    expect(rotas).toContain('/clientes');
+    expect(rotas).toContain('/fornecedores');
+    const rotulos = itens.map((i) => i.rotulo);
+    expect(rotulos).toContain('Clientes');
+    expect(rotulos).toContain('Fornecedores');
+  });
+
+  it('ADMIN vê "Clientes" e "Fornecedores" no menu (CA-10)', () => {
+    ehAdmin.set(true);
+    const { probe } = montar();
+    const rotas = probe.itensVisiveis().map((i) => i.rota);
+    expect(rotas).toContain('/clientes');
+    expect(rotas).toContain('/fornecedores');
   });
 
   it('desktop: não é mobile e o drawer nasce aberto/fixo (CA-16)', () => {

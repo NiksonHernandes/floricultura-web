@@ -12,6 +12,9 @@ import { adminGuard } from './core/guards/admin.guard';
  * - Shell (`layout/shell`): parent das rotas AUTENTICADAS. `authGuard` cobre o grupo; sem
  *             token → `/login`. Home pós-login = `/produtos` (ADMIN e USER — CA-16).
  *   - `produtos`     Home (todos os autenticados).
+ *   - `clientes`/`fornecedores` leitura USER+ADMIN (SPEC-M5 §3.6/CA-10) — só `authGuard`, SEM
+ *             `adminGuard` (a escrita é barrada por RBAC no back — FC-07). Componentes são
+ *             placeholders da T-M5-6; a lista real chega em T-M5-7/T-M5-9.
  *   - `usuarios`     protegida por `adminGuard` (ADMIN); o item some do menu p/ USER (CA-17).
  *   - `trocar-senha` ação VOLUNTÁRIA de troca de senha (AD-SQ-24); ninguém é retido aqui.
  */
@@ -42,6 +45,15 @@ export const routes: Routes = [
         path: 'movimentacoes',
         loadComponent: () =>
           import('./features/movimentacoes/movimentacoes').then((m) => m.Movimentacoes),
+      },
+      {
+        path: 'clientes',
+        loadComponent: () => import('./features/clientes/clientes').then((m) => m.Clientes),
+      },
+      {
+        path: 'fornecedores',
+        loadComponent: () =>
+          import('./features/fornecedores/fornecedores').then((m) => m.Fornecedores),
       },
       {
         path: 'usuarios',
