@@ -10,6 +10,7 @@ import { of } from 'rxjs';
 import { Eventos } from './eventos';
 import { EventosService } from './eventos.service';
 import { ConfirmarExclusao } from '../produtos/confirmar-exclusao/confirmar-exclusao';
+import { InfoAvisos } from './info-avisos/info-avisos';
 import { AuthService } from '../../core/services/auth.service';
 import { ApiResponse } from '../../core/models/api-response.model';
 import { PaginaResponse } from '../../core/models/produto.model';
@@ -262,6 +263,16 @@ describe('Eventos (lista — T-M4-4/5, CA-4/CA-5/CA-6/CA-7)', () => {
     httpMock.expectOne((r) => r.url === BASE && r.method === 'GET').flush(envelope(pagina([base])));
     fixture.detectChanges();
     expect(el.querySelector('app-evento-form')).toBeNull();
+  });
+
+  // --- T-M4.1-5: ícone "i" abre o diálogo de regras (CA-9) ---
+
+  it('o ícone "i" do cabeçalho abre o diálogo InfoAvisos (CA-9)', () => {
+    const el = iniciar([base]).nativeElement as HTMLElement;
+    const info = el.querySelector('.placa__info') as HTMLButtonElement;
+    expect(info?.getAttribute('aria-label')).toBe('Como funcionam os avisos');
+    info.click();
+    expect(dialog.open).toHaveBeenCalledWith(InfoAvisos, jasmine.anything());
   });
 
   // --- T-M4.1-3: card iminente (≤7d) por reuso de faixaUrgencia===5 (CA-4/CA-5) ---

@@ -14,6 +14,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { EventosService } from './eventos.service';
 import { EventoForm } from './evento-form/evento-form';
 import { EventoProdutos } from './evento-produtos/evento-produtos';
+import { InfoAvisos } from './info-avisos/info-avisos';
 import {
   ConfirmarExclusao,
   ConfirmarExclusaoDados,
@@ -173,6 +174,13 @@ export class Eventos implements OnInit {
   /** Fecha a vitrine (botão/Esc/véu). */
   protected fecharVitrine(): void {
     this.eventoVitrine.set(null);
+  }
+
+  // --- Ícone "i": como funcionam os avisos (T-M4.1-5, CA-9/CA-10) ---
+
+  /** Abre o diálogo com as regras de aviso em linguagem de negócio (fonte única — §3.4). */
+  protected abrirInfoAvisos(): void {
+    this.dialog.open(InfoAvisos, { maxWidth: 'min(30rem, calc(100vw - 2rem))' });
   }
 
   // --- Form de criar/editar (T-M4-5, CA-1/2/3/6 — só ADMIN) ---

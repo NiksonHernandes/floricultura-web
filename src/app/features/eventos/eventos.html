@@ -4,7 +4,18 @@
     <span class="placa__furo" aria-hidden="true"></span>
     <div class="placa__texto">
       <span class="placa__eyebrow">Ateliê · Calendário</span>
-      <h1 class="placa__titulo">Eventos</h1>
+      <h1 class="placa__titulo">
+        Eventos
+        <button
+          type="button"
+          mat-icon-button
+          class="placa__info"
+          aria-label="Como funcionam os avisos"
+          (click)="abrirInfoAvisos()"
+        >
+          <mat-icon aria-hidden="true">info_outline</mat-icon>
+        </button>
+      </h1>
       <p class="placa__sub">As datas que movem o ateliê — comemorativas, feiras e encomendas.</p>
     </div>
     @if (ehAdmin()) {

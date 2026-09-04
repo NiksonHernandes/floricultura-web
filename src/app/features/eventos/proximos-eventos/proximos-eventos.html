@@ -3,6 +3,15 @@
     <header class="proximos__cabecalho">
       <mat-icon aria-hidden="true">notifications_active</mat-icon>
       <h2 class="proximos__titulo">Próximos eventos</h2>
+      <button
+        type="button"
+        mat-icon-button
+        class="proximos__info"
+        aria-label="Como funcionam os avisos"
+        (click)="abrirInfoAvisos()"
+      >
+        <mat-icon aria-hidden="true">info_outline</mat-icon>
+      </button>
     </header>
 
     <ul class="proximos__lista">

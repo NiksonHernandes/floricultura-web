@@ -1,7 +1,10 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
 
 import { EventosService } from '../eventos.service';
+import { InfoAvisos } from '../info-avisos/info-avisos';
 import { EventoProximo, TipoEvento } from '../../../core/models/evento.model';
 import { ROTULOS_TIPO_EVENTO } from '../eventos';
 
@@ -20,18 +23,24 @@ const MESES_ABREV = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'se
  */
 @Component({
   selector: 'app-proximos-eventos',
-  imports: [MatIconModule],
+  imports: [MatIconModule, MatButtonModule],
   templateUrl: './proximos-eventos.html',
   styleUrl: './proximos-eventos.scss',
 })
 export class ProximosEventos implements OnInit {
   private readonly service = inject(EventosService, { optional: true });
+  private readonly dialog = inject(MatDialog);
 
   /** Lista compartilhada do serviço (ou vazia quando o serviço não está disponível nos testes). */
   protected readonly proximos = this.service?.proximos ?? signal<EventoProximo[]>([]);
 
   ngOnInit(): void {
     this.service?.carregarProximos();
+  }
+
+  /** Abre o diálogo "Como funcionam os avisos" (fonte única do texto — §3.4, CA-9). */
+  protected abrirInfoAvisos(): void {
+    this.dialog.open(InfoAvisos, { maxWidth: 'min(30rem, calc(100vw - 2rem))' });
   }
 
   protected rotuloTipo(t: TipoEvento): string {

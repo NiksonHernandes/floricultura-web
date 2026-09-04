@@ -80,10 +80,25 @@
 }
 
 .placa__titulo {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
   margin: 0.35rem 0 0;
   font: 400 clamp(1.7rem, 4.5vw, 2.4rem) / 1.05 var(--display);
   font-optical-sizing: auto;
   letter-spacing: -0.01em;
+}
+
+/* Ícone "i" (regras de aviso) — discreto, na cor clara da placa; alvo de toque >= 44px. */
+.placa__info {
+  color: var(--sais);
+  flex: none;
+
+  mat-icon {
+    font-size: 1.2rem;
+    width: 1.2rem;
+    height: 1.2rem;
+  }
 }
 
 .placa__sub {

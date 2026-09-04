@@ -1,9 +1,11 @@
 import { WritableSignal, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
+import { MatDialog } from '@angular/material/dialog';
 
 import { ProximosEventos } from './proximos-eventos';
 import { EventosService } from '../eventos.service';
+import { InfoAvisos } from '../info-avisos/info-avisos';
 import { EventoProximo } from '../../../core/models/evento.model';
 
 /**
@@ -14,6 +16,7 @@ import { EventoProximo } from '../../../core/models/evento.model';
 describe('ProximosEventos (T-M4-8, CA-18)', () => {
   let proximos: WritableSignal<EventoProximo[]>;
   let carregarSpy: jasmine.Spy;
+  let dialog: jasmine.SpyObj<MatDialog>;
 
   const perto: EventoProximo = {
     id: 1,
@@ -46,11 +49,13 @@ describe('ProximosEventos (T-M4-8, CA-18)', () => {
   beforeEach(() => {
     proximos = signal<EventoProximo[]>([]);
     carregarSpy = jasmine.createSpy('carregarProximos');
+    dialog = jasmine.createSpyObj<MatDialog>('MatDialog', ['open']);
     TestBed.configureTestingModule({
       imports: [ProximosEventos],
       providers: [
         provideNoopAnimations(),
         { provide: EventosService, useValue: { proximos, carregarProximos: carregarSpy } },
+        { provide: MatDialog, useValue: dialog },
       ],
     });
   });
@@ -79,6 +84,15 @@ describe('ProximosEventos (T-M4-8, CA-18)', () => {
     const cards = el.querySelectorAll('.prox');
     expect(cards[0].classList).toContain('prox--reforcado'); // diasAte 12
     expect(cards[1].classList).not.toContain('prox--reforcado'); // diasAte 45
+  });
+
+  it('o ícone "i" do cabeçalho abre o diálogo InfoAvisos (CA-9)', () => {
+    proximos.set([perto]); // o bloco (e o "i") só existem quando há eventos na janela
+    const el = montar().nativeElement as HTMLElement;
+    const info = el.querySelector('.proximos__info') as HTMLButtonElement;
+    expect(info?.getAttribute('aria-label')).toBe('Como funcionam os avisos');
+    info.click();
+    expect(dialog.open).toHaveBeenCalledWith(InfoAvisos, jasmine.anything());
   });
 
   it('rótulos de borda: "é hoje" (0), "amanhã" (1), "em andamento" (negativo/emAndamento)', () => {
