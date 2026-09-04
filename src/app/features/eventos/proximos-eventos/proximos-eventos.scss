@@ -41,6 +41,18 @@
   text-transform: uppercase;
 }
 
+/* Ícone "i" (regras de aviso) — empurrado à direita do cabeçalho; alvo de toque >= 44px. */
+.proximos__info {
+  margin-left: auto;
+  color: var(--caule);
+
+  mat-icon {
+    font-size: 1.15rem;
+    width: 1.15rem;
+    height: 1.15rem;
+  }
+}
+
 /* Mobile: tiras roláveis (scroll-snap); sem overflow vertical na Home. */
 .proximos__lista {
   list-style: none;

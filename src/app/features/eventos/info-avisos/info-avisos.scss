@@ -1,0 +1,111 @@
+// Diálogo "Como funcionam os avisos" — o "i" da aba Eventos e da Home (SPEC-M4.1 §7 T-M4.1-5, §9,
+// CA-9/CA-10). Reusa o design system canônico do ateliê (_atelie-tokens.scss) e ecoa a caixa do
+// `confirmar-exclusao` (mesmo painel do MatDialog: focus-trap/Esc/backdrop nativos). Zero hex novo.
+// Mobile-first (FC-02): painel estreito, alvos de toque >= 44px, sem overflow.
+@use '../../../shared/styles/atelie-tokens' as atelie;
+
+:host {
+  @include atelie.base;
+  display: block;
+  color: var(--tinta);
+}
+
+.avisos__cabecalho {
+  padding: 1.1rem 1.5rem 0.5rem;
+}
+
+.avisos__eyebrow {
+  font: 600 0.68rem/1 var(--display);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--caule);
+}
+
+.avisos__titulo {
+  margin: 0.3rem 0 0;
+  padding: 0;
+  font: 400 clamp(1.35rem, 3.4vw, 1.7rem) / 1.1 var(--display);
+  font-optical-sizing: auto;
+  letter-spacing: -0.01em;
+  color: var(--folhagem);
+}
+
+.avisos__corpo {
+  padding: 0 1.5rem;
+}
+
+.avisos__intro {
+  margin: 0.25rem 0 1rem;
+  font: var(--mat-sys-body-medium);
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--tinta) 78%, var(--estufa));
+}
+
+.avisos__regras {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.regra {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  font: var(--mat-sys-body-medium);
+  line-height: 1.45;
+
+  mat-icon {
+    flex: none;
+    color: var(--caule);
+    font-size: 1.25rem;
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+}
+
+/* Toggle "Mostrar avisos na tela inicial" (T-M4.1-6) — separado das regras por uma hairline. */
+.avisos__preferencia {
+  margin-top: 1.1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--orvalho);
+
+  --mdc-switch-selected-track-color: var(--caule);
+  --mdc-switch-selected-handle-color: var(--folhagem);
+  --mdc-switch-selected-focus-track-color: var(--caule);
+  --mdc-switch-selected-hover-track-color: var(--caule);
+  --mdc-switch-selected-pressed-track-color: var(--caule);
+}
+
+.avisos__dica {
+  margin: 0.4rem 0 0;
+  font: var(--mat-sys-body-small);
+  color: color-mix(in srgb, var(--tinta) 62%, white);
+}
+
+.avisos__acoes {
+  display: flex;
+  justify-content: flex-end;
+  padding: 1rem 1.5rem 1.25rem;
+}
+
+.avisos__acoes .mat-mdc-unelevated-button {
+  min-height: 44px;
+}
+
+// A ação em dália carmim — o único acento (design-distintivo §gaste a ousadia num lugar só).
+.acao {
+  --mat-button-filled-container-color: var(--dalia);
+  --mat-button-filled-label-text-color: #fff;
+  --mat-button-filled-state-layer-color: #fff;
+  --mat-button-filled-ripple-color: color-mix(in srgb, white 30%, transparent);
+}
+
+// Foco de teclado visível (piso de qualidade §9).
+:host ::ng-deep .mdc-button:focus-visible {
+  outline: 2px solid var(--caule);
+  outline-offset: 2px;
+  border-radius: 8px;
+}

@@ -1,7 +1,11 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
 
 import { EventosService } from '../eventos.service';
+import { InfoAvisos } from '../info-avisos/info-avisos';
+import { AvisosEventosPreferencia } from '../../../core/services/avisos-eventos-preferencia';
 import { EventoProximo, TipoEvento } from '../../../core/models/evento.model';
 import { ROTULOS_TIPO_EVENTO } from '../eventos';
 
@@ -17,21 +21,34 @@ const MESES_ABREV = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'se
  * mostra nome, próxima ocorrência (dd/MM) e "faltam N dias"; `diasAte ≤ 30` (`destaqueReforcado`)
  * ganha realce. Sem eventos na janela, o bloco some (não polui a Home). O serviço é injetado de
  * forma OPCIONAL: nos testes que não o registram, o bloco fica vazio sem disparar HTTP (anti-burla).
+ *
+ * T-M4.1-6 (CA-11/CA-13): o bloco também some quando o usuário desliga o aviso (`oculto()` da
+ * preferência por usuário×dispositivo). O **badge do menu NÃO** consulta esta preferência (CA-12).
  */
 @Component({
   selector: 'app-proximos-eventos',
-  imports: [MatIconModule],
+  imports: [MatIconModule, MatButtonModule],
   templateUrl: './proximos-eventos.html',
   styleUrl: './proximos-eventos.scss',
 })
 export class ProximosEventos implements OnInit {
   private readonly service = inject(EventosService, { optional: true });
+  private readonly dialog = inject(MatDialog);
+  private readonly pref = inject(AvisosEventosPreferencia, { optional: true });
 
   /** Lista compartilhada do serviço (ou vazia quando o serviço não está disponível nos testes). */
   protected readonly proximos = this.service?.proximos ?? signal<EventoProximo[]>([]);
 
+  /** Preferência "desligar aviso" (T-M4.1-6): `true` esconde o bloco. Default seguro = mostrar. */
+  protected readonly oculto = this.pref?.oculto ?? signal(false);
+
   ngOnInit(): void {
     this.service?.carregarProximos();
+  }
+
+  /** Abre o diálogo "Como funcionam os avisos" (fonte única do texto — §3.4, CA-9). */
+  protected abrirInfoAvisos(): void {
+    this.dialog.open(InfoAvisos, { maxWidth: 'min(30rem, calc(100vw - 2rem))' });
   }
 
   protected rotuloTipo(t: TipoEvento): string {

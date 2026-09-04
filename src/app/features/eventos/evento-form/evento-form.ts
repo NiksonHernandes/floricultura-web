@@ -7,6 +7,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatDatepickerModule } from '@angular/material/datepicker';
 
 import { EventosService } from '../eventos.service';
 import { ApiResponse } from '../../../core/models/api-response.model';
@@ -19,6 +20,22 @@ export const OPCOES_TIPO_EVENTO: ReadonlyArray<{ valor: TipoEvento; rotulo: stri
   { valor: 'BENEFICENTE', rotulo: 'Beneficente' },
   { valor: 'ENCOMENDA_CLIENTE', rotulo: 'Encomenda de cliente' },
 ];
+
+/**
+ * `Date` do datepicker → string do contrato `yyyy-MM-dd` (§3.2). Usa **componentes locais**
+ * (`getFullYear/getMonth/getDate`), NUNCA `toISOString` — em fuso negativo (UTC-3) o UTC pularia
+ * um dia (AD-SQ-40).
+ */
+export function dataParaIso(d: Date): string {
+  const pad2 = (n: number) => (n < 10 ? `0${n}` : `${n}`);
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+/** `yyyy-MM-dd` (edição) → `Date` LOCAL (meia-noite local): `new Date(ano, mês-1, dia)`. */
+export function isoParaData(iso: string): Date {
+  const [ano, mes, dia] = iso.split('-').map(Number);
+  return new Date(ano, mes - 1, dia);
+}
 
 /**
  * Form de criar/editar evento — "a folha do calendário" (SPEC-M4 §7 T-M4-5, CA-1/2/3/6/7).
@@ -43,6 +60,7 @@ export const OPCOES_TIPO_EVENTO: ReadonlyArray<{ valor: TipoEvento; rotulo: stri
     MatSlideToggleModule,
     MatButtonModule,
     MatIconModule,
+    MatDatepickerModule,
   ],
   templateUrl: './evento-form.html',
   styleUrl: './evento-form.scss',
@@ -65,12 +83,15 @@ export class EventoForm implements OnInit {
 
   protected readonly editando = computed(() => this.evento() !== null);
 
-  /** Validação espelha o §3.2; `dataFim` só é exigido/validado quando o toggle `periodo` está ligado. */
+  /**
+   * Validação espelha o §3.2; `dataFim` só é exigido/validado quando o toggle `periodo` está ligado.
+   * As datas agora são `Date` (do `MatDatepicker`); a conversão p/ `yyyy-MM-dd` é no `montarPayload`.
+   */
   protected readonly form = this.fb.group({
     nome: this.fb.nonNullable.control('', [Validators.required, Validators.maxLength(150)]),
     tipo: this.fb.nonNullable.control<TipoEvento | ''>('', [Validators.required]),
-    dataInicio: this.fb.nonNullable.control('', [Validators.required]),
-    dataFim: this.fb.nonNullable.control(''),
+    dataInicio: this.fb.control<Date | null>(null, [Validators.required]),
+    dataFim: this.fb.control<Date | null>(null),
     repeteTodoAno: this.fb.nonNullable.control(false),
     descricao: this.fb.nonNullable.control('', [Validators.maxLength(2000)]),
     /** Toggle Data única × Período (AD-SQ-43): não vai ao payload; controla a presença de `dataFim`. */
@@ -83,8 +104,9 @@ export class EventoForm implements OnInit {
       this.form.setValue({
         nome: e.nome,
         tipo: e.tipo,
-        dataInicio: e.dataInicio,
-        dataFim: e.dataFim ?? '',
+        // Carrega `yyyy-MM-dd` → `Date` local (sem -1/+1 dia); o datepicker reexibe em `dd/MM/yyyy`.
+        dataInicio: isoParaData(e.dataInicio),
+        dataFim: e.dataFim ? isoParaData(e.dataFim) : null,
         repeteTodoAno: e.repeteTodoAno,
         descricao: e.descricao ?? '',
         periodo: !e.dataUnica,
@@ -125,9 +147,9 @@ export class EventoForm implements OnInit {
   }
 
   /**
-   * Regra cruzada §3.2 (só quando período): `dataFim` obrigatório e **≥ `dataInicio`**. Datas
-   * `yyyy-MM-dd` comparam corretamente por string. Data única (toggle off) limpa qualquer erro de
-   * `dataFim`. Espelha a validação do back (fonte de verdade — 400 `field="dataFim"`).
+   * Regra cruzada §3.2 (só quando período): `dataFim` obrigatório e **≥ `dataInicio`**. Compara os
+   * `Date` por `getTime()`. Data única (toggle off) limpa qualquer erro de `dataFim`. Espelha a
+   * validação do back (fonte de verdade — 400 `field="dataFim"`).
    */
   private aplicarValidacaoPeriodo(): void {
     const c = this.form.controls;
@@ -139,21 +161,25 @@ export class EventoForm implements OnInit {
     const fim = c.dataFim.value;
     if (!fim) {
       c.dataFim.setErrors({ required: true });
-    } else if (inicio && fim < inicio) {
+    } else if (inicio && fim.getTime() < inicio.getTime()) {
       c.dataFim.setErrors({ periodoInvalido: true });
     } else {
       c.dataFim.setErrors(null);
     }
   }
 
-  /** Monta o payload §3.2: data única ⇒ `dataFim=null`; opcionais vazios viram `null`. */
+  /**
+   * Monta o payload §3.2: `Date` → `yyyy-MM-dd` por componentes locais (sem fuso, AD-SQ-40); data
+   * única ⇒ `dataFim=null`; opcionais vazios viram `null`. `dataInicio` é garantido pela validação
+   * `required` (o `salvar` só chega aqui com o form válido).
+   */
   private montarPayload(): EventoRequest {
     const v = this.form.getRawValue();
     return {
       nome: v.nome.trim(),
       tipo: v.tipo as TipoEvento,
-      dataInicio: v.dataInicio,
-      dataFim: v.periodo ? v.dataFim : null,
+      dataInicio: dataParaIso(v.dataInicio!),
+      dataFim: v.periodo && v.dataFim ? dataParaIso(v.dataFim) : null,
       repeteTodoAno: v.repeteTodoAno,
       descricao: v.descricao.trim() || null,
     };

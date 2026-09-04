@@ -1,0 +1,63 @@
+<div class="vitrine" role="dialog" aria-modal="true" aria-labelledby="vitrine-titulo">
+  <header class="vitrine__cabecalho">
+    <div>
+      <span class="vitrine__eyebrow">Ateliê · Calendário</span>
+      <h2 id="vitrine-titulo" class="vitrine__titulo">Flores de {{ evento().nome }}</h2>
+    </div>
+    <button
+      type="button"
+      mat-icon-button
+      class="vitrine__fechar"
+      aria-label="Fechar a vitrine"
+      (click)="fechar()"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
+
+  <div class="vitrine__corpo">
+    @if (carregando()) {
+      <p class="estado" aria-live="polite">
+        <mat-progress-spinner diameter="22" mode="indeterminate" aria-hidden="true" />
+        <span>Carregando as flores…</span>
+      </p>
+    } @else if (erro(); as msg) {
+      <p class="estado estado--erro" role="alert">
+        <mat-icon aria-hidden="true">error_outline</mat-icon>
+        <span>{{ msg }}</span>
+        <button mat-button (click)="carregar()">Tentar de novo</button>
+      </p>
+    } @else if (vazia()) {
+      <div class="estado estado--vazio">
+        <mat-icon aria-hidden="true">local_florist</mat-icon>
+        <p>Nenhuma flor foi vinculada a este evento ainda.</p>
+      </div>
+    } @else {
+      <ul class="flores" aria-label="Flores vinculadas ao evento">
+        @for (p of produtos(); track p.id) {
+          <li class="flor">
+            <div class="flor__foto">
+              <app-imagem-produto [produto]="p" />
+            </div>
+            <div class="flor__corpo">
+              <h3 class="flor__nome">{{ p.nome }}</h3>
+              <p class="flor__meta">
+                <span class="flor__unidade">{{ rotuloUnidade(p.unidadeMedida) }}</span>
+                <span
+                  class="flor__estoque"
+                  [class.flor__estoque--baixo]="p.estoqueBaixo"
+                >
+                  {{ p.estoqueAtual }} em estoque
+                </span>
+              </p>
+            </div>
+          </li>
+        }
+      </ul>
+
+      @if (excedeuPagina()) {
+        <p class="vitrine__rodape">Mostrando {{ tamanhoPagina }} de {{ total() }} flores.</p>
+      }
+    }
+  </div>
+</div>

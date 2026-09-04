@@ -4,7 +4,18 @@
     <span class="placa__furo" aria-hidden="true"></span>
     <div class="placa__texto">
       <span class="placa__eyebrow">Ateliê · Calendário</span>
-      <h1 class="placa__titulo">Eventos</h1>
+      <h1 class="placa__titulo">
+        Eventos
+        <button
+          type="button"
+          mat-icon-button
+          class="placa__info"
+          aria-label="Como funcionam os avisos"
+          (click)="abrirInfoAvisos()"
+        >
+          <mat-icon aria-hidden="true">info_outline</mat-icon>
+        </button>
+      </h1>
       <p class="placa__sub">As datas que movem o ateliê — comemorativas, feiras e encomendas.</p>
     </div>
     @if (ehAdmin()) {
@@ -61,7 +72,7 @@
   } @else {
     <ul class="datas" aria-label="Eventos cadastrados">
       @for (e of eventos(); track e.id) {
-        <li class="data">
+        <li class="data" [class.data--iminente]="idsIminentes().has(e.id)">
           <div class="data__selo" aria-hidden="true">
             <span class="data__dia">{{ dia(e.dataInicio) }}</span>
             <span class="data__mes">{{ mesAbrev(e.dataInicio) }}</span>
@@ -91,8 +102,20 @@
               <p class="data__descricao">{{ e.descricao }}</p>
             }
 
-            @if (ehAdmin()) {
-              <div class="data__acoes">
+            <div class="data__acoes">
+              <!-- Visualizar as flores do evento: ADMIN e USER (fora do @if ehAdmin — CA-3). -->
+              <button
+                type="button"
+                mat-button
+                class="data__acao data__ver"
+                (click)="abrirVitrine(e)"
+                [attr.aria-label]="'Ver flores de ' + e.nome"
+              >
+                <mat-icon aria-hidden="true">local_florist</mat-icon>
+                <span>Visualizar</span>
+              </button>
+
+              @if (ehAdmin()) {
                 <button
                   type="button"
                   mat-button
@@ -113,8 +136,8 @@
                   <mat-icon aria-hidden="true">delete_outline</mat-icon>
                   <span>Excluir</span>
                 </button>
-              </div>
-            }
+              }
+            </div>
           </div>
         </li>
       }
@@ -139,5 +162,11 @@
     (salvo)="aoSalvar($event)"
     (cancelado)="fecharForm()"
   />
+}
+
+<!-- Vitrine de flores do evento (T-M4.1-2 — ADMIN e USER) -->
+@if (eventoVitrine(); as evento) {
+  <div class="veu" (click)="fecharVitrine()"></div>
+  <app-evento-produtos [evento]="evento" (fechado)="fecharVitrine()" />
 }
 

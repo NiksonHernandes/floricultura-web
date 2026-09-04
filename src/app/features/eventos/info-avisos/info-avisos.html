@@ -1,0 +1,37 @@
+<div class="avisos">
+  <header class="avisos__cabecalho">
+    <span class="avisos__eyebrow">Ateliê · Calendário</span>
+    <h2 mat-dialog-title class="avisos__titulo">Como funcionam os avisos</h2>
+  </header>
+
+  <div mat-dialog-content class="avisos__corpo">
+    <p class="avisos__intro">
+      O ateliê acompanha as datas para você não ser pego de surpresa. Veja quando e como avisamos:
+    </p>
+    <ul class="avisos__regras">
+      @for (r of regras; track r.texto) {
+        <li class="regra">
+          <mat-icon aria-hidden="true">{{ r.icone }}</mat-icon>
+          <span>{{ r.texto }}</span>
+        </li>
+      }
+    </ul>
+    <!-- Onda 2 (T-M4.1-6, CA-11): liga/desliga o bloco de avisos da Home (por usuário×dispositivo). -->
+    <div class="avisos__preferencia">
+      <mat-slide-toggle
+        color="primary"
+        [checked]="!oculto()"
+        (change)="aoAlternarMostrar($event)"
+      >
+        Mostrar avisos na tela inicial
+      </mat-slide-toggle>
+      <p class="avisos__dica">Desligar esconde o bloco “Próximos eventos” só neste dispositivo.</p>
+    </div>
+  </div>
+
+  <div mat-dialog-actions class="avisos__acoes">
+    <button type="button" mat-flat-button class="acao" (click)="fechar()">
+      <span>Entendi</span>
+    </button>
+  </div>
+</div>
