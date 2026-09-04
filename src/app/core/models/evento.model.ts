@@ -46,3 +46,21 @@ export interface EventoRequest {
   repeteTodoAno?: boolean;
   descricao?: string | null;
 }
+
+/**
+ * `EventoProximoResponse` (SPEC-M4 §3.3) — item do alerta on-read `GET /eventos/proximos`. O back
+ * já devolve **só a janela** (`diasAte ≤ 60` e `hoje ≤ fim`) e **ordenado** por `proximaOcorrencia
+ * ASC, nome ASC` (cálculo determinístico com `Clock` em America/Sao_Paulo — §4.3). O front só
+ * renderiza: `diasAte` pode ser negativo (em andamento); `destaqueReforcado` liga o realce
+ * (`diasAte ≤ 30`); `faixaUrgencia` 0..5; `emAndamento` p/ período em curso. Data `yyyy-MM-dd`.
+ */
+export interface EventoProximo {
+  id: number;
+  nome: string;
+  tipo: TipoEvento;
+  proximaOcorrencia: string;
+  diasAte: number;
+  destaqueReforcado: boolean;
+  faixaUrgencia: number;
+  emAndamento: boolean;
+}

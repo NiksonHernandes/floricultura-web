@@ -13,6 +13,7 @@ import { MatDialog } from '@angular/material/dialog';
 
 import { ProdutosService } from './produtos.service';
 import { EventosService } from '../eventos/eventos.service';
+import { ProximosEventos } from '../eventos/proximos-eventos/proximos-eventos';
 import { ProdutoForm } from './produto-form/produto-form';
 import { ImagemProduto } from './imagem-produto/imagem-produto';
 import {
@@ -83,6 +84,7 @@ const ROTULOS_UNIDADE: Record<UnidadeMedida, string> = {
     MatPaginatorModule,
     ProdutoForm,
     ImagemProduto,
+    ProximosEventos,
   ],
   providers: [{ provide: MatPaginatorIntl, useFactory: paginatorPtBr }],
   templateUrl: './produtos.html',

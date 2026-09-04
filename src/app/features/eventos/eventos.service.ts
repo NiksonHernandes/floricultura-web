@@ -1,11 +1,11 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../../core/models/api-response.model';
 import { PaginaResponse } from '../../core/models/produto.model';
-import { Evento, EventoRequest } from '../../core/models/evento.model';
+import { Evento, EventoProximo, EventoRequest } from '../../core/models/evento.model';
 
 /**
  * Serviço de Eventos (SPEC-M4 §3.2, T-M4-4/5).
@@ -64,4 +64,32 @@ export class EventosService {
   excluir(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
+
+  // --- Alerta on-read (SPEC-M4 §3.3, T-M4-8) ---
+
+  /**
+   * Alerta "próximos eventos" da Home + badge do menu, com estado COMPARTILHADO (signal) e cache:
+   * `carregarProximos()` faz `GET /eventos/proximos` uma única vez e publica em `proximos`, de modo
+   * que a Home (bloco) e o shell (badge) leem a MESMA lista sem duplicar a chamada. Falha degrada em
+   * silêncio (lista vazia, sem badge/bloco) e libera nova tentativa — o alerta é auxiliar, não bloqueia.
+   */
+  readonly proximos = signal<EventoProximo[]>([]);
+  private proximosCarregados = false;
+
+  carregarProximos(): void {
+    if (this.proximosCarregados) {
+      return;
+    }
+    this.proximosCarregados = true;
+    this.http
+      .get<ApiResponse<EventoProximo[]>>(`${this.baseUrl}/proximos`)
+      .pipe(map((r) => r.data ?? []))
+      .subscribe({
+        next: (lista) => this.proximos.set(lista),
+        error: () => {
+          this.proximosCarregados = false; // permite nova tentativa numa próxima montagem
+        },
+      });
+  }
 }
+
