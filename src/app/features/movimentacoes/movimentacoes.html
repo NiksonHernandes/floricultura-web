@@ -1,0 +1,94 @@
+<section class="livro">
+  <!-- Placa do livro-caixa: ecoa a placa das outras telas (mesmo produto, design-distintivo). -->
+  <header class="placa">
+    <span class="placa__furo" aria-hidden="true"></span>
+    <div class="placa__texto">
+      <span class="placa__eyebrow">Ateliê · Estoque</span>
+      <h1 class="placa__titulo">Movimentações</h1>
+      <p class="placa__sub">O livro-caixa do estoque — cada entrada, saída e ajuste, com autor e data.</p>
+    </div>
+  </header>
+
+  <mat-form-field appearance="outline" class="busca">
+    <mat-icon matPrefix aria-hidden="true">search</mat-icon>
+    <mat-label>Buscar por produto ou autor</mat-label>
+    <input
+      matInput
+      type="text"
+      [formControl]="filtro"
+      autocomplete="off"
+      aria-label="Buscar movimentações por produto ou autor"
+    />
+    @if (filtro.value) {
+      <button
+        matSuffix
+        mat-icon-button
+        type="button"
+        aria-label="Limpar busca"
+        (click)="limparFiltro()"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
+    }
+  </mat-form-field>
+
+  @if (carregando()) {
+    <p class="estado" aria-live="polite">
+      <mat-progress-spinner diameter="22" mode="indeterminate" aria-hidden="true" />
+      <span>Carregando o livro-caixa…</span>
+    </p>
+  } @else if (erro(); as msg) {
+    <p class="estado estado--erro" role="alert">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span>{{ msg }}</span>
+      <button mat-button (click)="carregar()">Tentar de novo</button>
+    </p>
+  } @else if (vazia()) {
+    <div class="estado estado--vazio">
+      <mat-icon aria-hidden="true">receipt_long</mat-icon>
+      @if (filtro.value) {
+        <p>Nenhuma movimentação encontrada para “{{ filtro.value }}”. Tente outro termo.</p>
+      } @else {
+        <p>Nenhuma movimentação registrada ainda. Elas aparecem aqui a cada entrada, saída ou ajuste.</p>
+      }
+    </div>
+  } @else {
+    <ul class="lancamentos" aria-label="Movimentações de estoque">
+      @for (m of movimentacoes(); track m.id) {
+        <li class="lancamento">
+          <span class="lancamento__tipo lancamento__tipo--{{ m.tipo }}">{{ rotuloTipo(m.tipo) }}</span>
+
+          <div class="lancamento__corpo">
+            <h2 class="lancamento__produto">{{ m.produtoNome }}</h2>
+            <dl class="lancamento__meta">
+              <div class="campo">
+                <dt>Quantidade</dt>
+                <dd>{{ m.quantidade }} <span class="campo__seta">→ {{ m.quantidadeResultante }}</span></dd>
+              </div>
+              <div class="campo">
+                <dt>Autor</dt>
+                <dd>{{ m.usuarioNome ?? '—' }}</dd>
+              </div>
+            </dl>
+            @if (m.motivo) {
+              <p class="lancamento__motivo">{{ m.motivo }}</p>
+            }
+          </div>
+
+          <time class="lancamento__data" [attr.datetime]="m.criadoEm">
+            {{ m.criadoEm | date: 'dd/MM/yyyy HH:mm' : 'America/Sao_Paulo' : 'pt-BR' }}
+          </time>
+        </li>
+      }
+    </ul>
+
+    <mat-paginator
+      class="paginacao"
+      [length]="totalElementos()"
+      [pageIndex]="pagina()"
+      [pageSize]="tamanho()"
+      [pageSizeOptions]="[20, 40, 60]"
+      (page)="aoPaginar($event)"
+    />
+  }
+</section>

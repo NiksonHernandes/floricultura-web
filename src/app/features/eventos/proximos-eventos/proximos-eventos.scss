@@ -1,0 +1,142 @@
+// Bloco "Próximos eventos" da Home (SPEC-M4 §7 T-M4-8, §9, CA-18).
+//
+// Reusa o design system canônico do ateliê (_atelie-tokens.scss). Assinatura: uma FAIXA de avisos
+// no topo da prateleira — tiras horizontais que rolam no celular; o item reforçado (diasAte ≤ 30)
+// acende na dália (o alerta é o que precisa gritar — coerente com o selo de estoque baixo).
+// Mobile-first (FC-02): tiras roláveis por scroll-snap no celular; grade no desktop.
+@use '../../../shared/styles/atelie-tokens' as atelie;
+
+:host {
+  @include atelie.base;
+  display: block;
+}
+
+.proximos {
+  margin-bottom: 1.25rem;
+  padding: 1rem 1.1rem 1.1rem;
+  background: color-mix(in srgb, var(--caule) 12%, white);
+  border: 1px solid var(--orvalho);
+  border-radius: 14px;
+}
+
+.proximos__cabecalho {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+  color: var(--folhagem);
+
+  mat-icon {
+    font-size: 1.2rem;
+    width: 1.2rem;
+    height: 1.2rem;
+    color: var(--caule);
+  }
+}
+
+.proximos__titulo {
+  margin: 0;
+  font: 600 0.78rem/1 var(--display);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* Mobile: tiras roláveis (scroll-snap); sem overflow vertical na Home. */
+.proximos__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(15rem, 1fr);
+  gap: 0.6rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 0.2rem;
+}
+
+.prox {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.6rem 0.75rem;
+  background: #fff;
+  border: 1px solid var(--orvalho);
+  border-radius: 12px;
+  scroll-snap-align: start;
+}
+
+/* Selo da data (dia + mês) — calendário, ecoa a lista de Eventos */
+.prox__selo {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3.4rem;
+  padding: 0.35rem 0.4rem;
+  border-radius: 9px;
+  color: var(--estufa);
+  background: linear-gradient(180deg, #274a3a 0%, var(--folhagem) 100%);
+  font: 600 0.82rem/1 var(--display);
+  text-align: center;
+}
+
+.prox__corpo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.prox__nome {
+  font: 600 0.98rem/1.2 var(--display);
+  color: var(--tinta);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.prox__tipo {
+  font: 600 0.66rem/1 var(--mat-sys-body-small);
+  letter-spacing: 0.04em;
+  color: var(--caule);
+}
+
+.prox__quando {
+  flex: 0 0 auto;
+  font: 600 0.72rem/1.3 var(--mat-sys-body-small);
+  color: color-mix(in srgb, var(--tinta) 60%, white);
+  white-space: nowrap;
+}
+
+/* Reforço (diasAte ≤ 30): acende na dália — o alerta que precisa gritar. */
+.prox--reforcado {
+  border-color: color-mix(in srgb, var(--dalia) 45%, white);
+  background: color-mix(in srgb, var(--dalia) 6%, white);
+}
+
+.prox--reforcado .prox__selo {
+  background: linear-gradient(180deg, #d43f7a 0%, var(--dalia) 100%);
+}
+
+.prox--reforcado .prox__quando {
+  color: #8f2450;
+}
+
+/* Em andamento: um pulso sutil no selo (respeitando reduced-motion). */
+.prox--andamento .prox__quando {
+  color: #8f2450;
+  font-style: italic;
+}
+
+/* Desktop: grade fluida sem scroll horizontal. */
+@media (min-width: 640px) {
+  .proximos__lista {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+    grid-auto-columns: auto;
+    overflow-x: visible;
+  }
+}

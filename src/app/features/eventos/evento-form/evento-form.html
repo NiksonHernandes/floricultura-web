@@ -1,0 +1,117 @@
+<div class="ficha" role="dialog" aria-modal="true" aria-labelledby="evento-titulo">
+  <header class="ficha__cabecalho">
+    <div>
+      <span class="ficha__eyebrow">Ateliê · Calendário</span>
+      <h2 id="evento-titulo" class="ficha__titulo">
+        {{ editando() ? 'Editar evento' : 'Novo evento' }}
+      </h2>
+    </div>
+    <button
+      type="button"
+      mat-icon-button
+      class="ficha__fechar"
+      aria-label="Fechar sem salvar"
+      (click)="cancelar()"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
+
+  <form class="ficha__form" [formGroup]="form" (ngSubmit)="salvar()" novalidate>
+    @if (erroGeral(); as msg) {
+      <p class="ficha__erro" role="alert">
+        <mat-icon aria-hidden="true">error_outline</mat-icon>
+        <span>{{ msg }}</span>
+      </p>
+    }
+
+    <div class="ficha__grade">
+      <mat-form-field appearance="outline" class="ficha__campo ficha__campo--largo">
+        <mat-label>Nome do evento</mat-label>
+        <input matInput formControlName="nome" autocomplete="off" maxlength="150" />
+        @if (form.controls.nome.hasError('required')) {
+          <mat-error>Informe o nome do evento.</mat-error>
+        } @else if (form.controls.nome.hasError('servidor')) {
+          <mat-error>{{ form.controls.nome.getError('servidor') }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="ficha__campo">
+        <mat-label>Tipo</mat-label>
+        <mat-select formControlName="tipo">
+          @for (op of opcoesTipo; track op.valor) {
+            <mat-option [value]="op.valor">{{ op.rotulo }}</mat-option>
+          }
+        </mat-select>
+        @if (form.controls.tipo.hasError('required')) {
+          <mat-error>Escolha o tipo do evento.</mat-error>
+        } @else if (form.controls.tipo.hasError('servidor')) {
+          <mat-error>{{ form.controls.tipo.getError('servidor') }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="ficha__campo">
+        <mat-label>{{ form.controls.periodo.value ? 'Início' : 'Data' }}</mat-label>
+        <input matInput type="date" formControlName="dataInicio" />
+        @if (form.controls.dataInicio.hasError('required')) {
+          <mat-error>Informe a data.</mat-error>
+        } @else if (form.controls.dataInicio.hasError('servidor')) {
+          <mat-error>{{ form.controls.dataInicio.getError('servidor') }}</mat-error>
+        }
+      </mat-form-field>
+
+      <!-- Toggle Data única × Período (AD-SQ-43): revela o término só no período -->
+      <div class="ficha__campo ficha__campo--largo toggle">
+        <mat-slide-toggle formControlName="periodo" color="primary">
+          Período (com data de término)
+        </mat-slide-toggle>
+        <p class="toggle__dica">Desligado = data única (um só dia).</p>
+      </div>
+
+      @if (form.controls.periodo.value) {
+        <mat-form-field appearance="outline" class="ficha__campo">
+          <mat-label>Término</mat-label>
+          <input matInput type="date" formControlName="dataFim" />
+          @if (form.controls.dataFim.hasError('required')) {
+            <mat-error>Informe a data de término.</mat-error>
+          } @else if (form.controls.dataFim.hasError('periodoInvalido')) {
+            <mat-error>O término não pode ser antes do início.</mat-error>
+          } @else if (form.controls.dataFim.hasError('servidor')) {
+            <mat-error>{{ form.controls.dataFim.getError('servidor') }}</mat-error>
+          }
+        </mat-form-field>
+      }
+
+      <div class="ficha__campo ficha__campo--largo toggle">
+        <mat-slide-toggle formControlName="repeteTodoAno" color="primary">
+          Repete todo ano
+        </mat-slide-toggle>
+        <p class="toggle__dica">A data volta a alertar na próxima virada anual.</p>
+      </div>
+
+      <mat-form-field appearance="outline" class="ficha__campo ficha__campo--largo">
+        <mat-label>Descrição</mat-label>
+        <textarea
+          matInput
+          formControlName="descricao"
+          rows="2"
+          maxlength="2000"
+          placeholder="Opcional — detalhes do evento"
+        ></textarea>
+        @if (form.controls.descricao.hasError('servidor')) {
+          <mat-error>{{ form.controls.descricao.getError('servidor') }}</mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    <div class="ficha__acoes">
+      <button type="button" mat-button class="botao-secundario" (click)="cancelar()">Cancelar</button>
+      <button type="submit" mat-flat-button class="acao" [disabled]="enviando()">
+        <span>{{ enviando() ? 'Salvando…' : editando() ? 'Salvar alterações' : 'Cadastrar evento' }}</span>
+        @if (!enviando()) {
+          <mat-icon iconPositionEnd aria-hidden="true">arrow_forward</mat-icon>
+        }
+      </button>
+    </div>
+  </form>
+</div>

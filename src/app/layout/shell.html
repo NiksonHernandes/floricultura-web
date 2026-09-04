@@ -26,7 +26,16 @@
           (click)="aoNavegar()"
         >
           <mat-icon matListItemIcon aria-hidden="true">{{ item.icone }}</mat-icon>
-          <span matListItemTitle>{{ item.rotulo }}</span>
+          <span
+            matListItemTitle
+            [matBadge]="badgeEventos()"
+            [matBadgeHidden]="item.rota !== '/eventos' || badgeEventos() === 0"
+            [matBadgeDescription]="badgeEventos() + ' eventos próximos na janela de 60 dias'"
+            matBadgeColor="warn"
+            matBadgeSize="small"
+            matBadgeOverlap="false"
+            >{{ item.rotulo }}</span
+          >
         </a>
       }
     </mat-nav-list>

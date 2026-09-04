@@ -175,6 +175,21 @@
         </div>
       </div>
 
+      <!-- Eventos vinculados (T-M4-6, CA-9/CA-12 — SPEC-M4 §3.4): multiselect informativo. -->
+      <mat-form-field appearance="outline" class="ficha__campo ficha__campo--largo">
+        <mat-label>Eventos (sazonalidade)</mat-label>
+        <mat-select [formControl]="eventosSelecionados" multiple>
+          @for (ev of eventos(); track ev.id) {
+            <mat-option [value]="ev.id">{{ ev.nome }}</mat-option>
+          }
+        </mat-select>
+        @if (eventos().length === 0) {
+          <mat-hint>Cadastre eventos em “Eventos” para vincular a sazonalidade.</mat-hint>
+        } @else {
+          <mat-hint>Opcional — vincule o produto às datas em que ele é vendido.</mat-hint>
+        }
+      </mat-form-field>
+
       <!-- Entrada inicial de estoque (T-M2-11, CA-22 — SÓ no modo criação; AD-SQ-35). -->
       @if (!editando()) {
         <mat-form-field appearance="outline" class="ficha__campo ficha__campo--largo">

@@ -7,8 +7,10 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { MatBadgeModule } from '@angular/material/badge';
 
 import { AuthService } from '../core/services/auth.service';
+import { EventosService } from '../features/eventos/eventos.service';
 
 /** Item de navegação do menu lateral (RBAC via `soAdmin`). */
 interface ItemMenu {
@@ -42,6 +44,7 @@ interface ItemMenu {
     MatListModule,
     MatIconModule,
     MatButtonModule,
+    MatBadgeModule,
   ],
   templateUrl: './shell.html',
   styleUrl: './shell.scss',
@@ -50,6 +53,12 @@ export class Shell {
   private readonly breakpoints = inject(BreakpointObserver);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  /**
+   * Serviço de eventos (SPEC-M4 §3.3/T-M4-8) para o badge de "próximos eventos" no menu. Injeção
+   * OPCIONAL de propósito (provido no `appConfig`, não `providedIn:'root'`): fica `null` no
+   * shell.spec, que não o registra — o badge nasce 0 e não altera as asserções de menu (anti-burla).
+   */
+  private readonly eventosService = inject(EventosService, { optional: true });
 
   /** Corte mobile (AD-SQ-33: drawer/hambúrguer em ≤ ~700px). */
   static readonly MOBILE = '(max-width: 700px)';
@@ -62,9 +71,14 @@ export class Shell {
   protected readonly ehAdmin = this.auth.ehAdmin;
   protected readonly usuario = this.auth.usuarioAtual;
 
-  /** Menu do M2 (AD-SQ-33): só Produtos (todos) + Usuários (ADMIN) — sem links mortos. */
+  /**
+   * Menu (AD-SQ-33 + SPEC-M4 §12): Produtos/Eventos/Movimentações (todos os autenticados) +
+   * Usuários (ADMIN). Eventos e Movimentações são leitura para USER+ADMIN (`soAdmin:false`).
+   */
   private readonly itens: readonly ItemMenu[] = [
     { rota: '/produtos', rotulo: 'Produtos', icone: 'local_florist', soAdmin: false },
+    { rota: '/eventos', rotulo: 'Eventos', icone: 'event', soAdmin: false },
+    { rota: '/movimentacoes', rotulo: 'Movimentações', icone: 'swap_vert', soAdmin: false },
     { rota: '/usuarios', rotulo: 'Usuários', icone: 'group', soAdmin: true },
   ];
 
@@ -73,7 +87,15 @@ export class Shell {
     this.itens.filter((item) => !item.soAdmin || this.ehAdmin()),
   );
 
+  /**
+   * Badge do menu "Eventos" (T-M4-8/CA-18): quantidade de eventos na janela ≤60 dias
+   * (`GET /eventos/proximos`, mesma fonte do bloco da Home). `0` quando não há alerta ou o serviço
+   * não está disponível (testes) → o template não pinta o badge.
+   */
+  protected readonly badgeEventos = computed(() => this.eventosService?.proximos().length ?? 0);
+
   constructor() {
+    this.eventosService?.carregarProximos();
     // Sincroniza modo/estado do drawer com a largura da viewport (mobile-first, FC-02).
     this.breakpoints
       .observe(Shell.MOBILE)

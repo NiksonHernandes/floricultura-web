@@ -43,6 +43,17 @@ export interface Produto {
   atualizadoEm: string;
   /** Há imagem binária no banco (SPEC-M3 §3.2, aditivo — o back sempre envia). */
   temImagem: boolean;
+  /**
+   * Produto vinculado a ≥1 evento (SPEC-M4 §3.4, aditivo). Vem na LISTA via `@Formula exists(...)`
+   * (leve, sem materializar a coleção nem o binário — AD-SQ-38). Opcional no tipo: o back sempre
+   * envia, mas fixtures/telas do M2/M3 que não o conhecem seguem válidas (mudança aditiva).
+   */
+  sazonal?: boolean;
+  /**
+   * Ids dos eventos vinculados (SPEC-M4 §3.4) — presente **só no detalhe** `GET /{id}`; na lista
+   * vem `null`/ausente (evita N+1). Alimenta a pré-seleção do multiselect no `produto-form`.
+   */
+  eventoIds?: number[] | null;
 }
 
 /**
@@ -58,6 +69,13 @@ export interface ProdutoRequest {
   estoqueMinimo: number;
   preco?: number | null;
   imagemUrl?: string | null;
+  /**
+   * Vínculos evento↔produto (SPEC-M4 §3.4, aditivo). Semântica de replace-set (AD-SQ-48):
+   * presente (inclusive `[]`) ⇒ substitui o conjunto; ausente/`null` ⇒ **não altera**. O
+   * `produto-form` só o inclui quando há seleção ou quando o produto já tinha vínculos (permite
+   * limpar), preservando os payloads exatos de 6 campos dos specs do M2/M3 (anti-burla).
+   */
+  eventoIds?: number[];
 }
 
 /** Alias semântico do payload de criação (`POST /produtos`) — mesma forma de `ProdutoRequest`. */
@@ -96,6 +114,12 @@ export interface Movimentacao {
   quantidadeResultante: number;
   motivo: string | null;
   usuarioId: number | null;
+  /**
+   * Nome do autor da movimentação (SPEC-M4 §3.5, aditivo — snapshot desnormalizado). `null` em
+   * linhas históricas pré-V7 ou autor desconhecido; o front renderiza `—` (CA-21). Opcional no
+   * tipo: mudança aditiva — fixtures/telas do M2 que não o conhecem seguem válidas.
+   */
+  usuarioNome?: string | null;
   criadoEm: string;
 }
 

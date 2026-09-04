@@ -1,0 +1,21 @@
+@if (proximos().length > 0) {
+  <section class="proximos" aria-label="Próximos eventos">
+    <header class="proximos__cabecalho">
+      <mat-icon aria-hidden="true">notifications_active</mat-icon>
+      <h2 class="proximos__titulo">Próximos eventos</h2>
+    </header>
+
+    <ul class="proximos__lista">
+      @for (e of proximos(); track e.id) {
+        <li class="prox" [class.prox--reforcado]="e.destaqueReforcado" [class.prox--andamento]="e.emAndamento">
+          <div class="prox__selo" aria-hidden="true">{{ diaMes(e.proximaOcorrencia) }}</div>
+          <div class="prox__corpo">
+            <span class="prox__nome">{{ e.nome }}</span>
+            <span class="prox__tipo">{{ rotuloTipo(e.tipo) }}</span>
+          </div>
+          <span class="prox__quando">{{ quando(e) }}</span>
+        </li>
+      }
+    </ul>
+  </section>
+}
