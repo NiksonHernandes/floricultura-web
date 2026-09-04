@@ -105,6 +105,22 @@ describe('Produtos (lista — T-M2-7, CA-19/CA-15)', () => {
     expect(el.textContent).toContain('3 m³');
   });
 
+  it('mostra o estoque mínimo junto do atual quando estoqueMinimo > 0 (CA-1)', () => {
+    const fixture = iniciar([{ ...base, estoqueAtual: 25, unidadeMedida: 'un', estoqueMinimo: 10 }]);
+    const meta = (fixture.nativeElement as HTMLElement).querySelector('.vaso__meta');
+    // Estoque atual e mínimo juntos, sem abrir "Editar": "25 un · mín. 10".
+    const texto = meta?.textContent?.replace(/\s+/g, ' ').trim();
+    expect(texto).toContain('25 un');
+    expect(texto).toContain('mín. 10');
+  });
+
+  it('NÃO mostra o sufixo "mín." quando estoqueMinimo é 0 (sem lixo visual — CA-2)', () => {
+    const fixture = iniciar([{ ...base, estoqueAtual: 25, unidadeMedida: 'un', estoqueMinimo: 0 }]);
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.meta__minimo')).toBeNull();
+    expect(el.textContent).not.toContain('mín.');
+  });
+
   it('exibe o selo "estoque baixo" quando estoqueBaixo é true (CA-15)', () => {
     const fixture = iniciar([{ ...base, estoqueBaixo: true }]);
     const el = fixture.nativeElement as HTMLElement;

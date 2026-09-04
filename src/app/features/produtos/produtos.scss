@@ -308,6 +308,15 @@
   color: color-mix(in srgb, var(--tinta) 50%, var(--estufa));
 }
 
+/* Estoque mínimo no card (AD-SQ-55/T-M4.2-1): secundário — não compete com o estoque atual.
+   Fica na mesma linha do valor; sem overflow no celular (o `.vaso__meta` já quebra por `flex-wrap`). */
+.meta__minimo {
+  font-weight: 500;
+  font-size: 0.82rem;
+  white-space: nowrap;
+  color: color-mix(in srgb, var(--tinta) 55%, var(--estufa));
+}
+
 /* Ações do card (Movimentar/Editar/Excluir — só ADMIN); alvo de toque >= 44px */
 .vaso__acoes {
   display: flex;

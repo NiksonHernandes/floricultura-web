@@ -14,8 +14,8 @@
       </button>
     </header>
 
-    <ul class="proximos__lista">
-      @for (e of proximos(); track e.id) {
+    <ul class="proximos__lista" [class.proximos__lista--expandida]="expandido()">
+      @for (e of visiveis(); track e.id) {
         <li class="prox" [class.prox--reforcado]="e.destaqueReforcado" [class.prox--andamento]="e.emAndamento">
           <div class="prox__selo" aria-hidden="true">{{ diaMes(e.proximaOcorrencia) }}</div>
           <div class="prox__corpo">
@@ -26,5 +26,17 @@
         </li>
       }
     </ul>
+
+    @if (totalOcultos() > 0) {
+      <button
+        type="button"
+        mat-button
+        class="proximos__vertodos"
+        [attr.aria-expanded]="expandido()"
+        (click)="alternarExpandido()"
+      >
+        {{ expandido() ? 'ver menos' : 'ver todos (' + total() + ')' }}
+      </button>
+    }
   </section>
 }

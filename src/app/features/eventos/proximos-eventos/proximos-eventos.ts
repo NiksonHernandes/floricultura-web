@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
@@ -42,8 +42,35 @@ export class ProximosEventos implements OnInit {
   /** Preferência "desligar aviso" (T-M4.1-6): `true` esconde o bloco. Default seguro = mostrar. */
   protected readonly oculto = this.pref?.oculto ?? signal(false);
 
+  /** Home compacta (T-M4.2-2/AD-SQ-57): mostra até 3 por padrão; o resto expande na própria Home. */
+  private static readonly LIMITE = 3;
+
+  /** Estado local de expansão — efêmero por render (SEM persistência: some ao trocar de tela). */
+  protected readonly expandido = signal(false);
+
+  /**
+   * Itens exibidos: os 3 primeiros (mais urgentes) por padrão, todos quando expandido. NÃO reordena
+   * — reusa a ordem de urgência que o back já entrega (`proximaOcorrencia ASC, nome ASC`, AD-SQ-47).
+   */
+  protected readonly visiveis = computed(() =>
+    this.expandido() ? this.proximos() : this.proximos().slice(0, ProximosEventos.LIMITE),
+  );
+
+  /** Quantos ficam ocultos no modo compacto (>0 ⇒ mostra "ver todos"). */
+  protected readonly totalOcultos = computed(() =>
+    Math.max(0, this.proximos().length - ProximosEventos.LIMITE),
+  );
+
+  /** Total de eventos na janela (rótulo "ver todos (N)"). */
+  protected readonly total = computed(() => this.proximos().length);
+
   ngOnInit(): void {
     this.service?.carregarProximos();
+  }
+
+  /** Alterna compacto ⇄ expandido — puramente client-side, sem nova chamada nem navegação. */
+  protected alternarExpandido(): void {
+    this.expandido.update((v) => !v);
   }
 
   /** Abre o diálogo "Como funcionam os avisos" (fonte única do texto — §3.4, CA-9). */

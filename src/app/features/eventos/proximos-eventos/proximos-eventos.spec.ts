@@ -103,6 +103,64 @@ describe('ProximosEventos (T-M4-8, CA-18)', () => {
     expect(el.textContent).toContain('faltam 12 dias');
   });
 
+  // --- T-M4.2-2 (AD-SQ-57): Home compacta — até 3 + "ver todos (N)" que expande client-side ---
+
+  /** N eventos na mesma ordem de urgência que o back já entrega (o front NÃO reordena). */
+  function muitos(n: number): EventoProximo[] {
+    return Array.from({ length: n }, (_, i) => ({
+      ...perto,
+      id: 100 + i,
+      nome: `Evento ${i + 1}`,
+      diasAte: i + 1,
+    }));
+  }
+
+  it('mostra só os 3 primeiros (mais urgentes) com >3 eventos, na ordem do back (CA-7)', () => {
+    proximos.set(muitos(5));
+    const el = montar().nativeElement as HTMLElement;
+    const cards = el.querySelectorAll('.prox');
+    expect(cards.length).toBe(3);
+    // Preserva a ordem entregue pelo back (sem reordenar): Evento 1, 2, 3.
+    const nomes = Array.from(cards).map((c) => c.querySelector('.prox__nome')?.textContent?.trim());
+    expect(nomes).toEqual(['Evento 1', 'Evento 2', 'Evento 3']);
+  });
+
+  it('exibe "ver todos (5)" e, ao clicar, expande para 5 sem nova chamada ao serviço (CA-8)', () => {
+    proximos.set(muitos(5));
+    const fixture = montar();
+    const el = fixture.nativeElement as HTMLElement;
+
+    const botao = el.querySelector('.proximos__vertodos') as HTMLButtonElement;
+    expect(botao?.textContent?.trim()).toContain('ver todos (5)');
+    expect(botao.getAttribute('aria-expanded')).toBe('false');
+    // Init chamou carregarProximos 1×; expandir NÃO deve chamar de novo.
+    expect(carregarSpy).toHaveBeenCalledTimes(1);
+
+    botao.click();
+    fixture.detectChanges();
+
+    expect(el.querySelectorAll('.prox').length).toBe(5);
+    expect(carregarSpy).toHaveBeenCalledTimes(1); // nenhuma nova chamada
+    const depois = el.querySelector('.proximos__vertodos') as HTMLButtonElement;
+    expect(depois.textContent?.trim()).toBe('ver menos');
+    expect(depois.getAttribute('aria-expanded')).toBe('true');
+  });
+
+  it('NÃO exibe "ver todos" quando há ≤3 eventos (borda: totalOcultos === 0 — CA-9)', () => {
+    proximos.set(muitos(3));
+    const el = montar().nativeElement as HTMLElement;
+    expect(el.querySelectorAll('.prox').length).toBe(3);
+    expect(el.querySelector('.proximos__vertodos')).toBeNull();
+  });
+
+  it('com o aviso desligado, o bloco some mesmo com >3 eventos (coexistência AD-SQ-54 — CA-10)', () => {
+    proximos.set(muitos(5));
+    oculto.set(true);
+    const el = montar().nativeElement as HTMLElement;
+    expect(el.querySelector('.proximos')).toBeNull();
+    expect(el.querySelector('.proximos__vertodos')).toBeNull();
+  });
+
   it('aplica o realce reforçado só para diasAte ≤ 30 (destaqueReforcado)', () => {
     proximos.set([perto, longe]);
     const el = montar().nativeElement as HTMLElement;

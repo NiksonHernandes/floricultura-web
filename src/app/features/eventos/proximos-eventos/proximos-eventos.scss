@@ -123,6 +123,27 @@
   white-space: nowrap;
 }
 
+/* Expandido (T-M4.2-2): empilha os itens em vez de rolar na horizontal — todos visíveis na Home. */
+.proximos__lista--expandida {
+  grid-auto-flow: row;
+  grid-auto-columns: auto;
+  grid-template-columns: 1fr;
+  overflow-x: visible;
+  scroll-snap-type: none;
+}
+
+/* "ver todos (N)" / "ver menos" (T-M4.2-2/AD-SQ-57): botão de texto, alvo de toque >= 44px. */
+.proximos__vertodos {
+  margin-top: 0.6rem;
+  min-height: 44px;
+
+  --mat-button-text-label-text-color: var(--folhagem);
+  --mat-button-text-icon-color: var(--folhagem);
+
+  font: 600 0.78rem/1 var(--mat-sys-body-small);
+  letter-spacing: 0.02em;
+}
+
 /* Reforço (diasAte ≤ 30): acende na dália — o alerta que precisa gritar. */
 .prox--reforcado {
   border-color: color-mix(in srgb, var(--dalia) 45%, white);
