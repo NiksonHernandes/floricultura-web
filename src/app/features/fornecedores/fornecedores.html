@@ -1,0 +1,144 @@
+<section class="agenda">
+  <!-- Placa da agenda: ecoa a placa de Clientes/Produtos/Eventos (mesmo produto). -->
+  <header class="placa">
+    <span class="placa__furo" aria-hidden="true"></span>
+    <div class="placa__texto">
+      <span class="placa__eyebrow">Ateliê · Parceiros</span>
+      <h1 class="placa__titulo">Fornecedores</h1>
+      <p class="placa__sub">Quem abastece o ateliê de flores e insumos — o caderninho de parceiros.</p>
+    </div>
+    @if (ehAdmin()) {
+      <button type="button" mat-flat-button class="acao placa__acao" (click)="novoFornecedor()">
+        <mat-icon aria-hidden="true">add</mat-icon>
+        <span>Novo fornecedor</span>
+      </button>
+    }
+  </header>
+
+  <mat-form-field appearance="outline" class="busca">
+    <mat-icon matPrefix aria-hidden="true">search</mat-icon>
+    <mat-label>Buscar por nome</mat-label>
+    <input
+      matInput
+      type="text"
+      [formControl]="filtro"
+      autocomplete="off"
+      aria-label="Buscar fornecedores por nome"
+    />
+    @if (filtro.value) {
+      <button
+        matSuffix
+        mat-icon-button
+        type="button"
+        aria-label="Limpar busca"
+        (click)="limparFiltro()"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
+    }
+  </mat-form-field>
+
+  @if (carregando()) {
+    <p class="estado" aria-live="polite">
+      <mat-progress-spinner diameter="22" mode="indeterminate" aria-hidden="true" />
+      <span>Carregando os fornecedores…</span>
+    </p>
+  } @else if (erro(); as msg) {
+    <p class="estado estado--erro" role="alert">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span>{{ msg }}</span>
+      <button mat-button (click)="carregar()">Tentar de novo</button>
+    </p>
+  } @else if (vazia()) {
+    <div class="estado estado--vazio">
+      <mat-icon aria-hidden="true">local_shipping</mat-icon>
+      @if (filtro.value) {
+        <p>Nenhum fornecedor encontrado para “{{ filtro.value }}”. Tente outro nome.</p>
+      } @else {
+        <p>A agenda ainda está vazia. Os fornecedores aparecem aqui assim que forem cadastrados.</p>
+      }
+    </div>
+  } @else {
+    <ul class="fichas" aria-label="Fornecedores cadastrados">
+      @for (f of fornecedores(); track f.id) {
+        <li class="ficha">
+          <!-- Assinatura: monograma do parceiro (inicial do nome) — motivo de agenda/rolodex. -->
+          <div class="ficha__monograma" aria-hidden="true">{{ inicial(f.nome) }}</div>
+
+          <div class="ficha__corpo">
+            <h2 class="ficha__nome">{{ f.nome }}</h2>
+
+            <dl class="ficha__contato">
+              @if (f.telefone) {
+                <div class="ficha__linha">
+                  <dt><mat-icon aria-hidden="true">call</mat-icon><span class="sr">Telefone</span></dt>
+                  <dd>{{ f.telefone }}</dd>
+                </div>
+              }
+              @if (f.email) {
+                <div class="ficha__linha">
+                  <dt><mat-icon aria-hidden="true">mail_outline</mat-icon><span class="sr">E-mail</span></dt>
+                  <dd class="ficha__email">{{ f.email }}</dd>
+                </div>
+              }
+              @if (!f.telefone && !f.email) {
+                <div class="ficha__linha ficha__linha--sem">
+                  <dt><mat-icon aria-hidden="true">contact_page</mat-icon></dt>
+                  <dd>Sem telefone ou e-mail cadastrado.</dd>
+                </div>
+              }
+            </dl>
+
+            @if (f.observacoes) {
+              <p class="ficha__obs">{{ f.observacoes }}</p>
+            }
+
+            @if (ehAdmin()) {
+              <div class="ficha__acoes">
+                <button
+                  type="button"
+                  mat-button
+                  class="ficha__acao ficha__editar"
+                  (click)="editarFornecedor(f)"
+                  [attr.aria-label]="'Editar ' + f.nome"
+                >
+                  <mat-icon aria-hidden="true">edit</mat-icon>
+                  <span>Editar</span>
+                </button>
+                <button
+                  type="button"
+                  mat-button
+                  class="ficha__acao ficha__excluir"
+                  (click)="excluirFornecedor(f)"
+                  [attr.aria-label]="'Excluir ' + f.nome"
+                >
+                  <mat-icon aria-hidden="true">delete_outline</mat-icon>
+                  <span>Excluir</span>
+                </button>
+              </div>
+            }
+          </div>
+        </li>
+      }
+    </ul>
+
+    <mat-paginator
+      class="paginacao"
+      [length]="totalElementos()"
+      [pageIndex]="pagina()"
+      [pageSize]="tamanho()"
+      [pageSizeOptions]="[12, 24, 48]"
+      (page)="aoPaginar($event)"
+    />
+  }
+</section>
+
+<!-- Form de criar/editar fornecedor (T-M5-10 — só ADMIN abre; consome os signals do gancho T-M5-9) -->
+@if (formAberto()) {
+  <div class="veu" (click)="fecharForm()"></div>
+  <app-fornecedor-form
+    [fornecedor]="fornecedorEmEdicao()"
+    (salvo)="aoSalvar($event)"
+    (cancelado)="fecharForm()"
+  />
+}

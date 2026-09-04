@@ -1,0 +1,187 @@
+// Form de cliente — "a folha da agenda" (SPEC-M5 §7 T-M5-8, §9, CA-12/CA-15).
+//
+// Mesma linguagem do ateliê (design system canônico vence): reusa _atelie-tokens.scss
+// (folhagem/estufa/tinta/caule/dalia/orvalho/sais + Fraunces) — zero hex novo. Ecoa a ficha do
+// evento-form/produto-form (folha que sobe de baixo no celular, caixa centrada na bancada). A dália
+// é o ÚNICO acento, gasta só na ação primária. Mobile-first (FC-02, ~90% celular): 1 coluna no
+// celular, 2 no desktop; alvos de toque >= 44px; sem overflow horizontal.
+@use '../../../shared/styles/atelie-tokens' as atelie;
+
+:host {
+  @include atelie.base;
+
+  position: fixed;
+  z-index: 30;
+  inset: auto 0 0 0; // folha que sobe de baixo no celular
+  display: flex;
+  flex-direction: column;
+  max-height: 92vh;
+  background: var(--estufa);
+  color: var(--tinta);
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -18px 50px -24px rgba(20, 36, 28, 0.55);
+  overflow: hidden;
+
+  --mdc-outlined-text-field-focus-outline-color: var(--caule);
+  --mdc-outlined-text-field-caret-color: var(--caule);
+  --mdc-outlined-text-field-focus-label-text-color: var(--folhagem);
+}
+
+.ficha {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.ficha__cabecalho {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.1rem 1.25rem 0.75rem;
+  background: radial-gradient(120% 160% at 100% 0%, #274a3a 0%, var(--folhagem) 65%);
+  color: var(--estufa);
+  flex: none;
+}
+
+.ficha__eyebrow {
+  font: 600 0.68rem/1 var(--display);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--sais);
+}
+
+.ficha__titulo {
+  margin: 0.3rem 0 0;
+  font: 400 clamp(1.4rem, 3.6vw, 1.8rem) / 1.1 var(--display);
+  font-optical-sizing: auto;
+  letter-spacing: -0.01em;
+}
+
+.ficha__fechar {
+  color: var(--sais);
+  flex: none;
+}
+
+.ficha__form {
+  padding: 1.1rem 1.25rem 1.25rem;
+  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.ficha__erro {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid color-mix(in srgb, var(--dalia) 40%, white);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--dalia) 8%, white);
+  color: #8f2450;
+  font: var(--mat-sys-body-small);
+
+  mat-icon {
+    flex: none;
+  }
+}
+
+.ficha__grade {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.25rem 1rem;
+}
+
+.ficha__campo {
+  width: 100%;
+  min-width: 0;
+}
+
+// Aviso LGPD (§9): ícone + texto, discreto mas legível — minimização de dado sensível.
+.hint-lgpd {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: color-mix(in srgb, var(--folhagem) 78%, var(--tinta));
+
+  mat-icon {
+    font-size: 1rem;
+    width: 1rem;
+    height: 1rem;
+    flex: none;
+  }
+}
+
+.ficha__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.ficha__acoes .mat-mdc-button,
+.ficha__acoes .mat-mdc-unelevated-button {
+  min-height: 44px;
+}
+
+.botao-secundario {
+  --mat-button-text-label-text-color: var(--folhagem);
+  --mat-button-text-icon-color: var(--folhagem);
+}
+
+.acao {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+
+  // A ação em dália carmim — a única ousadia (design-distintivo §gaste a ousadia num lugar só).
+  --mat-button-filled-container-color: var(--dalia);
+  --mat-button-filled-label-text-color: #fff;
+  --mat-button-filled-state-layer-color: #fff;
+  --mat-button-filled-ripple-color: color-mix(in srgb, white 30%, transparent);
+  --mat-button-filled-disabled-container-color: color-mix(in srgb, #c4326b 35%, white);
+  --mat-button-filled-disabled-label-text-color: #fff;
+
+  mat-icon {
+    transition: transform 160ms ease;
+  }
+
+  &:hover:not([disabled]) mat-icon {
+    transform: translateX(3px);
+  }
+}
+
+// Desktop (bancada): caixa centrada e campos em duas colunas; os "largos" ocupam a linha toda.
+@media (min-width: 720px) {
+  :host {
+    inset: 50% auto auto 50%;
+    transform: translate(-50%, -50%);
+    width: min(40rem, calc(100vw - 3rem));
+    border-radius: 16px;
+    box-shadow: 0 30px 70px -30px rgba(20, 36, 28, 0.6);
+  }
+
+  .ficha__grade {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .ficha__campo--largo {
+    grid-column: 1 / -1;
+  }
+}
+
+// Foco de teclado visível (piso de qualidade §9).
+:host ::ng-deep .mdc-button:focus-visible,
+:host ::ng-deep .mat-mdc-icon-button:focus-visible {
+  outline: 2px solid var(--sais);
+  outline-offset: -2px;
+  border-radius: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .acao mat-icon {
+    transition: none;
+  }
+}

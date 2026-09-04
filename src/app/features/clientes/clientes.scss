@@ -1,0 +1,354 @@
+// Clientes — "a agenda de contatos do ateliê" (SPEC-M5 §7 T-M5-7, §9, CA-11/CA-13/CA-14/CA-15).
+//
+// Reusa o design system canônico do ateliê (_atelie-tokens.scss — MESMO produto de Produtos/
+// Eventos/Usuários): folhagem/estufa/tinta/caule/dalia/orvalho/sais + Fraunces. Assinatura desta
+// tela: cada cliente é uma FICHA DE AGENDA — um monograma redondo (a inicial do nome) preso à
+// ficha (o rolodex do ateliê). Ousadia gasta num lugar só: o monograma em folhagem (o resto fica
+// quieto), primo do "selo de calendário" dos Eventos. Mobile-first (FC-02, ~90% celular): 1 coluna
+// no celular, grade no desktop; alvos de toque >= 44px; sem overflow horizontal.
+@use '../../shared/styles/atelie-tokens' as atelie;
+
+:host {
+  @include atelie.base;
+
+  display: block;
+  min-height: 100%;
+  background: var(--estufa);
+  color: var(--tinta);
+}
+
+.agenda {
+  max-width: 68rem;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3rem;
+}
+
+/* Utilitário só-leitor de tela (rótulos dos ícones de contato). */
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---- Placa (cabeçalho) — ecoa a de Produtos/Eventos ---- */
+.placa {
+  position: relative;
+  margin-bottom: 1.25rem;
+  padding: 1.5rem 1.5rem 1.25rem;
+  background: radial-gradient(120% 140% at 100% 0%, #274a3a 0%, var(--folhagem) 60%);
+  color: var(--estufa);
+  border-radius: 14px;
+  box-shadow: 0 18px 40px -30px rgba(20, 36, 28, 0.6);
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.9rem;
+}
+
+.placa__furo {
+  position: absolute;
+  top: -11px;
+  left: 2rem;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--estufa);
+  border: 1.5px solid var(--caule);
+}
+
+.placa__eyebrow {
+  font: 600 0.72rem/1 var(--display);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--sais);
+}
+
+.placa__acao {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+
+  --mat-button-filled-container-color: var(--dalia);
+  --mat-button-filled-label-text-color: #fff;
+  --mat-button-filled-state-layer-color: #fff;
+  --mat-button-filled-ripple-color: color-mix(in srgb, white 30%, transparent);
+}
+
+@media (min-width: 640px) {
+  .placa:has(.placa__acao) {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+  }
+
+  .placa__acao {
+    justify-self: end;
+  }
+}
+
+.placa__titulo {
+  margin: 0.35rem 0 0;
+  font: 400 clamp(1.7rem, 4.5vw, 2.4rem) / 1.05 var(--display);
+  font-optical-sizing: auto;
+  letter-spacing: -0.01em;
+}
+
+.placa__sub {
+  margin: 0.4rem 0 0;
+  max-width: 34rem;
+  font: var(--mat-sys-body-medium);
+  color: color-mix(in srgb, var(--sais) 92%, white);
+}
+
+/* ---- Busca ---- */
+.busca {
+  width: 100%;
+  margin-bottom: 1.25rem;
+
+  --mdc-outlined-text-field-focus-outline-color: var(--caule);
+  --mdc-outlined-text-field-caret-color: var(--caule);
+  --mdc-outlined-text-field-focus-label-text-color: var(--folhagem);
+
+  mat-icon[matPrefix] {
+    margin-right: 0.5rem;
+    color: var(--caule);
+  }
+}
+
+/* ---- Estados honestos ---- */
+.estado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1.25rem;
+  border: 1px solid var(--orvalho);
+  border-radius: 12px;
+  background: #fff;
+  color: color-mix(in srgb, var(--tinta) 70%, var(--estufa));
+  font: var(--mat-sys-body-medium);
+}
+
+.estado--erro {
+  border-color: color-mix(in srgb, var(--dalia) 40%, white);
+  color: #8f2450;
+}
+
+.estado--vazio {
+  flex-direction: column;
+  text-align: center;
+  padding: 2.75rem 1.5rem;
+
+  mat-icon {
+    color: var(--caule);
+    font-size: 2.25rem;
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  p {
+    margin: 0.75rem 0 0;
+    width: 100%;
+    max-width: 28rem;
+  }
+}
+
+.estado .mat-mdc-button {
+  --mat-button-text-label-text-color: var(--folhagem);
+  --mat-button-text-icon-color: var(--folhagem);
+  min-height: 44px;
+}
+
+/* ---- Lista de fichas (grid mobile-first) ---- */
+.fichas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+.ficha {
+  display: flex;
+  gap: 0.9rem;
+  padding: 0.9rem 1rem;
+  background: #fff;
+  border: 1px solid var(--orvalho);
+  border-radius: 14px;
+  box-shadow: 0 14px 34px -32px rgba(20, 36, 28, 0.55);
+}
+
+/* Assinatura: o monograma — disco com a inicial do nome, primo do selo de calendário. */
+.ficha__monograma {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 50%;
+  color: var(--estufa);
+  background: linear-gradient(180deg, #274a3a 0%, var(--folhagem) 100%);
+  box-shadow: inset 0 3px 0 color-mix(in srgb, var(--sais) 55%, transparent);
+  font: 600 1.5rem/1 var(--display);
+}
+
+.ficha__corpo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0; /* deixa o e-mail truncar sem estourar a largura no celular */
+  flex: 1;
+}
+
+.ficha__nome {
+  margin: 0;
+  font: 600 1.1rem/1.2 var(--display);
+  color: var(--tinta);
+  overflow-wrap: anywhere;
+}
+
+.ficha__contato {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.ficha__linha {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+
+  dt {
+    flex: none;
+    display: inline-flex;
+    margin: 0;
+  }
+
+  dt mat-icon {
+    font-size: 1.05rem;
+    width: 1.05rem;
+    height: 1.05rem;
+    color: var(--caule);
+  }
+
+  dd {
+    margin: 0;
+    min-width: 0;
+    font: 600 0.92rem/1.3 var(--mat-sys-body-medium);
+    color: var(--tinta);
+    overflow-wrap: anywhere;
+  }
+}
+
+/* E-mail pode ser longo: trunca com reticências no celular. */
+.ficha__email {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ficha__linha--sem dd {
+  font-weight: 400;
+  color: color-mix(in srgb, var(--tinta) 55%, var(--estufa));
+}
+
+.ficha__linha--sem dt mat-icon {
+  color: color-mix(in srgb, var(--caule) 70%, var(--estufa));
+}
+
+/* Observações: truncadas em 2 linhas (§ card mobile-first). */
+.ficha__obs {
+  margin: 0.15rem 0 0;
+  font: var(--mat-sys-body-small);
+  color: color-mix(in srgb, var(--tinta) 60%, var(--estufa));
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Ações do card: Editar/Excluir (só ADMIN); alvo de toque >= 44px. */
+.ficha__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.4rem;
+}
+
+.ficha__acao {
+  min-height: 44px;
+}
+
+.ficha__editar {
+  --mat-button-text-label-text-color: var(--folhagem);
+  --mat-button-text-icon-color: var(--folhagem);
+}
+
+/* Excluir sinaliza perigo na dália carmim — sem gritar (só texto/ícone). */
+.ficha__excluir {
+  margin-left: auto;
+  --mat-button-text-label-text-color: #8f2450;
+  --mat-button-text-icon-color: #8f2450;
+}
+
+/* ---- Paginação ---- */
+.paginacao {
+  margin-top: 1.25rem;
+  border-radius: 12px;
+  border: 1px solid var(--orvalho);
+  background: #fff;
+
+  --mat-paginator-container-text-color: color-mix(in srgb, var(--tinta) 78%, var(--estufa));
+  --mat-paginator-enabled-icon-color: var(--folhagem);
+}
+
+/* ---- Grade no desktop ---- */
+@media (min-width: 640px) {
+  .fichas {
+    grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
+  }
+}
+
+/* ---- Foco de teclado visível (piso de qualidade §9) ---- */
+:host ::ng-deep .mdc-button:focus-visible,
+:host ::ng-deep .mat-mdc-paginator .mdc-icon-button:focus-visible {
+  outline: 2px solid var(--caule);
+  outline-offset: -2px;
+  border-radius: 8px;
+}
+
+/* ---- Movimento deliberado (um só), respeitando reduced-motion ---- */
+@media (prefers-reduced-motion: no-preference) {
+  .ficha {
+    animation: ficha-assenta 320ms ease-out both;
+  }
+
+  @keyframes ficha-assenta {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+}
+
+/* ---- Véu do overlay do form (T-M5-8) — mesma cortina de Eventos/Produtos ---- */
+.veu {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: color-mix(in srgb, var(--tinta) 55%, transparent);
+  backdrop-filter: blur(2px);
+}

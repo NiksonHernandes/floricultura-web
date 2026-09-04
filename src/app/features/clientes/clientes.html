@@ -1,0 +1,144 @@
+<section class="agenda">
+  <!-- Placa da agenda: ecoa a placa da prateleira de Produtos e do calendário (mesmo produto). -->
+  <header class="placa">
+    <span class="placa__furo" aria-hidden="true"></span>
+    <div class="placa__texto">
+      <span class="placa__eyebrow">Ateliê · Contatos</span>
+      <h1 class="placa__titulo">Clientes</h1>
+      <p class="placa__sub">Quem compra e encomenda no ateliê — o caderninho de contatos.</p>
+    </div>
+    @if (ehAdmin()) {
+      <button type="button" mat-flat-button class="acao placa__acao" (click)="novoCliente()">
+        <mat-icon aria-hidden="true">add</mat-icon>
+        <span>Novo cliente</span>
+      </button>
+    }
+  </header>
+
+  <mat-form-field appearance="outline" class="busca">
+    <mat-icon matPrefix aria-hidden="true">search</mat-icon>
+    <mat-label>Buscar por nome</mat-label>
+    <input
+      matInput
+      type="text"
+      [formControl]="filtro"
+      autocomplete="off"
+      aria-label="Buscar clientes por nome"
+    />
+    @if (filtro.value) {
+      <button
+        matSuffix
+        mat-icon-button
+        type="button"
+        aria-label="Limpar busca"
+        (click)="limparFiltro()"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
+    }
+  </mat-form-field>
+
+  @if (carregando()) {
+    <p class="estado" aria-live="polite">
+      <mat-progress-spinner diameter="22" mode="indeterminate" aria-hidden="true" />
+      <span>Carregando os clientes…</span>
+    </p>
+  } @else if (erro(); as msg) {
+    <p class="estado estado--erro" role="alert">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span>{{ msg }}</span>
+      <button mat-button (click)="carregar()">Tentar de novo</button>
+    </p>
+  } @else if (vazia()) {
+    <div class="estado estado--vazio">
+      <mat-icon aria-hidden="true">people_outline</mat-icon>
+      @if (filtro.value) {
+        <p>Nenhum cliente encontrado para “{{ filtro.value }}”. Tente outro nome.</p>
+      } @else {
+        <p>A agenda ainda está vazia. Os clientes aparecem aqui assim que forem cadastrados.</p>
+      }
+    </div>
+  } @else {
+    <ul class="fichas" aria-label="Clientes cadastrados">
+      @for (c of clientes(); track c.id) {
+        <li class="ficha">
+          <!-- Assinatura: monograma do contato (inicial do nome) — motivo de agenda/rolodex. -->
+          <div class="ficha__monograma" aria-hidden="true">{{ inicial(c.nome) }}</div>
+
+          <div class="ficha__corpo">
+            <h2 class="ficha__nome">{{ c.nome }}</h2>
+
+            <dl class="ficha__contato">
+              @if (c.telefone) {
+                <div class="ficha__linha">
+                  <dt><mat-icon aria-hidden="true">call</mat-icon><span class="sr">Telefone</span></dt>
+                  <dd>{{ c.telefone }}</dd>
+                </div>
+              }
+              @if (c.email) {
+                <div class="ficha__linha">
+                  <dt><mat-icon aria-hidden="true">mail_outline</mat-icon><span class="sr">E-mail</span></dt>
+                  <dd class="ficha__email">{{ c.email }}</dd>
+                </div>
+              }
+              @if (!c.telefone && !c.email) {
+                <div class="ficha__linha ficha__linha--sem">
+                  <dt><mat-icon aria-hidden="true">contact_page</mat-icon></dt>
+                  <dd>Sem telefone ou e-mail cadastrado.</dd>
+                </div>
+              }
+            </dl>
+
+            @if (c.observacoes) {
+              <p class="ficha__obs">{{ c.observacoes }}</p>
+            }
+
+            @if (ehAdmin()) {
+              <div class="ficha__acoes">
+                <button
+                  type="button"
+                  mat-button
+                  class="ficha__acao ficha__editar"
+                  (click)="editarCliente(c)"
+                  [attr.aria-label]="'Editar ' + c.nome"
+                >
+                  <mat-icon aria-hidden="true">edit</mat-icon>
+                  <span>Editar</span>
+                </button>
+                <button
+                  type="button"
+                  mat-button
+                  class="ficha__acao ficha__excluir"
+                  (click)="excluirCliente(c)"
+                  [attr.aria-label]="'Excluir ' + c.nome"
+                >
+                  <mat-icon aria-hidden="true">delete_outline</mat-icon>
+                  <span>Excluir</span>
+                </button>
+              </div>
+            }
+          </div>
+        </li>
+      }
+    </ul>
+
+    <mat-paginator
+      class="paginacao"
+      [length]="totalElementos()"
+      [pageIndex]="pagina()"
+      [pageSize]="tamanho()"
+      [pageSizeOptions]="[12, 24, 48]"
+      (page)="aoPaginar($event)"
+    />
+  }
+</section>
+
+<!-- Form de criar/editar cliente (T-M5-8 — só ADMIN abre; consome os signals do gancho T-M5-7) -->
+@if (formAberto()) {
+  <div class="veu" (click)="fecharForm()"></div>
+  <app-cliente-form
+    [cliente]="clienteEmEdicao()"
+    (salvo)="aoSalvar($event)"
+    (cancelado)="fecharForm()"
+  />
+}
