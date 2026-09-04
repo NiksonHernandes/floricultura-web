@@ -83,6 +83,11 @@
               <time class="historico__data" [attr.datetime]="m.criadoEm">
                 {{ m.criadoEm | date: 'dd/MM/yyyy HH:mm' : 'America/Sao_Paulo' : 'pt-BR' }}
               </time>
+              <!-- Autor da movimentação (T-M4-12, CA-21/CA-25): `usuarioNome` ou "—" quando nulo. -->
+              <span class="historico__autor">
+                <mat-icon aria-hidden="true">person</mat-icon>
+                {{ m.usuarioNome ?? '—' }}
+              </span>
               @if (m.motivo) {
                 <span class="historico__motivo">{{ m.motivo }}</span>
               }

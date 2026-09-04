@@ -184,6 +184,22 @@
   color: color-mix(in srgb, var(--tinta) 55%, white);
 }
 
+// Autor (T-M4-12, CA-25): quem lançou a movimentação — discreto, com ícone de pessoa.
+.historico__autor {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  color: color-mix(in srgb, var(--tinta) 62%, white);
+  font-size: 0.72rem;
+
+  mat-icon {
+    font-size: 0.9rem;
+    width: 0.9rem;
+    height: 0.9rem;
+    color: var(--caule);
+  }
+}
+
 .historico__motivo {
   flex-basis: 100%;
   color: color-mix(in srgb, var(--tinta) 70%, white);
