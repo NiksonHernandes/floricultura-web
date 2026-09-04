@@ -6,6 +6,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { ProximosEventos } from './proximos-eventos';
 import { EventosService } from '../eventos.service';
 import { InfoAvisos } from '../info-avisos/info-avisos';
+import { AvisosEventosPreferencia } from '../../../core/services/avisos-eventos-preferencia';
 import { EventoProximo } from '../../../core/models/evento.model';
 
 /**
@@ -17,6 +18,7 @@ describe('ProximosEventos (T-M4-8, CA-18)', () => {
   let proximos: WritableSignal<EventoProximo[]>;
   let carregarSpy: jasmine.Spy;
   let dialog: jasmine.SpyObj<MatDialog>;
+  let oculto: WritableSignal<boolean>;
 
   const perto: EventoProximo = {
     id: 1,
@@ -50,12 +52,14 @@ describe('ProximosEventos (T-M4-8, CA-18)', () => {
     proximos = signal<EventoProximo[]>([]);
     carregarSpy = jasmine.createSpy('carregarProximos');
     dialog = jasmine.createSpyObj<MatDialog>('MatDialog', ['open']);
+    oculto = signal(false);
     TestBed.configureTestingModule({
       imports: [ProximosEventos],
       providers: [
         provideNoopAnimations(),
         { provide: EventosService, useValue: { proximos, carregarProximos: carregarSpy } },
         { provide: MatDialog, useValue: dialog },
+        { provide: AvisosEventosPreferencia, useValue: { oculto } },
       ],
     });
   });
@@ -68,6 +72,27 @@ describe('ProximosEventos (T-M4-8, CA-18)', () => {
   it('some quando não há eventos na janela (bloco não polui a Home)', () => {
     const el = montar().nativeElement as HTMLElement;
     expect(el.querySelector('.proximos')).toBeNull();
+  });
+
+  // --- T-M4.1-6: honra a preferência "desligar aviso" (CA-11) ---
+
+  it('esconde o bloco quando a preferência está oculta, mesmo com eventos na janela (CA-11)', () => {
+    proximos.set([perto]);
+    oculto.set(true);
+    const el = montar().nativeElement as HTMLElement;
+    expect(el.querySelector('.proximos')).toBeNull();
+  });
+
+  it('mostra o bloco quando a preferência volta a exibir (religar — CA-11)', () => {
+    proximos.set([perto]);
+    oculto.set(true);
+    const fixture = montar();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.proximos')).toBeNull();
+
+    oculto.set(false); // religou "Mostrar avisos"
+    fixture.detectChanges();
+    expect(el.querySelector('.proximos')).toBeTruthy();
   });
 
   it('renderiza um item por evento com nome e contagem regressiva', () => {

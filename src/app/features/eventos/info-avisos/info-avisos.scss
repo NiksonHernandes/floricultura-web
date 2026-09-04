@@ -66,6 +66,25 @@
   }
 }
 
+/* Toggle "Mostrar avisos na tela inicial" (T-M4.1-6) — separado das regras por uma hairline. */
+.avisos__preferencia {
+  margin-top: 1.1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--orvalho);
+
+  --mdc-switch-selected-track-color: var(--caule);
+  --mdc-switch-selected-handle-color: var(--folhagem);
+  --mdc-switch-selected-focus-track-color: var(--caule);
+  --mdc-switch-selected-hover-track-color: var(--caule);
+  --mdc-switch-selected-pressed-track-color: var(--caule);
+}
+
+.avisos__dica {
+  margin: 0.4rem 0 0;
+  font: var(--mat-sys-body-small);
+  color: color-mix(in srgb, var(--tinta) 62%, white);
+}
+
 .avisos__acoes {
   display: flex;
   justify-content: flex-end;

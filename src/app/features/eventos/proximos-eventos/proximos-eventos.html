@@ -1,4 +1,4 @@
-@if (proximos().length > 0) {
+@if (!oculto() && proximos().length > 0) {
   <section class="proximos" aria-label="Próximos eventos">
     <header class="proximos__cabecalho">
       <mat-icon aria-hidden="true">notifications_active</mat-icon>

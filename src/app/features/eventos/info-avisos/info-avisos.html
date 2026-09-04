@@ -16,7 +16,17 @@
         </li>
       }
     </ul>
-    <!-- Onda 2 (T-M4.1-6): o toggle "Mostrar avisos na tela inicial" entra aqui. -->
+    <!-- Onda 2 (T-M4.1-6, CA-11): liga/desliga o bloco de avisos da Home (por usuário×dispositivo). -->
+    <div class="avisos__preferencia">
+      <mat-slide-toggle
+        color="primary"
+        [checked]="!oculto()"
+        (change)="aoAlternarMostrar($event)"
+      >
+        Mostrar avisos na tela inicial
+      </mat-slide-toggle>
+      <p class="avisos__dica">Desligar esconde o bloco “Próximos eventos” só neste dispositivo.</p>
+    </div>
   </div>
 
   <div mat-dialog-actions class="avisos__acoes">

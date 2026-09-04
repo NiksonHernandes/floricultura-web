@@ -2,6 +2,9 @@ import { Component, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MatSlideToggleModule, MatSlideToggleChange } from '@angular/material/slide-toggle';
+
+import { AvisosEventosPreferencia } from '../../../core/services/avisos-eventos-preferencia';
 
 /**
  * Regra de aviso, em linguagem de negócio (SPEC-M4.1 §3.4). É a **fonte única** do texto do "i",
@@ -26,19 +29,28 @@ export const REGRAS_AVISO: ReadonlyArray<{ icone: string; texto: string }> = [
  * CA-9/CA-10). Reusa o padrão do `confirmar-exclusao` (`MatDialog` → foco preso, Esc/backdrop/botão
  * fecham). Explica as regras em linguagem de negócio (§3.4). Mobile-first (FC-02).
  *
- * Preparado para a Onda 2 (T-M4.1-6): o toggle "Mostrar avisos na tela inicial" morará DENTRO deste
- * diálogo (PA#3), abaixo das regras — por isso o rodapé de ações já existe. O toggle/`localStorage`
- * ainda NÃO é implementado aqui.
+ * Onda 2 (T-M4.1-6, CA-11): abaixo das regras vive o toggle "Mostrar avisos na tela inicial", ligado
+ * ao `AvisosEventosPreferencia` (signal compartilhado + `localStorage`). Ligar/desligar reflete na
+ * Home imediatamente e persiste. "Mostrar" (checked) = `oculto=false`; desmarcar oculta o bloco.
  */
 @Component({
   selector: 'app-info-avisos',
-  imports: [MatDialogModule, MatButtonModule, MatIconModule],
+  imports: [MatDialogModule, MatButtonModule, MatIconModule, MatSlideToggleModule],
   templateUrl: './info-avisos.html',
   styleUrl: './info-avisos.scss',
 })
 export class InfoAvisos {
   private readonly ref = inject(MatDialogRef<InfoAvisos>);
+  private readonly pref = inject(AvisosEventosPreferencia);
   protected readonly regras = REGRAS_AVISO;
+
+  /** Signal compartilhado da preferência: `true` = bloco oculto. O toggle "Mostrar" é o inverso. */
+  protected readonly oculto = this.pref.oculto;
+
+  /** O operador (des)marcou "Mostrar avisos na tela inicial" → persiste e reflete na Home. */
+  protected aoAlternarMostrar(evento: MatSlideToggleChange): void {
+    this.pref.definir(!evento.checked); // checked = mostrar ⇒ oculto = !checked
+  }
 
   protected fechar(): void {
     this.ref.close();
