@@ -70,6 +70,12 @@
                 Estoque baixo
               </span>
             }
+            @if (p.sazonal) {
+              <span class="selo-sazonal">
+                <mat-icon aria-hidden="true">event</mat-icon>
+                Sazonal
+              </span>
+            }
           </div>
 
           <div class="vaso__corpo">
@@ -149,6 +155,7 @@
   <div class="veu" (click)="fecharForm()"></div>
   <app-produto-form
     [produto]="produtoEmEdicao()"
+    [eventos]="eventos()"
     (salvo)="aoSalvar($event)"
     (entradaInicialFalhou)="aoEntradaInicialFalhou()"
     (imagemFalhou)="aoImagemFalhou()"

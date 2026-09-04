@@ -12,6 +12,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 
 import { ProdutosService } from './produtos.service';
+import { EventosService } from '../eventos/eventos.service';
 import { ProdutoForm } from './produto-form/produto-form';
 import { ImagemProduto } from './imagem-produto/imagem-produto';
 import {
@@ -24,6 +25,7 @@ import {
 } from './movimentar-estoque/movimentar-estoque';
 import { AuthService } from '../../core/services/auth.service';
 import { Movimentacao, Produto, UnidadeMedida } from '../../core/models/produto.model';
+import { Evento } from '../../core/models/evento.model';
 
 /** MatPaginator em pt-BR — sem o "Items per page" em inglês do default (design-distintivo §texto). */
 function paginatorPtBr(): MatPaginatorIntl {
@@ -91,6 +93,12 @@ export class Produtos implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly snack = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
+  /**
+   * Serviço de eventos (SPEC-M4 §3.4/T-M4-6) para popular o multiselect do form. Injeção
+   * OPCIONAL de propósito: provido no `appConfig` (não `providedIn:'root'`), fica `null` nos
+   * testes que não o registram — assim os specs do M2/M3 não disparam `GET /eventos` (anti-burla).
+   */
+  private readonly eventosService = inject(EventosService, { optional: true });
 
   /** RBAC de UX (FC-07): só ADMIN vê/usa as ações de escrita. O back é a fonte de verdade. */
   protected readonly ehAdmin = this.auth.ehAdmin;
@@ -111,6 +119,10 @@ export class Produtos implements OnInit {
   /** Diálogo do form (T-M2-8): aberto? e produto em edição (null = criar). */
   protected readonly formAberto = signal(false);
   protected readonly produtoEmEdicao = signal<Produto | null>(null);
+
+  /** Opções de eventos para o multiselect do form (T-M4-6) — carregadas 1x sob demanda. */
+  protected readonly eventos = signal<Evento[]>([]);
+  private eventosCarregados = false;
 
   /**
    * Marca transitória (T-M2-11/CA-22): o form emite `entradaInicialFalhou` ANTES de `salvo` quando o
@@ -174,17 +186,48 @@ export class Produtos implements OnInit {
     if (!this.ehAdmin()) {
       return;
     }
+    this.carregarEventos();
     this.produtoEmEdicao.set(null);
     this.formAberto.set(true);
   }
 
-  /** Abre o form em modo edição do produto escolhido (só ADMIN). */
+  /**
+   * Abre o form em modo edição (só ADMIN). Busca o DETALHE (`GET /{id}`) para trazer `eventoIds`
+   * (a lista não os carrega — §3.4) e pré-selecionar o multiselect; se o detalhe falhar, cai para o
+   * item de lista (sem vínculos conhecidos). Também garante as opções de eventos carregadas.
+   */
   protected editarProduto(p: Produto): void {
     if (!this.ehAdmin()) {
       return;
     }
+    this.carregarEventos();
+    this.service.detalhar(p.id).subscribe({
+      next: (detalhe) => this.abrirEdicao(detalhe),
+      error: () => this.abrirEdicao(p),
+    });
+  }
+
+  private abrirEdicao(p: Produto): void {
     this.produtoEmEdicao.set(p);
     this.formAberto.set(true);
+  }
+
+  /**
+   * Carrega as opções do multiselect de eventos 1x (SPEC-M4 §3.4/T-M4-6) via `GET /eventos`. O
+   * serviço é opcional (null nos testes do M2/M3): sem ele, o multiselect fica vazio com hint
+   * honesto, sem quebrar o cadastro. Falha de rede também degrada em silêncio (opções vazias).
+   */
+  private carregarEventos(): void {
+    if (this.eventosCarregados || !this.eventosService) {
+      return;
+    }
+    this.eventosCarregados = true;
+    this.eventosService.listar(0, 100).subscribe({
+      next: (pagina) => this.eventos.set(pagina.conteudo),
+      error: () => {
+        this.eventosCarregados = false; // permite nova tentativa numa próxima abertura
+      },
+    });
   }
 
   protected fecharForm(): void {

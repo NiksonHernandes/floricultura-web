@@ -22,6 +22,7 @@ import { ImagemProduto } from '../imagem-produto/imagem-produto';
 import { RecorteFoto } from '../recorte-foto/recorte-foto';
 import { ApiResponse } from '../../../core/models/api-response.model';
 import { Produto, ProdutoRequest, UnidadeMedida } from '../../../core/models/produto.model';
+import { Evento } from '../../../core/models/evento.model';
 
 /**
  * Motivo padrão da ENTRADA lançada na criação do produto (AD-SQ-35/CA-22). Grava no ledger
@@ -107,6 +108,13 @@ export class ProdutoForm implements OnInit, OnDestroy {
   /** Produto em edição; `null`/ausente = modo criação (nova instância por abertura do diálogo). */
   readonly produto = input<Produto | null>(null);
 
+  /**
+   * Opções do multiselect de eventos (SPEC-M4 §3.4/CA-12), carregadas de `GET /eventos` pela
+   * lista-mãe e passadas por `input` — assim o form NÃO injeta o serviço de eventos, preservando
+   * os specs do M2/M3 (sem HttpClient) intactos (anti-burla).
+   */
+  readonly eventos = input<Evento[]>([]);
+
   /** Emite o produto salvo (criado/editado) para a lista-mãe recarregar. */
   readonly salvo = output<Produto>();
   /** Emite quando o operador cancela/fecha sem salvar. */
@@ -176,9 +184,21 @@ export class ProdutoForm implements OnInit, OnDestroy {
    */
   protected readonly entradaInicial = this.fb.control<number | null>(null, [Validators.min(0)]);
 
+  /**
+   * Eventos vinculados (SPEC-M4 §3.4/CA-12) — controle STANDALONE, FORA do `form` group: mantém
+   * `form.setValue(...)` dos specs do M2/M3 com os 6 campos originais (anti-burla). Vai ao payload
+   * como `eventoIds` só quando há seleção ou quando o produto já tinha vínculos (replace-set/limpar).
+   */
+  protected readonly eventosSelecionados = this.fb.nonNullable.control<number[]>([]);
+
+  /** Vínculos originais do produto em edição (do detalhe `GET /{id}`) — base do replace-set/limpar. */
+  private eventosOriginais: number[] = [];
+
   ngOnInit(): void {
     const p = this.produto();
     if (p) {
+      this.eventosOriginais = p.eventoIds ?? [];
+      this.eventosSelecionados.setValue([...this.eventosOriginais]);
       // Modo edição: guarda o produto vivo (para a foto atual/remover) e pré-preenche o form
       // (sem `estoqueAtual` — não é editável por CRUD).
       this.produtoAtual.set(p);
@@ -415,10 +435,17 @@ export class ProdutoForm implements OnInit, OnDestroy {
     this.cancelado.emit();
   }
 
-  /** Monta o payload §3.2: opcionais vazios viram `null` (ausência honesta, não string vazia). */
+  /**
+   * Monta o payload §3.2: opcionais vazios viram `null` (ausência honesta, não string vazia).
+   *
+   * `eventoIds` (§3.4, replace-set — AD-SQ-48) só é incluído quando há seleção **ou** quando o
+   * produto já tinha vínculos (permite limpar enviando `[]`). Se não há seleção nem vínculos
+   * anteriores, o campo é OMITIDO — mantém intactos os payloads exatos de 6 campos dos specs do
+   * M2/M3 (anti-burla) e o back interpreta ausência como "não altera".
+   */
   private montarPayload(): ProdutoRequest {
     const v = this.form.getRawValue();
-    return {
+    const req: ProdutoRequest = {
       nome: v.nome.trim(),
       descricao: v.descricao.trim() || null,
       unidadeMedida: v.unidadeMedida as UnidadeMedida,
@@ -426,6 +453,11 @@ export class ProdutoForm implements OnInit, OnDestroy {
       preco: v.preco ?? null,
       imagemUrl: v.imagemUrl.trim() || null,
     };
+    const ids = this.eventosSelecionados.value;
+    if (ids.length > 0 || this.eventosOriginais.length > 0) {
+      req.eventoIds = ids;
+    }
+    return req;
   }
 
   /** `400 VALIDATION_ERROR` → `details` por campo; sem details/erro genérico → banner geral. */
