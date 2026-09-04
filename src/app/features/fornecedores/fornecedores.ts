@@ -12,6 +12,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 
 import { FornecedoresService } from './fornecedores.service';
+import { FornecedorForm } from './fornecedor-form/fornecedor-form';
 import {
   ConfirmarExclusao,
   ConfirmarExclusaoDados,
@@ -59,6 +60,7 @@ function paginatorPtBr(): MatPaginatorIntl {
     MatIconModule,
     MatProgressSpinnerModule,
     MatPaginatorModule,
+    FornecedorForm,
   ],
   providers: [{ provide: MatPaginatorIntl, useFactory: paginatorPtBr }],
   templateUrl: './fornecedores.html',
@@ -87,9 +89,9 @@ export class Fornecedores implements OnInit {
   protected readonly filtro = new FormControl('', { nonNullable: true });
 
   /**
-   * Gancho do form (T-M5-10, CA-12): `formAberto` + `fornecedorEmEdicao` (null = criar). Os handlers
-   * já armam estes signals; o `fornecedor-form` que os consome ainda NÃO existe (chega na T-M5-10),
-   * então a lista ainda não renderiza overlay algum — mantém `ng build`/`ng test` verdes.
+   * Estado do form (T-M5-10, CA-12): `formAberto` + `fornecedorEmEdicao` (null = criar). A lista
+   * hospeda o overlay `<app-fornecedor-form>` (renderizado quando `formAberto()`), que consome estes
+   * signals e emite `salvo`/`cancelado` de volta (`aoSalvar`/`fecharForm`).
    */
   protected readonly formAberto = signal(false);
   protected readonly fornecedorEmEdicao = signal<Fornecedor | null>(null);
@@ -157,6 +159,24 @@ export class Fornecedores implements OnInit {
     }
     this.fornecedorEmEdicao.set(f);
     this.formAberto.set(true);
+  }
+
+  /** Fecha o overlay do form (cancelar/Esc/véu) sem salvar. */
+  protected fecharForm(): void {
+    this.formAberto.set(false);
+    this.fornecedorEmEdicao.set(null);
+  }
+
+  /** Form emitiu um fornecedor salvo: confirma, fecha e recarrega a fatia atual da lista. */
+  protected aoSalvar(f: Fornecedor): void {
+    const criado = this.fornecedorEmEdicao() === null;
+    this.fecharForm();
+    this.snack.open(
+      criado ? `${f.nome} entrou na agenda.` : `${f.nome} foi atualizado.`,
+      'Fechar',
+      { duration: 4000 },
+    );
+    this.carregar();
   }
 
   // --- Exclusão (T-M5-9, CA-14, FC-08 — só ADMIN) ---

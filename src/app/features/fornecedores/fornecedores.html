@@ -133,9 +133,12 @@
   }
 </section>
 
-<!--
-  Gancho do form de criar/editar fornecedor (T-M5-10): os handlers novoFornecedor()/editarFornecedor()
-  já armam os signals `formAberto()`/`fornecedorEmEdicao()`. O overlay <app-fornecedor-form> é criado
-  na T-M5-10 e consome esses signals — por ora NÃO é renderizado (o componente ainda não existe), para
-  manter `ng build`/`ng test` verdes. Não remover os signals: são o contrato desta integração.
--->
+<!-- Form de criar/editar fornecedor (T-M5-10 — só ADMIN abre; consome os signals do gancho T-M5-9) -->
+@if (formAberto()) {
+  <div class="veu" (click)="fecharForm()"></div>
+  <app-fornecedor-form
+    [fornecedor]="fornecedorEmEdicao()"
+    (salvo)="aoSalvar($event)"
+    (cancelado)="fecharForm()"
+  />
+}
