@@ -52,9 +52,18 @@
 
       <mat-form-field appearance="outline" class="ficha__campo">
         <mat-label>{{ form.controls.periodo.value ? 'Início' : 'Data' }}</mat-label>
-        <input matInput type="date" formControlName="dataInicio" />
+        <input
+          matInput
+          formControlName="dataInicio"
+          [matDatepicker]="pickerInicio"
+          placeholder="dd/mm/aaaa"
+        />
+        <mat-datepicker-toggle matIconSuffix [for]="pickerInicio" />
+        <mat-datepicker #pickerInicio />
         @if (form.controls.dataInicio.hasError('required')) {
           <mat-error>Informe a data.</mat-error>
+        } @else if (form.controls.dataInicio.hasError('matDatepickerParse')) {
+          <mat-error>Use o formato dd/mm/aaaa.</mat-error>
         } @else if (form.controls.dataInicio.hasError('servidor')) {
           <mat-error>{{ form.controls.dataInicio.getError('servidor') }}</mat-error>
         }
@@ -71,10 +80,22 @@
       @if (form.controls.periodo.value) {
         <mat-form-field appearance="outline" class="ficha__campo">
           <mat-label>Término</mat-label>
-          <input matInput type="date" formControlName="dataFim" />
+          <input
+            matInput
+            formControlName="dataFim"
+            [matDatepicker]="pickerFim"
+            [min]="form.controls.dataInicio.value"
+            placeholder="dd/mm/aaaa"
+          />
+          <mat-datepicker-toggle matIconSuffix [for]="pickerFim" />
+          <mat-datepicker #pickerFim />
           @if (form.controls.dataFim.hasError('required')) {
             <mat-error>Informe a data de término.</mat-error>
           } @else if (form.controls.dataFim.hasError('periodoInvalido')) {
+            <mat-error>O término não pode ser antes do início.</mat-error>
+          } @else if (form.controls.dataFim.hasError('matDatepickerParse')) {
+            <mat-error>Use o formato dd/mm/aaaa.</mat-error>
+          } @else if (form.controls.dataFim.hasError('matDatepickerMin')) {
             <mat-error>O término não pode ser antes do início.</mat-error>
           } @else if (form.controls.dataFim.hasError('servidor')) {
             <mat-error>{{ form.controls.dataFim.getError('servidor') }}</mat-error>
