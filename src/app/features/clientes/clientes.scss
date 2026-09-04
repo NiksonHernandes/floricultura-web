@@ -343,3 +343,12 @@
     }
   }
 }
+
+/* ---- Véu do overlay do form (T-M5-8) — mesma cortina de Eventos/Produtos ---- */
+.veu {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: color-mix(in srgb, var(--tinta) 55%, transparent);
+  backdrop-filter: blur(2px);
+}

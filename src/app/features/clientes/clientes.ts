@@ -12,6 +12,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 
 import { ClientesService } from './clientes.service';
+import { ClienteForm } from './cliente-form/cliente-form';
 import {
   ConfirmarExclusao,
   ConfirmarExclusaoDados,
@@ -59,6 +60,7 @@ function paginatorPtBr(): MatPaginatorIntl {
     MatIconModule,
     MatProgressSpinnerModule,
     MatPaginatorModule,
+    ClienteForm,
   ],
   providers: [{ provide: MatPaginatorIntl, useFactory: paginatorPtBr }],
   templateUrl: './clientes.html',
@@ -87,9 +89,9 @@ export class Clientes implements OnInit {
   protected readonly filtro = new FormControl('', { nonNullable: true });
 
   /**
-   * Gancho do form (T-M5-8, CA-12): `formAberto` + `clienteEmEdicao` (null = criar). Os handlers já
-   * armam estes signals; o `cliente-form` que os consome ainda NÃO existe (chega na T-M5-8), então a
-   * lista ainda não renderiza overlay algum — mantém `ng build`/`ng test` verdes.
+   * Estado do form (T-M5-8, CA-12): `formAberto` + `clienteEmEdicao` (null = criar). A lista hospeda
+   * o overlay `<app-cliente-form>` (renderizado quando `formAberto()`), que consome estes signals e
+   * emite `salvo`/`cancelado` de volta (`aoSalvar`/`fecharForm`).
    */
   protected readonly formAberto = signal(false);
   protected readonly clienteEmEdicao = signal<Cliente | null>(null);
@@ -157,6 +159,24 @@ export class Clientes implements OnInit {
     }
     this.clienteEmEdicao.set(c);
     this.formAberto.set(true);
+  }
+
+  /** Fecha o overlay do form (cancelar/Esc/véu) sem salvar. */
+  protected fecharForm(): void {
+    this.formAberto.set(false);
+    this.clienteEmEdicao.set(null);
+  }
+
+  /** Form emitiu um cliente salvo: confirma, fecha e recarrega a fatia atual da lista. */
+  protected aoSalvar(c: Cliente): void {
+    const criado = this.clienteEmEdicao() === null;
+    this.fecharForm();
+    this.snack.open(
+      criado ? `${c.nome} entrou na agenda.` : `${c.nome} foi atualizado.`,
+      'Fechar',
+      { duration: 4000 },
+    );
+    this.carregar();
   }
 
   // --- Exclusão (T-M5-7, CA-14, FC-08 — só ADMIN) ---
