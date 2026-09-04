@@ -89,7 +89,12 @@
             <dl class="vaso__meta">
               <div class="meta">
                 <dt>Estoque</dt>
-                <dd>{{ p.estoqueAtual }} {{ rotuloUnidade(p.unidadeMedida) }}</dd>
+                <dd>
+                  {{ p.estoqueAtual }} {{ rotuloUnidade(p.unidadeMedida) }}
+                  @if (rotuloMinimo(p); as minimo) {
+                    <span class="meta__minimo">· {{ minimo }}</span>
+                  }
+                </dd>
               </div>
               <div class="meta">
                 <dt>Preço</dt>

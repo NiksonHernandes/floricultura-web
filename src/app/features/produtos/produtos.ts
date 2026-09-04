@@ -348,6 +348,16 @@ export class Produtos implements OnInit {
     return ROTULOS_UNIDADE[u] ?? u;
   }
 
+  /**
+   * Sufixo do estoque mínimo no card (AD-SQ-55/T-M4.2-1). Retorna `mín. <N>` só quando
+   * `estoqueMinimo > 0` (produto sem mínimo = `0`/nulo → `null`, sem "mín. 0" nem traço órfão). O
+   * número é cru (igual ao estoque atual, sem `DecimalPipe` — consistência §3.3). É informativo e
+   * independe do selo `estoqueBaixo`, que segue vindo do back (FC-13).
+   */
+  protected rotuloMinimo(p: Produto): string | null {
+    return p.estoqueMinimo != null && p.estoqueMinimo > 0 ? `mín. ${p.estoqueMinimo}` : null;
+  }
+
   /** Preço em BRL; `null` = sem preço definido (empty-state honesto, não "R$ 0,00" fake). */
   protected precoFormatado(p: Produto): string | null {
     if (p.preco === null || p.preco === undefined) return null;
