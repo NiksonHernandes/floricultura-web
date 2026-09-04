@@ -69,6 +69,7 @@ export class Shell {
   private readonly itens: readonly ItemMenu[] = [
     { rota: '/produtos', rotulo: 'Produtos', icone: 'local_florist', soAdmin: false },
     { rota: '/eventos', rotulo: 'Eventos', icone: 'event', soAdmin: false },
+    { rota: '/movimentacoes', rotulo: 'Movimentações', icone: 'swap_vert', soAdmin: false },
     { rota: '/usuarios', rotulo: 'Usuários', icone: 'group', soAdmin: true },
   ];
 

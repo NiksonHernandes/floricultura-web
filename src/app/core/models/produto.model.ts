@@ -114,6 +114,12 @@ export interface Movimentacao {
   quantidadeResultante: number;
   motivo: string | null;
   usuarioId: number | null;
+  /**
+   * Nome do autor da movimentação (SPEC-M4 §3.5, aditivo — snapshot desnormalizado). `null` em
+   * linhas históricas pré-V7 ou autor desconhecido; o front renderiza `—` (CA-21). Opcional no
+   * tipo: mudança aditiva — fixtures/telas do M2 que não o conhecem seguem válidas.
+   */
+  usuarioNome?: string | null;
   criadoEm: string;
 }
 

@@ -1,0 +1,273 @@
+// Movimentações — "o livro-caixa do estoque" (SPEC-M4 §7 T-M4-11, §9, CA-22/CA-24).
+//
+// Reusa o design system canônico do ateliê (_atelie-tokens.scss — MESMO produto): folhagem/estufa/
+// tinta/caule/dalia/orvalho/sais + Fraunces. Herda as cores de tipo do diálogo de movimentação
+// (ENTRADA sálvia, SAÍDA dália, AJUSTE neutro) para coerência com o ledger já existente.
+// Mobile-first (FC-02, ~90% celular): 1 coluna, cada lançamento é uma linha de razão; sem overflow.
+@use '../../shared/styles/atelie-tokens' as atelie;
+
+:host {
+  @include atelie.base;
+
+  display: block;
+  min-height: 100%;
+  background: var(--estufa);
+  color: var(--tinta);
+}
+
+.livro {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3rem;
+}
+
+/* ---- Placa (cabeçalho) ---- */
+.placa {
+  position: relative;
+  margin-bottom: 1.25rem;
+  padding: 1.5rem 1.5rem 1.25rem;
+  background: radial-gradient(120% 140% at 100% 0%, #274a3a 0%, var(--folhagem) 60%);
+  color: var(--estufa);
+  border-radius: 14px;
+  box-shadow: 0 18px 40px -30px rgba(20, 36, 28, 0.6);
+}
+
+.placa__furo {
+  position: absolute;
+  top: -11px;
+  left: 2rem;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--estufa);
+  border: 1.5px solid var(--caule);
+}
+
+.placa__eyebrow {
+  font: 600 0.72rem/1 var(--display);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--sais);
+}
+
+.placa__titulo {
+  margin: 0.35rem 0 0;
+  font: 400 clamp(1.7rem, 4.5vw, 2.4rem) / 1.05 var(--display);
+  font-optical-sizing: auto;
+  letter-spacing: -0.01em;
+}
+
+.placa__sub {
+  margin: 0.4rem 0 0;
+  max-width: 36rem;
+  font: var(--mat-sys-body-medium);
+  color: color-mix(in srgb, var(--sais) 92%, white);
+}
+
+/* ---- Busca ---- */
+.busca {
+  width: 100%;
+  margin-bottom: 1.25rem;
+
+  --mdc-outlined-text-field-focus-outline-color: var(--caule);
+  --mdc-outlined-text-field-caret-color: var(--caule);
+  --mdc-outlined-text-field-focus-label-text-color: var(--folhagem);
+
+  mat-icon[matPrefix] {
+    margin-right: 0.5rem;
+    color: var(--caule);
+  }
+}
+
+/* ---- Estados honestos ---- */
+.estado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1.25rem;
+  border: 1px solid var(--orvalho);
+  border-radius: 12px;
+  background: #fff;
+  color: color-mix(in srgb, var(--tinta) 70%, var(--estufa));
+  font: var(--mat-sys-body-medium);
+}
+
+.estado--erro {
+  border-color: color-mix(in srgb, var(--dalia) 40%, white);
+  color: #8f2450;
+}
+
+.estado--vazio {
+  flex-direction: column;
+  text-align: center;
+  padding: 2.75rem 1.5rem;
+
+  mat-icon {
+    color: var(--caule);
+    font-size: 2.25rem;
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  p {
+    margin: 0.75rem 0 0;
+    width: 100%;
+    max-width: 30rem;
+  }
+}
+
+.estado .mat-mdc-button {
+  --mat-button-text-label-text-color: var(--folhagem);
+  --mat-button-text-icon-color: var(--folhagem);
+  min-height: 44px;
+}
+
+/* ---- Lançamentos (linhas do razão) ---- */
+.lancamentos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.lancamento {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    'tipo data'
+    'corpo corpo';
+  align-items: center;
+  gap: 0.4rem 0.75rem;
+  padding: 0.85rem 1rem;
+  background: #fff;
+  border: 1px solid var(--orvalho);
+  border-radius: 12px;
+  box-shadow: 0 12px 30px -30px rgba(20, 36, 28, 0.55);
+}
+
+/* Selo do tipo — mesmas cores do ledger do diálogo (coerência) */
+.lancamento__tipo {
+  grid-area: tipo;
+  justify-self: start;
+  font: 600 0.72rem/1.5 var(--mat-sys-body-small);
+  padding: 0.1rem 0.6rem;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+}
+
+.lancamento__tipo--ENTRADA {
+  background: color-mix(in srgb, var(--caule) 22%, white);
+  color: var(--folhagem);
+}
+
+.lancamento__tipo--SAIDA {
+  background: color-mix(in srgb, var(--dalia) 12%, white);
+  color: #8f2450;
+}
+
+.lancamento__tipo--AJUSTE {
+  background: color-mix(in srgb, var(--sais) 35%, white);
+  color: var(--folhagem);
+}
+
+.lancamento__corpo {
+  grid-area: corpo;
+  min-width: 0;
+}
+
+.lancamento__produto {
+  margin: 0;
+  font: 600 1.05rem/1.2 var(--display);
+  color: var(--tinta);
+  overflow-wrap: anywhere;
+}
+
+.lancamento__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1.5rem;
+  margin: 0.35rem 0 0;
+}
+
+.campo {
+  dt {
+    font: 600 0.62rem/1 var(--display);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--caule);
+  }
+
+  dd {
+    margin: 0.15rem 0 0;
+    font: 600 0.92rem/1.2 var(--mat-sys-body-medium);
+    color: var(--tinta);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.campo__seta {
+  color: color-mix(in srgb, var(--tinta) 60%, white);
+  font-weight: 400;
+}
+
+.lancamento__motivo {
+  margin: 0.4rem 0 0;
+  font: var(--mat-sys-body-small);
+  color: color-mix(in srgb, var(--tinta) 62%, var(--estufa));
+  overflow-wrap: anywhere;
+}
+
+/* Carimbo data+hora pt-BR/America/Sao_Paulo (CA-24) */
+.lancamento__data {
+  grid-area: data;
+  justify-self: end;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  font: 600 0.74rem/1.4 var(--mat-sys-body-small);
+  color: color-mix(in srgb, var(--tinta) 55%, white);
+}
+
+/* ---- Paginação ---- */
+.paginacao {
+  margin-top: 1.25rem;
+  border-radius: 12px;
+  border: 1px solid var(--orvalho);
+  background: #fff;
+
+  --mat-paginator-container-text-color: color-mix(in srgb, var(--tinta) 78%, var(--estufa));
+  --mat-paginator-enabled-icon-color: var(--folhagem);
+}
+
+/* Bancada (desktop): tipo | corpo | data numa linha só */
+@media (min-width: 640px) {
+  .lancamento {
+    grid-template-columns: 6.5rem 1fr auto;
+    grid-template-areas: 'tipo corpo data';
+    align-items: center;
+  }
+}
+
+/* ---- Foco de teclado visível (piso de qualidade §9) ---- */
+:host ::ng-deep .mdc-button:focus-visible,
+:host ::ng-deep .mat-mdc-paginator .mdc-icon-button:focus-visible {
+  outline: 2px solid var(--caule);
+  outline-offset: -2px;
+  border-radius: 8px;
+}
+
+/* ---- Movimento deliberado (um só), respeitando reduced-motion ---- */
+@media (prefers-reduced-motion: no-preference) {
+  .lancamento {
+    animation: lancamento-entra 300ms ease-out both;
+  }
+
+  @keyframes lancamento-entra {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  }
+}

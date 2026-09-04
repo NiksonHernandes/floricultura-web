@@ -58,8 +58,8 @@ describe('Shell (T-M2-6)', () => {
   it('USER não vê o item "Usuários" no menu (CA-17)', () => {
     const { probe } = montar();
     const rotas = probe.itensVisiveis().map((i) => i.rota);
-    // Menu ampliado no M4 (SPEC-M4 §12): +Eventos (soAdmin:false). "Usuários" segue só p/ ADMIN.
-    expect(rotas).toEqual(['/produtos', '/eventos']);
+    // Menu ampliado no M4 (SPEC-M4 §12): +Eventos +Movimentações (soAdmin:false). "Usuários" só ADMIN.
+    expect(rotas).toEqual(['/produtos', '/eventos', '/movimentacoes']);
     expect(rotas).not.toContain('/usuarios');
   });
 
@@ -67,7 +67,7 @@ describe('Shell (T-M2-6)', () => {
     ehAdmin.set(true);
     const { probe } = montar();
     const rotas = probe.itensVisiveis().map((i) => i.rota);
-    expect(rotas).toEqual(['/produtos', '/eventos', '/usuarios']);
+    expect(rotas).toEqual(['/produtos', '/eventos', '/movimentacoes', '/usuarios']);
   });
 
   it('desktop: não é mobile e o drawer nasce aberto/fixo (CA-16)', () => {
