@@ -1,0 +1,143 @@
+<section class="almanaque">
+  <!-- Placa do almanaque: ecoa a placa da prateleira de Produtos (mesmo produto, design-distintivo). -->
+  <header class="placa">
+    <span class="placa__furo" aria-hidden="true"></span>
+    <div class="placa__texto">
+      <span class="placa__eyebrow">Ateliê · Calendário</span>
+      <h1 class="placa__titulo">Eventos</h1>
+      <p class="placa__sub">As datas que movem o ateliê — comemorativas, feiras e encomendas.</p>
+    </div>
+    @if (ehAdmin()) {
+      <button type="button" mat-flat-button class="acao placa__acao" (click)="novoEvento()">
+        <mat-icon aria-hidden="true">add</mat-icon>
+        <span>Novo evento</span>
+      </button>
+    }
+  </header>
+
+  <mat-form-field appearance="outline" class="busca">
+    <mat-icon matPrefix aria-hidden="true">search</mat-icon>
+    <mat-label>Buscar por nome</mat-label>
+    <input
+      matInput
+      type="text"
+      [formControl]="filtro"
+      autocomplete="off"
+      aria-label="Buscar eventos por nome"
+    />
+    @if (filtro.value) {
+      <button
+        matSuffix
+        mat-icon-button
+        type="button"
+        aria-label="Limpar busca"
+        (click)="limparFiltro()"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
+    }
+  </mat-form-field>
+
+  @if (carregando()) {
+    <p class="estado" aria-live="polite">
+      <mat-progress-spinner diameter="22" mode="indeterminate" aria-hidden="true" />
+      <span>Carregando o calendário…</span>
+    </p>
+  } @else if (erro(); as msg) {
+    <p class="estado estado--erro" role="alert">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span>{{ msg }}</span>
+      <button mat-button (click)="carregar()">Tentar de novo</button>
+    </p>
+  } @else if (vazia()) {
+    <div class="estado estado--vazio">
+      <mat-icon aria-hidden="true">event</mat-icon>
+      @if (filtro.value) {
+        <p>Nenhum evento encontrado para “{{ filtro.value }}”. Tente outro nome.</p>
+      } @else {
+        <p>O calendário ainda está vazio. Os eventos aparecem aqui assim que forem cadastrados.</p>
+      }
+    </div>
+  } @else {
+    <ul class="datas" aria-label="Eventos cadastrados">
+      @for (e of eventos(); track e.id) {
+        <li class="data">
+          <div class="data__selo" aria-hidden="true">
+            <span class="data__dia">{{ dia(e.dataInicio) }}</span>
+            <span class="data__mes">{{ mesAbrev(e.dataInicio) }}</span>
+          </div>
+
+          <div class="data__corpo">
+            <div class="data__topo">
+              <h2 class="data__nome">{{ e.nome }}</h2>
+              <span class="chip chip--{{ e.tipo }}">{{ rotuloTipo(e.tipo) }}</span>
+            </div>
+
+            <p class="data__quando">
+              @if (e.dataUnica) {
+                <span>{{ dataCurta(e.dataInicio) }}</span>
+              } @else {
+                <span>{{ dataCurta(e.dataInicio) }} — {{ dataCurta(e.dataFim!) }}</span>
+              }
+              @if (e.repeteTodoAno) {
+                <span class="data__anual">
+                  <mat-icon aria-hidden="true">autorenew</mat-icon>
+                  todo ano
+                </span>
+              }
+            </p>
+
+            @if (e.descricao) {
+              <p class="data__descricao">{{ e.descricao }}</p>
+            }
+
+            @if (ehAdmin()) {
+              <div class="data__acoes">
+                <button
+                  type="button"
+                  mat-button
+                  class="data__acao data__editar"
+                  (click)="editarEvento(e)"
+                  [attr.aria-label]="'Editar ' + e.nome"
+                >
+                  <mat-icon aria-hidden="true">edit</mat-icon>
+                  <span>Editar</span>
+                </button>
+                <button
+                  type="button"
+                  mat-button
+                  class="data__acao data__excluir"
+                  (click)="excluirEvento(e)"
+                  [attr.aria-label]="'Excluir ' + e.nome"
+                >
+                  <mat-icon aria-hidden="true">delete_outline</mat-icon>
+                  <span>Excluir</span>
+                </button>
+              </div>
+            }
+          </div>
+        </li>
+      }
+    </ul>
+
+    <mat-paginator
+      class="paginacao"
+      [length]="totalElementos()"
+      [pageIndex]="pagina()"
+      [pageSize]="tamanho()"
+      [pageSizeOptions]="[12, 24, 48]"
+      (page)="aoPaginar($event)"
+    />
+  }
+</section>
+
+<!-- Form de criar/editar evento (T-M4-5 — só ADMIN abre) -->
+@if (formAberto()) {
+  <div class="veu" (click)="fecharForm()"></div>
+  <app-evento-form
+    [evento]="eventoEmEdicao()"
+    (salvo)="aoSalvar($event)"
+    (cancelado)="fecharForm()"
+  />
+}
+

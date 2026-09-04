@@ -35,6 +35,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/produtos/produtos').then((m) => m.Produtos),
       },
       {
+        path: 'eventos',
+        loadComponent: () => import('./features/eventos/eventos').then((m) => m.Eventos),
+      },
+      {
         path: 'usuarios',
         canActivate: [adminGuard],
         loadComponent: () => import('./features/usuarios/usuarios').then((m) => m.Usuarios),

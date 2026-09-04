@@ -62,9 +62,13 @@ export class Shell {
   protected readonly ehAdmin = this.auth.ehAdmin;
   protected readonly usuario = this.auth.usuarioAtual;
 
-  /** Menu do M2 (AD-SQ-33): só Produtos (todos) + Usuários (ADMIN) — sem links mortos. */
+  /**
+   * Menu (AD-SQ-33 + SPEC-M4 §12): Produtos/Eventos/Movimentações (todos os autenticados) +
+   * Usuários (ADMIN). Eventos e Movimentações são leitura para USER+ADMIN (`soAdmin:false`).
+   */
   private readonly itens: readonly ItemMenu[] = [
     { rota: '/produtos', rotulo: 'Produtos', icone: 'local_florist', soAdmin: false },
+    { rota: '/eventos', rotulo: 'Eventos', icone: 'event', soAdmin: false },
     { rota: '/usuarios', rotulo: 'Usuários', icone: 'group', soAdmin: true },
   ];
 

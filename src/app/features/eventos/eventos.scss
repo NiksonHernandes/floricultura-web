@@ -1,0 +1,351 @@
+// Eventos — "o almanaque sazonal do ateliê" (SPEC-M4 §7 T-M4-4/5, §9, CA-4/CA-5/CA-8).
+//
+// Reusa o design system canônico do ateliê (_atelie-tokens.scss — MESMO produto de Produtos/
+// Usuários): folhagem/estufa/tinta/caule/dalia/orvalho/sais + Fraunces. Assinatura desta tela:
+// cada evento é uma FOLHA DE CALENDÁRIO — um selo de data (dia grande + mês) preso à etiqueta.
+// Ousadia gasta num lugar só: o selo de calendário em folhagem (o resto fica quieto). Mobile-first
+// (FC-02, ~90% celular): 1 coluna no celular, grade no desktop; alvos de toque >= 44px; sem
+// overflow horizontal.
+@use '../../shared/styles/atelie-tokens' as atelie;
+
+:host {
+  @include atelie.base;
+
+  display: block;
+  min-height: 100%;
+  background: var(--estufa);
+  color: var(--tinta);
+}
+
+.almanaque {
+  max-width: 68rem;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3rem;
+}
+
+/* ---- Placa (cabeçalho) — ecoa a de Produtos ---- */
+.placa {
+  position: relative;
+  margin-bottom: 1.25rem;
+  padding: 1.5rem 1.5rem 1.25rem;
+  background: radial-gradient(120% 140% at 100% 0%, #274a3a 0%, var(--folhagem) 60%);
+  color: var(--estufa);
+  border-radius: 14px;
+  box-shadow: 0 18px 40px -30px rgba(20, 36, 28, 0.6);
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.9rem;
+}
+
+.placa__furo {
+  position: absolute;
+  top: -11px;
+  left: 2rem;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--estufa);
+  border: 1.5px solid var(--caule);
+}
+
+.placa__eyebrow {
+  font: 600 0.72rem/1 var(--display);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--sais);
+}
+
+.placa__acao {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+
+  --mat-button-filled-container-color: var(--dalia);
+  --mat-button-filled-label-text-color: #fff;
+  --mat-button-filled-state-layer-color: #fff;
+  --mat-button-filled-ripple-color: color-mix(in srgb, white 30%, transparent);
+}
+
+@media (min-width: 640px) {
+  .placa:has(.placa__acao) {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+  }
+
+  .placa__acao {
+    justify-self: end;
+  }
+}
+
+.placa__titulo {
+  margin: 0.35rem 0 0;
+  font: 400 clamp(1.7rem, 4.5vw, 2.4rem) / 1.05 var(--display);
+  font-optical-sizing: auto;
+  letter-spacing: -0.01em;
+}
+
+.placa__sub {
+  margin: 0.4rem 0 0;
+  max-width: 34rem;
+  font: var(--mat-sys-body-medium);
+  color: color-mix(in srgb, var(--sais) 92%, white);
+}
+
+/* ---- Busca ---- */
+.busca {
+  width: 100%;
+  margin-bottom: 1.25rem;
+
+  --mdc-outlined-text-field-focus-outline-color: var(--caule);
+  --mdc-outlined-text-field-caret-color: var(--caule);
+  --mdc-outlined-text-field-focus-label-text-color: var(--folhagem);
+
+  mat-icon[matPrefix] {
+    margin-right: 0.5rem;
+    color: var(--caule);
+  }
+}
+
+/* ---- Estados honestos ---- */
+.estado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1.25rem;
+  border: 1px solid var(--orvalho);
+  border-radius: 12px;
+  background: #fff;
+  color: color-mix(in srgb, var(--tinta) 70%, var(--estufa));
+  font: var(--mat-sys-body-medium);
+}
+
+.estado--erro {
+  border-color: color-mix(in srgb, var(--dalia) 40%, white);
+  color: #8f2450;
+}
+
+.estado--vazio {
+  flex-direction: column;
+  text-align: center;
+  padding: 2.75rem 1.5rem;
+
+  mat-icon {
+    color: var(--caule);
+    font-size: 2.25rem;
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  p {
+    margin: 0.75rem 0 0;
+    width: 100%;
+    max-width: 28rem;
+  }
+}
+
+.estado .mat-mdc-button {
+  --mat-button-text-label-text-color: var(--folhagem);
+  --mat-button-text-icon-color: var(--folhagem);
+  min-height: 44px;
+}
+
+/* ---- Lista de datas (grid mobile-first) ---- */
+.datas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+.data {
+  display: flex;
+  gap: 0.9rem;
+  padding: 0.9rem 1rem;
+  background: #fff;
+  border: 1px solid var(--orvalho);
+  border-radius: 14px;
+  box-shadow: 0 14px 34px -32px rgba(20, 36, 28, 0.55);
+}
+
+/* Assinatura: o selo de calendário — folha destacável (recorte no topo) em folhagem */
+.data__selo {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 12px;
+  color: var(--estufa);
+  background: linear-gradient(180deg, #274a3a 0%, var(--folhagem) 100%);
+  box-shadow: inset 0 3px 0 color-mix(in srgb, var(--sais) 55%, transparent);
+}
+
+.data__dia {
+  font: 600 1.5rem/1 var(--display);
+}
+
+.data__mes {
+  margin-top: 0.1rem;
+  font: 600 0.62rem/1 var(--display);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--sais);
+}
+
+.data__corpo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0; /* deixa o nome truncar sem estourar a largura no celular */
+  flex: 1;
+}
+
+.data__topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.data__nome {
+  margin: 0;
+  font: 600 1.1rem/1.2 var(--display);
+  color: var(--tinta);
+  overflow-wrap: anywhere;
+}
+
+/* Chip do tipo — muted (sálvia/orvalho); nada de azul do Material */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font: 600 0.68rem/1.5 var(--mat-sys-body-small);
+  letter-spacing: 0.02em;
+  color: var(--folhagem);
+  background: color-mix(in srgb, var(--caule) 22%, white);
+  border: 1px solid color-mix(in srgb, var(--caule) 40%, white);
+}
+
+.chip--ENCOMENDA_CLIENTE {
+  color: #8f2450;
+  background: color-mix(in srgb, var(--dalia) 12%, white);
+  border-color: color-mix(in srgb, var(--dalia) 34%, white);
+}
+
+.data__quando {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.75rem;
+  margin: 0;
+  font: 600 0.92rem/1.2 var(--mat-sys-body-medium);
+  color: var(--tinta);
+}
+
+.data__anual {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font: 600 0.7rem/1.4 var(--mat-sys-body-small);
+  letter-spacing: 0.02em;
+  color: var(--caule);
+
+  mat-icon {
+    font-size: 0.95rem;
+    width: 0.95rem;
+    height: 0.95rem;
+  }
+}
+
+.data__descricao {
+  margin: 0.1rem 0 0;
+  font: var(--mat-sys-body-small);
+  color: color-mix(in srgb, var(--tinta) 60%, var(--estufa));
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Ações do card (Editar/Excluir — só ADMIN); alvo de toque >= 44px */
+.data__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.25rem;
+  margin-top: 0.4rem;
+}
+
+.data__acao {
+  min-height: 44px;
+}
+
+.data__editar {
+  --mat-button-text-label-text-color: var(--folhagem);
+  --mat-button-text-icon-color: var(--folhagem);
+}
+
+/* Excluir sinaliza perigo na dália carmim — sem gritar (só texto/ícone). */
+.data__excluir {
+  --mat-button-text-label-text-color: #8f2450;
+  --mat-button-text-icon-color: #8f2450;
+}
+
+/* ---- Véu do diálogo do form (T-M4-5) ---- */
+.veu {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: color-mix(in srgb, var(--tinta) 55%, transparent);
+  backdrop-filter: blur(2px);
+}
+
+/* ---- Paginação ---- */
+.paginacao {
+  margin-top: 1.25rem;
+  border-radius: 12px;
+  border: 1px solid var(--orvalho);
+  background: #fff;
+
+  --mat-paginator-container-text-color: color-mix(in srgb, var(--tinta) 78%, var(--estufa));
+  --mat-paginator-enabled-icon-color: var(--folhagem);
+}
+
+/* ---- Grade no desktop ---- */
+@media (min-width: 640px) {
+  .datas {
+    grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
+  }
+}
+
+/* ---- Foco de teclado visível (piso de qualidade §9) ---- */
+:host ::ng-deep .mdc-button:focus-visible,
+:host ::ng-deep .mat-mdc-paginator .mdc-icon-button:focus-visible {
+  outline: 2px solid var(--caule);
+  outline-offset: -2px;
+  border-radius: 8px;
+}
+
+/* ---- Movimento deliberado (um só), respeitando reduced-motion ---- */
+@media (prefers-reduced-motion: no-preference) {
+  .data {
+    animation: data-assenta 320ms ease-out both;
+  }
+
+  @keyframes data-assenta {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+}
