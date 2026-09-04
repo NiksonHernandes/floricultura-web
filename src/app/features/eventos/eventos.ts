@@ -13,6 +13,7 @@ import { MatDialog } from '@angular/material/dialog';
 
 import { EventosService } from './eventos.service';
 import { EventoForm } from './evento-form/evento-form';
+import { EventoProdutos } from './evento-produtos/evento-produtos';
 import {
   ConfirmarExclusao,
   ConfirmarExclusaoDados,
@@ -70,6 +71,7 @@ const MESES_ABREV = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'se
     MatProgressSpinnerModule,
     MatPaginatorModule,
     EventoForm,
+    EventoProdutos,
   ],
   providers: [{ provide: MatPaginatorIntl, useFactory: paginatorPtBr }],
   templateUrl: './eventos.html',
@@ -94,12 +96,25 @@ export class Eventos implements OnInit {
     () => !this.carregando() && !this.erro() && this.eventos().length === 0,
   );
 
+  /**
+   * Ids dos eventos "iminentes" (≤ 7 dias) — T-M4.1-3, CA-4/CA-5. É **reuso** puro do
+   * `faixaUrgencia === 5` de `GET /eventos/proximos` (o mesmo signal compartilhado do serviço que
+   * alimenta a Home e o badge), NÃO um recálculo de data no componente. `proximos` vazio/falho ⇒
+   * `Set` vazio ⇒ nenhum card destacado, sem erro (degradação graciosa — §4.2).
+   */
+  protected readonly idsIminentes = computed(
+    () => new Set(this.service.proximos().filter((p) => p.faixaUrgencia === 5).map((p) => p.id)),
+  );
+
   /** Campo de busca por nome (filtro server-side com debounce — §3.2 `nome` ILIKE). */
   protected readonly filtro = new FormControl('', { nonNullable: true });
 
   /** Diálogo do form (T-M4-5): aberto? e evento em edição (null = criar). */
   protected readonly formAberto = signal(false);
   protected readonly eventoEmEdicao = signal<Evento | null>(null);
+
+  /** Vitrine (T-M4.1-2, CA-3): evento cujas flores estão em exibição (null = fechada). ADMIN e USER. */
+  protected readonly eventoVitrine = signal<Evento | null>(null);
 
   constructor() {
     this.filtro.valueChanges
@@ -112,6 +127,9 @@ export class Eventos implements OnInit {
 
   ngOnInit(): void {
     this.carregar();
+    // Reuso do alerta on-read para destacar os cards ≤ 7 dias (T-M4.1-3). Idempotente (cache no
+    // serviço) e degrada em silêncio se falhar — não bloqueia a lista/paginação.
+    this.service.carregarProximos();
   }
 
   protected carregar(): void {
@@ -143,6 +161,18 @@ export class Eventos implements OnInit {
 
   protected rotuloTipo(t: TipoEvento): string {
     return ROTULOS_TIPO_EVENTO[t] ?? t;
+  }
+
+  // --- Vitrine de flores do evento (T-M4.1-2, CA-3 — ADMIN e USER) ---
+
+  /** Abre o modal com as flores vinculadas ao evento (leitura — sem guarda de RBAC, FC-07). */
+  protected abrirVitrine(e: Evento): void {
+    this.eventoVitrine.set(e);
+  }
+
+  /** Fecha a vitrine (botão/Esc/véu). */
+  protected fecharVitrine(): void {
+    this.eventoVitrine.set(null);
   }
 
   // --- Form de criar/editar (T-M4-5, CA-1/2/3/6 — só ADMIN) ---

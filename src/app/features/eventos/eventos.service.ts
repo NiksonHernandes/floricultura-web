@@ -4,7 +4,7 @@ import { Observable, map } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../../core/models/api-response.model';
-import { PaginaResponse } from '../../core/models/produto.model';
+import { PaginaResponse, Produto } from '../../core/models/produto.model';
 import { Evento, EventoProximo, EventoRequest } from '../../core/models/evento.model';
 
 /**
@@ -63,6 +63,20 @@ export class EventosService {
    */
   excluir(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  }
+
+  /**
+   * GET /eventos/{id}/produtos?pagina&tamanho → vitrine paginada das flores vinculadas ao evento
+   * (SPEC-M4.1 §3.1, T-M4.1-2). Reusa o envelope §3.1 e o contrato `PaginaResponse<Produto>` (mesma
+   * variante de LISTA de Produtos: `eventoIds=null`, `sazonal=true`, sem `bytea` — AD-SQ-38/50). O
+   * modal carrega a 1ª página com `tamanho=50` (PA#1 — sem paginador visual). Evento inexistente →
+   * `404` tratado pelo chamador; evento sem produtos → `200` com `conteudo=[]` (estado vazio, não erro).
+   */
+  listarProdutosDoEvento(id: number, pagina = 0, tamanho = 50): Observable<PaginaResponse<Produto>> {
+    const params = new HttpParams().set('pagina', pagina).set('tamanho', tamanho);
+    return this.http
+      .get<ApiResponse<PaginaResponse<Produto>>>(`${this.baseUrl}/${id}/produtos`, { params })
+      .pipe(map((r) => r.data!));
   }
 
   // --- Alerta on-read (SPEC-M4 §3.3, T-M4-8) ---

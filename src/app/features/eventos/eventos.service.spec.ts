@@ -4,7 +4,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 
 import { EventosService } from './eventos.service';
 import { ApiResponse } from '../../core/models/api-response.model';
-import { PaginaResponse } from '../../core/models/produto.model';
+import { PaginaResponse, Produto } from '../../core/models/produto.model';
 import { Evento, EventoRequest } from '../../core/models/evento.model';
 
 describe('EventosService (T-M4-4)', () => {
@@ -94,5 +94,48 @@ describe('EventosService (T-M4-4)', () => {
     const req = httpMock.expectOne(`${BASE}/12`);
     expect(req.request.method).toBe('DELETE');
     req.flush(null, { status: 204, statusText: 'No Content' });
+  });
+
+  // --- Vitrine de flores do evento (T-M4.1-2, §3.1) ---
+
+  it('listarProdutosDoEvento faz GET /{id}/produtos com pagina/tamanho default (0/50) e desembrulha', () => {
+    const flor: Produto = {
+      id: 5,
+      nome: 'Rosa Vermelha',
+      descricao: null,
+      unidadeMedida: 'un',
+      estoqueMinimo: 10,
+      estoqueAtual: 88,
+      preco: null,
+      imagemUrl: null,
+      estoqueBaixo: false,
+      ativo: true,
+      criadoEm: '',
+      atualizadoEm: '',
+      temImagem: false,
+      sazonal: true,
+      eventoIds: null,
+    };
+    const paginaProdutos: PaginaResponse<Produto> = {
+      conteudo: [flor],
+      pagina: 0,
+      tamanho: 50,
+      totalElementos: 1,
+      totalPaginas: 1,
+      primeira: true,
+      ultima: true,
+    };
+
+    let recebido: PaginaResponse<Produto> | undefined;
+    service.listarProdutosDoEvento(12).subscribe((p) => (recebido = p));
+
+    const req = httpMock.expectOne((r) => r.url === `${BASE}/12/produtos`);
+    expect(req.request.method).toBe('GET');
+    expect(req.request.params.get('pagina')).toBe('0');
+    expect(req.request.params.get('tamanho')).toBe('50');
+    req.flush(envelope(paginaProdutos));
+
+    expect(recebido?.conteudo[0].nome).toBe('Rosa Vermelha');
+    expect(recebido?.totalElementos).toBe(1);
   });
 });

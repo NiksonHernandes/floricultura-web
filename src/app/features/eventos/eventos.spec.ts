@@ -4,6 +4,7 @@ import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { MatDialog } from '@angular/material/dialog';
+import { provideNativeDateAdapter } from '@angular/material/core';
 import { of } from 'rxjs';
 
 import { Eventos } from './eventos';
@@ -12,7 +13,7 @@ import { ConfirmarExclusao } from '../produtos/confirmar-exclusao/confirmar-excl
 import { AuthService } from '../../core/services/auth.service';
 import { ApiResponse } from '../../core/models/api-response.model';
 import { PaginaResponse } from '../../core/models/produto.model';
-import { Evento } from '../../core/models/evento.model';
+import { Evento, EventoProximo } from '../../core/models/evento.model';
 
 describe('Eventos (lista — T-M4-4/5, CA-4/CA-5/CA-6/CA-7)', () => {
   let httpMock: HttpTestingController;
@@ -60,6 +61,7 @@ describe('Eventos (lista — T-M4-4/5, CA-4/CA-5/CA-6/CA-7)', () => {
         provideNoopAnimations(),
         provideHttpClient(),
         provideHttpClientTesting(),
+        provideNativeDateAdapter(), // o form embutido migrou p/ MatDatepicker (T-M4.1-4)
         EventosService,
         { provide: AuthService, useValue: { ehAdmin } },
         { provide: MatDialog, useValue: dialog },
@@ -68,7 +70,26 @@ describe('Eventos (lista — T-M4-4/5, CA-4/CA-5/CA-6/CA-7)', () => {
     httpMock = TestBed.inject(HttpTestingController);
   });
 
-  afterEach(() => httpMock.verify());
+  // T-M4.1-3: o `ngOnInit` agora também chama `carregarProximos()` (reuso p/ o card iminente). Nos
+  // testes que não asseveram a urgência, drenamos esse GET auxiliar antes do verify (aditivo — não
+  // enfraquece nenhuma asserção herdada; a degradação graciosa é coberta pelo teste dedicado CA-5).
+  afterEach(() => {
+    httpMock.match((r) => r.url === `${BASE}/proximos`).forEach((r) => r.flush(envelope([])));
+    httpMock.verify();
+  });
+
+  function proximo(id: number, faixaUrgencia: number): EventoProximo {
+    return {
+      id,
+      nome: `Evento ${id}`,
+      tipo: 'COMEMORATIVA',
+      proximaOcorrencia: '2026-05-10',
+      diasAte: 3,
+      destaqueReforcado: true,
+      faixaUrgencia,
+      emAndamento: false,
+    };
+  }
 
   function iniciar(conteudo: Evento[], total = conteudo.length): ComponentFixture<Eventos> {
     const fixture = TestBed.createComponent(Eventos);
@@ -241,5 +262,75 @@ describe('Eventos (lista — T-M4-4/5, CA-4/CA-5/CA-6/CA-7)', () => {
     httpMock.expectOne((r) => r.url === BASE && r.method === 'GET').flush(envelope(pagina([base])));
     fixture.detectChanges();
     expect(el.querySelector('app-evento-form')).toBeNull();
+  });
+
+  // --- T-M4.1-3: card iminente (≤7d) por reuso de faixaUrgencia===5 (CA-4/CA-5) ---
+
+  it('destaca só o card cujo id está em /proximos com faixaUrgencia===5 (CA-4)', () => {
+    const outro: Evento = { ...base, id: 99, nome: 'Feira' };
+    const fixture = TestBed.createComponent(Eventos);
+    fixture.detectChanges(); // ngOnInit → carregar() + carregarProximos()
+    httpMock.expectOne((r) => r.url === BASE).flush(envelope(pagina([base, outro])));
+    // 12 é iminente (faixa 5); 99 está em proximos mas faixa 3 (não iminente)
+    httpMock
+      .expectOne((r) => r.url === `${BASE}/proximos`)
+      .flush(envelope([proximo(12, 5), proximo(99, 3)]));
+    fixture.detectChanges();
+
+    const cards = (fixture.nativeElement as HTMLElement).querySelectorAll('.data');
+    expect(cards[0].classList).toContain('data--iminente'); // id 12, faixa 5
+    expect(cards[1].classList).not.toContain('data--iminente'); // id 99, faixa 3
+  });
+
+  it('a classe vem do reuso de proximos, NÃO de cálculo de data no componente (âncora #4)', () => {
+    // O evento é hoje/amanhã pela data, mas se NÃO está em proximos com faixa 5, não é destacado.
+    const fixture = TestBed.createComponent(Eventos);
+    fixture.detectChanges();
+    httpMock.expectOne((r) => r.url === BASE).flush(envelope(pagina([base])));
+    httpMock.expectOne((r) => r.url === `${BASE}/proximos`).flush(envelope([proximo(base.id, 4)]));
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).querySelector('.data--iminente')).toBeNull();
+  });
+
+  it('proximos vazio/falho ⇒ nenhum destaque e a lista continua sem erro (CA-5)', () => {
+    const fixture = TestBed.createComponent(Eventos);
+    fixture.detectChanges();
+    httpMock.expectOne((r) => r.url === BASE).flush(envelope(pagina([base])));
+    httpMock
+      .expectOne((r) => r.url === `${BASE}/proximos`)
+      .flush(null, { status: 500, statusText: 'Server Error' });
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.data--iminente')).toBeNull();
+    expect(el.querySelectorAll('.data').length).toBe(1); // lista intacta
+  });
+
+  // --- T-M4.1-2: vitrine de flores (CA-3) ---
+
+  it('"Visualizar" aparece em todo card (ADMIN e USER) e abre a vitrine (CA-3)', () => {
+    ehAdmin.set(false); // USER também vê o botão (fora do @if ehAdmin)
+    const fixture = iniciar([base]);
+    const el = fixture.nativeElement as HTMLElement;
+    const ver = el.querySelector('.data__ver') as HTMLButtonElement;
+    expect(ver).toBeTruthy();
+
+    ver.click();
+    fixture.detectChanges();
+    expect(el.querySelector('app-evento-produtos')).toBeTruthy();
+
+    // a vitrine dispara o GET das flores do evento; flush honesto para o httpMock.verify()
+    httpMock.expectOne((r) => r.url === `${BASE}/${base.id}/produtos`).flush(
+      envelope({
+        conteudo: [],
+        pagina: 0,
+        tamanho: 50,
+        totalElementos: 0,
+        totalPaginas: 1,
+        primeira: true,
+        ultima: true,
+      }),
+    );
+    fixture.detectChanges();
   });
 });
