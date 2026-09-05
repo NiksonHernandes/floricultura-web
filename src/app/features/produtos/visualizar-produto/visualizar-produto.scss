@@ -1,0 +1,181 @@
+// Visualizar produto — a ficha completa do vaso (SPEC-M5 REVISÃO 2026-09-04, RF-4, R-CA-10).
+// Reusa o design system canônico do ateliê (_atelie-tokens.scss); mesma linguagem das outras fichas.
+// Mobile-first (FC-02): 1 coluna, foto no topo, sem overflow horizontal.
+@use '../../../shared/styles/atelie-tokens' as atelie;
+
+:host {
+  @include atelie.base;
+  display: block;
+  color: var(--tinta);
+}
+
+.ficha__cabecalho {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1.1rem 1.25rem 0.75rem;
+  background: radial-gradient(120% 160% at 100% 0%, #274a3a 0%, var(--folhagem) 65%);
+  color: var(--estufa);
+}
+
+.ficha__titulos {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ficha__eyebrow {
+  font: 600 0.66rem/1 var(--display);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--sais);
+}
+
+.ficha__titulo {
+  margin: 0.25rem 0 0;
+  padding: 0;
+  font: 400 clamp(1.35rem, 3.6vw, 1.7rem) / 1.1 var(--display);
+  font-optical-sizing: auto;
+  color: var(--estufa);
+  overflow-wrap: anywhere;
+}
+
+.ficha__fechar {
+  flex: none;
+  color: var(--estufa);
+}
+
+.ficha__corpo {
+  padding: 1.1rem 1.25rem 0.5rem;
+}
+
+.ficha__estado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0.5rem 0;
+  color: color-mix(in srgb, var(--tinta) 70%, var(--estufa));
+  font: var(--mat-sys-body-medium);
+}
+
+.ficha__estado--erro {
+  color: #8f2450;
+}
+
+.ficha__foto {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: 12px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--orvalho) 45%, white);
+}
+
+.ficha__foto app-imagem-produto,
+.ficha__foto ::ng-deep img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.ficha__descricao {
+  margin: 0.9rem 0 0;
+  font: var(--mat-sys-body-medium);
+  color: color-mix(in srgb, var(--tinta) 80%, var(--estufa));
+  overflow-wrap: anywhere;
+}
+
+.ficha__dados {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem 1.25rem;
+  margin: 1rem 0 0;
+}
+
+.dado {
+  min-width: 0;
+
+  dt {
+    font: 600 0.62rem/1 var(--display);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--caule);
+  }
+
+  dd {
+    margin: 0.2rem 0 0;
+    font: 600 0.98rem/1.3 var(--mat-sys-body-medium);
+    color: var(--tinta);
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+  }
+}
+
+.dado__minimo {
+  color: color-mix(in srgb, var(--tinta) 60%, white);
+  font-weight: 400;
+}
+
+/* ---- Relacionamentos ---- */
+.relacoes {
+  margin-top: 1.1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--orvalho);
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.relacao__titulo {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0 0 0.4rem;
+  font: 600 0.72rem/1 var(--display);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--caule);
+
+  mat-icon {
+    font-size: 1rem;
+    width: 1rem;
+    height: 1rem;
+  }
+}
+
+.relacao__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.chip {
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--caule) 16%, white);
+  color: var(--folhagem);
+  font: 600 0.8rem/1.4 var(--mat-sys-body-small);
+  overflow-wrap: anywhere;
+}
+
+.ficha__acoes {
+  justify-content: flex-end;
+  padding: 0.5rem 1.25rem 1.25rem;
+}
+
+.ficha__acoes .acao {
+  min-height: 44px;
+  --mat-button-filled-container-color: var(--folhagem);
+  --mat-button-filled-label-text-color: #fff;
+}
+
+:host ::ng-deep .mdc-button:focus-visible,
+:host ::ng-deep .mat-mdc-icon-button:focus-visible {
+  outline: 2px solid var(--sais);
+  outline-offset: 2px;
+  border-radius: 8px;
+}

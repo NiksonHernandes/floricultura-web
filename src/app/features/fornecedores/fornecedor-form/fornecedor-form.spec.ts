@@ -5,19 +5,20 @@ import { of, throwError } from 'rxjs';
 
 import { FornecedorForm } from './fornecedor-form';
 import { FornecedoresService } from '../fornecedores.service';
-import { ProdutosService } from '../../produtos/produtos.service';
-import { PaginaResponse, Produto } from '../../../core/models/produto.model';
 import { Fornecedor, FornecedorRequest } from '../../../core/models/fornecedor.model';
 
 /**
- * Form de Fornecedor (T-M5-10, CA-12). Espelho fiel de `cliente-form.spec.ts`. Dados FICTÍCIOS
- * (LGPD, §3.3): "Sítio Boa Flor", `@exemplo.com.br`, `(11) 90000-0000` — nunca PII real.
+ * Form de Fornecedor (T-M5-10, CA-12; REVISÃO 2026-09-04/RF-1). Espelho fiel de `cliente-form.spec.ts`.
+ * Dados FICTÍCIOS (LGPD, §3.3): "Sítio Boa Flor", `@exemplo.com.br`, `(11) 90000-0000` — nunca PII real.
+ *
+ * **RF-1:** o multiselect de produtos foi removido — o form não injeta `ProdutosService`, não dispara
+ * `GET /produtos`, não busca o detalhe para pré-selecionar vínculo e não envia `produtoIds`. O vínculo
+ * fornecedor↔produto passou a ser derivado da movimentação (ENTRADAS — AD-SQ-65).
  */
-describe('FornecedorForm (T-M5-10, CA-12)', () => {
-  let serviceSpy: jasmine.SpyObj<Pick<FornecedoresService, 'criar' | 'atualizar' | 'detalhar'>>;
-  let produtosSpy: jasmine.SpyObj<Pick<ProdutosService, 'listar'>>;
+describe('FornecedorForm (T-M5-10, CA-12; RF-1)', () => {
+  let serviceSpy: jasmine.SpyObj<Pick<FornecedoresService, 'criar' | 'atualizar'>>;
 
-  // Item de LISTA: produtoIds vem null (AD-SQ-38/44); o form busca o detalhe p/ pré-selecionar.
+  // Item de LISTA: produtoIds vem null (AD-SQ-38); o form não usa mais esse campo (RF-1).
   const fornecedor: Fornecedor = {
     id: 9,
     nome: 'Sítio Boa Flor',
@@ -28,23 +29,6 @@ describe('FornecedorForm (T-M5-10, CA-12)', () => {
     criadoEm: '2026-09-04T14:05:00Z',
     atualizadoEm: '2026-09-04T14:05:00Z',
   };
-
-  const produtos = [
-    { id: 12, nome: 'Rosa Vermelha' },
-    { id: 30, nome: 'Tulipa Amarela' },
-  ] as unknown as Produto[];
-
-  function paginaProdutos(): PaginaResponse<Produto> {
-    return {
-      conteudo: produtos,
-      pagina: 0,
-      tamanho: 100,
-      totalElementos: produtos.length,
-      totalPaginas: 1,
-      primeira: true,
-      ultima: true,
-    };
-  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   type Probe = any;
@@ -59,27 +43,18 @@ describe('FornecedorForm (T-M5-10, CA-12)', () => {
   }
 
   beforeEach(() => {
-    serviceSpy = jasmine.createSpyObj<
-      Pick<FornecedoresService, 'criar' | 'atualizar' | 'detalhar'>
-    >('FornecedoresService', ['criar', 'atualizar', 'detalhar']);
-    produtosSpy = jasmine.createSpyObj<Pick<ProdutosService, 'listar'>>('ProdutosService', ['listar']);
-    produtosSpy.listar.and.returnValue(of(paginaProdutos()));
-    serviceSpy.detalhar.and.returnValue(of({ ...fornecedor, produtoIds: [12, 30] }));
+    serviceSpy = jasmine.createSpyObj<Pick<FornecedoresService, 'criar' | 'atualizar'>>(
+      'FornecedoresService',
+      ['criar', 'atualizar'],
+    );
 
     TestBed.configureTestingModule({
       imports: [FornecedorForm],
       providers: [
         provideNoopAnimations(),
         { provide: FornecedoresService, useValue: serviceSpy },
-        { provide: ProdutosService, useValue: produtosSpy },
       ],
     });
-  });
-
-  it('carrega as opções do multiselect via GET /produtos?tamanho=100 (§3.6/Q3)', () => {
-    const probe = montar().componentInstance as Probe;
-    expect(produtosSpy.listar).toHaveBeenCalledWith(0, 100);
-    expect(probe.produtos().length).toBe(2);
   });
 
   it('não chama o serviço com nome vazio (obrigatório — CA-12)', () => {
@@ -88,7 +63,7 @@ describe('FornecedorForm (T-M5-10, CA-12)', () => {
     expect(serviceSpy.criar).not.toHaveBeenCalled();
   });
 
-  it('form válido monta o payload correto COM produtoIds (replace-set — CA-12/§4.2)', () => {
+  it('form válido monta o payload correto sem produtoIds (RF-1/CA-12)', () => {
     serviceSpy.criar.and.returnValue(of(fornecedor));
     const fixture = montar();
     const probe = fixture.componentInstance as Probe;
@@ -99,7 +74,6 @@ describe('FornecedorForm (T-M5-10, CA-12)', () => {
     probe.form.get('telefone').setValue('(11) 90000-0000');
     probe.form.get('email').setValue('contato@exemplo.com.br');
     probe.form.get('observacoes').setValue('Entrega às quartas.');
-    probe.produtosSelecionados.setValue([12, 30]);
     probe.salvar();
 
     const esperado: FornecedorRequest = {
@@ -107,14 +81,13 @@ describe('FornecedorForm (T-M5-10, CA-12)', () => {
       telefone: '(11) 90000-0000',
       email: 'contato@exemplo.com.br',
       observacoes: 'Entrega às quartas.',
-      produtoIds: [12, 30],
     };
     expect(serviceSpy.criar).toHaveBeenCalledWith(esperado);
     expect(emitido).toEqual(fornecedor);
     expect(probe.enviando()).toBeFalse();
   });
 
-  it('sem seleção envia produtoIds:[] e opcionais em branco viram null (CA-12/§4.2)', () => {
+  it('opcionais em branco viram null e o payload não tem produtoIds (RF-1/CA-12)', () => {
     serviceSpy.criar.and.returnValue(of(fornecedor));
     const probe = montar().componentInstance as Probe;
     probe.form.get('nome').setValue('Sítio Boa Flor');
@@ -124,8 +97,10 @@ describe('FornecedorForm (T-M5-10, CA-12)', () => {
       telefone: null,
       email: null,
       observacoes: null,
-      produtoIds: [], // SEMPRE enviado — §4.2
     });
+    // RF-1: sem chave produtoIds no corpo enviado.
+    const enviado = serviceSpy.criar.calls.mostRecent().args[0] as unknown as Record<string, unknown>;
+    expect('produtoIds' in enviado).toBeFalse();
   });
 
   it('e-mail inválido bloqueia o envio (CA-12)', () => {
@@ -142,18 +117,20 @@ describe('FornecedorForm (T-M5-10, CA-12)', () => {
     expect(el.textContent).toContain('Não inclua dados sensíveis (CPF, dados bancários, saúde).');
   });
 
-  it('edição: carrega o detalhe (produtoIds) e faz PUT com os vínculos vigentes (CA-12/§4.2)', () => {
+  it('edição: preenche os campos escalares e faz PUT sem produtoIds (RF-1/CA-12)', () => {
     serviceSpy.atualizar.and.returnValue(of(fornecedor));
     const probe = montar(fornecedor).componentInstance as Probe;
 
-    expect(serviceSpy.detalhar).toHaveBeenCalledWith(9);
-    expect(probe.produtosSelecionados.value).toEqual([12, 30]);
+    // RF-1: sem carregar detalhe/vínculo — os campos escalares vêm direto do item de lista.
+    expect(probe.form.get('nome').value).toBe('Sítio Boa Flor');
 
     probe.salvar();
     expect(serviceSpy.atualizar).toHaveBeenCalledWith(
       9,
-      jasmine.objectContaining({ nome: 'Sítio Boa Flor', produtoIds: [12, 30] }),
+      jasmine.objectContaining({ nome: 'Sítio Boa Flor' }),
     );
+    const enviado = serviceSpy.atualizar.calls.mostRecent().args[1] as unknown as Record<string, unknown>;
+    expect('produtoIds' in enviado).toBeFalse();
     expect(serviceSpy.criar).not.toHaveBeenCalled();
   });
 

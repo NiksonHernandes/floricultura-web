@@ -1,0 +1,57 @@
+<div class="ficha" role="document">
+  <header class="ficha__cabecalho">
+    <span class="ficha__tipo ficha__tipo--{{ m.tipo }}">{{ rotuloTipo(m.tipo) }}</span>
+    <div class="ficha__titulos">
+      <span class="ficha__eyebrow">Ateliê · Estoque</span>
+      <h2 mat-dialog-title class="ficha__titulo">{{ m.produtoNome }}</h2>
+    </div>
+    <button
+      type="button"
+      mat-icon-button
+      class="ficha__fechar"
+      aria-label="Fechar"
+      (click)="fechar()"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
+
+  <dl mat-dialog-content class="ficha__corpo">
+    <div class="ficha__campo">
+      <dt>Quantidade</dt>
+      <dd>{{ m.quantidade }} <span class="ficha__seta">→ {{ m.quantidadeResultante }}</span></dd>
+    </div>
+
+    <div class="ficha__campo">
+      <dt>Autor</dt>
+      <dd>{{ m.usuarioNome ?? '—' }}</dd>
+    </div>
+
+    @if (contraparteRotulo(); as rot) {
+      <div class="ficha__campo ficha__campo--contraparte">
+        <dt>{{ rot }}</dt>
+        <dd>{{ contraparteNome() }}</dd>
+      </div>
+    }
+
+    <div class="ficha__campo">
+      <dt>Data e hora</dt>
+      <dd>
+        <time [attr.datetime]="m.criadoEm">
+          {{ m.criadoEm | date: 'dd/MM/yyyy HH:mm' : 'America/Sao_Paulo' : 'pt-BR' }}
+        </time>
+      </dd>
+    </div>
+
+    @if (m.motivo) {
+      <div class="ficha__campo ficha__campo--largo">
+        <dt>Motivo</dt>
+        <dd>{{ m.motivo }}</dd>
+      </div>
+    }
+  </dl>
+
+  <div mat-dialog-actions class="ficha__acoes">
+    <button type="button" mat-flat-button class="acao" (click)="fechar()">Fechar</button>
+  </div>
+</div>

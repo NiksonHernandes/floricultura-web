@@ -81,7 +81,7 @@ describe('ClientesService (T-M5-6)', () => {
   });
 
   it('criar faz POST e desembrulha o ClienteResponse', () => {
-    const body: ClienteRequest = { nome: 'Maria Flores', produtoIds: [12, 30] };
+    const body: ClienteRequest = { nome: 'Maria Flores' }; // RF-1: sem produtoIds na escrita
     let criado: Cliente | undefined;
     service.criar(body).subscribe((c) => (criado = c));
     const req = httpMock.expectOne(BASE);
@@ -91,7 +91,7 @@ describe('ClientesService (T-M5-6)', () => {
   });
 
   it('atualizar faz PUT no id', () => {
-    service.atualizar(7, { nome: 'Maria Flores', produtoIds: [30] }).subscribe();
+    service.atualizar(7, { nome: 'Maria Flores' }).subscribe(); // RF-1: sem produtoIds na escrita
     const req = httpMock.expectOne(`${BASE}/7`);
     expect(req.request.method).toBe('PUT');
     req.flush(envelope(cliente));

@@ -3,29 +3,26 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 
 import { FornecedoresService } from '../fornecedores.service';
-import { ProdutosService } from '../../produtos/produtos.service';
 import { ApiResponse } from '../../../core/models/api-response.model';
 import { Fornecedor, FornecedorRequest } from '../../../core/models/fornecedor.model';
-import { Produto } from '../../../core/models/produto.model';
 
 /**
- * Form de criar/editar fornecedor — "a folha da agenda" (SPEC-M5 §7 T-M5-10, §3.6, CA-12/CA-13/CA-15).
+ * Form de criar/editar fornecedor — "a folha da agenda" (SPEC-M5 §7 T-M5-10, §3.6, CA-12/CA-13/CA-15;
+ * REVISÃO 2026-09-04/RF-1 — AD-SQ-65).
  *
  * Espelho fiel de `cliente-form` (T-M5-8): overlay modal hospedado pela lista (`Fornecedores`),
  * reativo, validação do §4.1 (a forte é do back): `nome` (req, ≤150), `telefone` (≤40, string livre),
- * `email` (`Validators.email` quando presente, ≤180), `observacoes` (≤500) com **aviso LGPD**.
- * Multiselect informativo de produtos (`mat-select multiple`) — N:N (AD-SQ-44). Sem `fornecedor` =
- * criar (`POST`); com `fornecedor` = editar (`PUT`).
+ * `email` (`Validators.email` quando presente, ≤180), `observacoes` (≤500) com **aviso LGPD**. Sem
+ * `fornecedor` = criar (`POST`); com `fornecedor` = editar (`PUT`).
  *
- * Opções do multiselect por `GET /produtos?tamanho=100` (§3.6/Q3), carregadas pelo próprio form
- * (mesma decisão do `cliente-form`: preserva a suíte de lista T-M5-9 intacta — anti-burla). Em
- * edição, o item de LISTA traz `produtoIds=null` (AD-SQ-38/44), então o form busca o DETALHE p/
- * pré-selecionar. `produtoIds` SEMPRE vai no payload (replace-set — §4.2).
+ * **RF-1 — sem multiselect de produtos.** O vínculo fornecedor↔produto deixou de nascer do cadastro e
+ * passou a ser DERIVADO da movimentação (ENTRADAS — AD-SQ-65). O form NÃO carrega opções de produto
+ * (`GET /produtos`), NÃO busca o detalhe para pré-selecionar vínculo e NÃO envia `produtoIds` no
+ * payload. Os campos que restam são só `nome/telefone/email/observacoes`.
  *
  * Só ADMIN escreve (FC-07) — a lista só abre p/ ADMIN; o back é a fonte de verdade (403). Ao sucesso
  * emite `salvo` (a lista fecha e recarrega). O hard delete (FC-08) é da lista.
@@ -36,7 +33,6 @@ import { Produto } from '../../../core/models/produto.model';
     ReactiveFormsModule,
     MatFormFieldModule,
     MatInputModule,
-    MatSelectModule,
     MatButtonModule,
     MatIconModule,
   ],
@@ -46,7 +42,6 @@ import { Produto } from '../../../core/models/produto.model';
 export class FornecedorForm implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly service = inject(FornecedoresService);
-  private readonly produtosService = inject(ProdutosService);
 
   /** Fornecedor em edição; `null`/ausente = modo criação. */
   readonly fornecedor = input<Fornecedor | null>(null);
@@ -58,9 +53,6 @@ export class FornecedorForm implements OnInit {
 
   protected readonly enviando = signal(false);
   protected readonly erroGeral = signal<string | null>(null);
-
-  /** Opções do multiselect (§3.6): `GET /produtos?tamanho=100`. Falha degrada p/ lista vazia. */
-  protected readonly produtos = signal<Produto[]>([]);
 
   protected readonly editando = computed(() => this.fornecedor() !== null);
 
@@ -75,40 +67,17 @@ export class FornecedorForm implements OnInit {
     observacoes: this.fb.nonNullable.control('', [Validators.maxLength(500)]),
   });
 
-  /**
-   * Produtos vinculados (§3.6/§4.2) — controle STANDALONE, FORA do `form` group. Vai ao payload como
-   * `produtoIds` SEMPRE (replace-set). Em edição é pré-preenchido pelos `produtoIds` do DETALHE.
-   */
-  protected readonly produtosSelecionados = this.fb.nonNullable.control<number[]>([]);
-
   ngOnInit(): void {
-    this.carregarProdutos();
     const f = this.fornecedor();
     if (f) {
+      // Campos escalares já vêm no item de lista; RF-1 não pré-carrega vínculo (derivado do ledger).
       this.form.setValue({
         nome: f.nome,
         telefone: f.telefone ?? '',
         email: f.email ?? '',
         observacoes: f.observacoes ?? '',
       });
-      this.carregarDetalhe(f.id);
     }
-  }
-
-  /** Opções do multiselect (1ª página, teto 100 — Q3/§3.6). Falha = lista vazia, sem travar o form. */
-  private carregarProdutos(): void {
-    this.produtosService.listar(0, 100).subscribe({
-      next: (pagina) => this.produtos.set(pagina.conteudo),
-      error: () => this.produtos.set([]),
-    });
-  }
-
-  /** Detalhe (`GET /{id}`) só para pré-selecionar os `produtoIds` vigentes (a lista vem `null`). */
-  private carregarDetalhe(id: number): void {
-    this.service.detalhar(id).subscribe({
-      next: (detalhe) => this.produtosSelecionados.setValue(detalhe.produtoIds ?? []),
-      error: () => this.produtosSelecionados.setValue([]),
-    });
   }
 
   protected salvar(): void {
@@ -143,8 +112,8 @@ export class FornecedorForm implements OnInit {
   }
 
   /**
-   * Monta o payload §3.3: opcionais em branco viram `null`; `produtoIds` SEMPRE presente
-   * (replace-set — §4.2; `[]` limpa os vínculos).
+   * Monta o payload §3.3: opcionais em branco viram `null`. RF-1: sem `produtoIds` (vínculo é derivado
+   * da movimentação — AD-SQ-65).
    */
   private montarPayload(): FornecedorRequest {
     const v = this.form.getRawValue();
@@ -153,7 +122,6 @@ export class FornecedorForm implements OnInit {
       telefone: v.telefone.trim() || null,
       email: v.email.trim() || null,
       observacoes: v.observacoes.trim() || null,
-      produtoIds: this.produtosSelecionados.value,
     };
   }
 

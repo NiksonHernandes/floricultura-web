@@ -108,8 +108,19 @@
               </div>
             </dl>
 
-            @if (ehAdmin()) {
-              <div class="vaso__acoes">
+            <div class="vaso__acoes">
+              <!-- Visualizar: ficha completa (RF-4) — disponível para USER+ADMIN. -->
+              <button
+                type="button"
+                mat-button
+                class="vaso__acao vaso__visualizar"
+                (click)="visualizarProduto(p)"
+                [attr.aria-label]="'Visualizar ' + p.nome"
+              >
+                <mat-icon aria-hidden="true">visibility</mat-icon>
+                <span>Visualizar</span>
+              </button>
+              @if (ehAdmin()) {
                 <button
                   type="button"
                   mat-button
@@ -140,8 +151,8 @@
                   <mat-icon aria-hidden="true">delete_outline</mat-icon>
                   <span>Excluir</span>
                 </button>
-              </div>
-            }
+              }
+            </div>
           </div>
         </li>
       }
