@@ -1,4 +1,6 @@
 import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { of } from 'rxjs';
 
@@ -92,7 +94,14 @@ describe('ProdutoForm — eventos/sazonalidade (T-M4-6, CA-9/CA-12)', () => {
     serviceSpy.imagemBlob.and.returnValue(of(new Blob()));
     TestBed.configureTestingModule({
       imports: [ProdutoForm],
-      providers: [provideNoopAnimations(), { provide: ProdutosService, useValue: serviceSpy }],
+      // provideHttpClient(Testing): permite construir o `FornecedoresService` real injetado pelo form
+      // (T-M5.1-3). Carga sob demanda ⇒ sem tráfego HTTP nestes testes (anti-burla §12); adição só.
+      providers: [
+        provideNoopAnimations(),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: ProdutosService, useValue: serviceSpy },
+      ],
     });
   });
 

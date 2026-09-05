@@ -18,10 +18,17 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 import { ProdutosService } from '../produtos.service';
+import { FornecedoresService } from '../../fornecedores/fornecedores.service';
 import { ImagemProduto } from '../imagem-produto/imagem-produto';
 import { RecorteFoto } from '../recorte-foto/recorte-foto';
 import { ApiResponse } from '../../../core/models/api-response.model';
-import { Produto, ProdutoRequest, UnidadeMedida } from '../../../core/models/produto.model';
+import {
+  MovimentacaoRequest,
+  Produto,
+  ProdutoRequest,
+  UnidadeMedida,
+} from '../../../core/models/produto.model';
+import { Fornecedor } from '../../../core/models/fornecedor.model';
 import { Evento } from '../../../core/models/evento.model';
 
 /**
@@ -104,6 +111,7 @@ export const OPCOES_UNIDADE: ReadonlyArray<{ valor: UnidadeMedida; rotulo: strin
 export class ProdutoForm implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder);
   private readonly service = inject(ProdutosService);
+  private readonly fornecedoresService = inject(FornecedoresService);
 
   /** Produto em edição; `null`/ausente = modo criação (nova instância por abertura do diálogo). */
   readonly produto = input<Produto | null>(null);
@@ -183,6 +191,22 @@ export class ProdutoForm implements OnInit, OnDestroy {
    * (vazio/`null`/`0` = sem ENTRADA); `min(0)` bloqueia negativo. Só é lido/exibido no modo criação.
    */
   protected readonly entradaInicial = this.fb.control<number | null>(null, [Validators.min(0)]);
+
+  /**
+   * Fornecedor OPCIONAL da entrada inicial (SPEC-M5.1 HISTÓRIA #3/CA-4..7) — controle STANDALONE,
+   * FORA do `form` group (como `entradaInicial`): NUNCA entra no `ProdutoRequest`, só compõe o
+   * `MovimentacaoRequest` da ENTRADA quando há quantidade > 0 E fornecedor selecionado. `null` = sem
+   * contraparte (payload idêntico ao M5 — backward compat). A validação/snapshot são do back (AD-SQ-64).
+   */
+  protected readonly fornecedorInicial = this.fb.control<number | null>(null);
+
+  /**
+   * Opções do select de fornecedor — carregadas SOB DEMANDA ao abrir o select (`aoAbrirFornecedores`),
+   * espelhando `movimentar-estoque`. NÃO no `ngOnInit`: os specs herdados do form nunca abrem o select
+   * ⇒ `httpMock.verify()` limpo (invariante anti-burla §12). Só lista fornecedores JÁ cadastrados.
+   */
+  protected readonly fornecedores = signal<Fornecedor[]>([]);
+  private fornecedoresCarregados = false;
 
   /**
    * Eventos vinculados (SPEC-M4 §3.4/CA-12) — controle STANDALONE, FORA do `form` group: mantém
@@ -267,18 +291,46 @@ export class ProdutoForm implements OnInit, OnDestroy {
   private aposCriar(criado: Produto): void {
     const entrada = this.entradaInicial.value;
     if (entrada !== null && entrada > 0) {
-      this.service
-        .movimentar(criado.id, { tipo: 'ENTRADA', quantidade: entrada, motivo: MOTIVO_ENTRADA_INICIAL })
-        .subscribe({
-          next: () => this.enviarImagemCriacao(criado),
-          error: () => {
-            this.entradaInicialFalhou.emit();
-            this.enviarImagemCriacao(criado);
-          },
-        });
+      const req: MovimentacaoRequest = {
+        tipo: 'ENTRADA',
+        quantidade: entrada,
+        motivo: MOTIVO_ENTRADA_INICIAL,
+      };
+      // Contraparte opcional (HISTÓRIA #3/CA-5): só inclui `fornecedorId` quando há seleção; sem
+      // seleção o payload fica IDÊNTICO ao M5 (backward compat). O nome é snapshot server-side.
+      const fornecedor = this.fornecedorInicial.value;
+      if (fornecedor != null) {
+        req.fornecedorId = fornecedor;
+      }
+      this.service.movimentar(criado.id, req).subscribe({
+        next: () => this.enviarImagemCriacao(criado),
+        error: () => {
+          this.entradaInicialFalhou.emit();
+          this.enviarImagemCriacao(criado);
+        },
+      });
     } else {
       this.enviarImagemCriacao(criado);
     }
+  }
+
+  /**
+   * Carrega os fornecedores ao ABRIR o select (`?tamanho=100`, teto MVP) — 1ª vez apenas, espelhando
+   * `movimentar-estoque.aoAbrirFornecedores`. Falha → lista vazia e permite nova tentativa na reabertura
+   * (o select degrada em silêncio; o fornecedor é opcional). NUNCA dispara no `ngOnInit` (anti-burla §12).
+   */
+  protected aoAbrirFornecedores(aberto: boolean): void {
+    if (!aberto || this.fornecedoresCarregados) {
+      return;
+    }
+    this.fornecedoresCarregados = true;
+    this.fornecedoresService.listar(0, 100).subscribe({
+      next: (pagina) => this.fornecedores.set(pagina.conteudo),
+      error: () => {
+        this.fornecedores.set([]);
+        this.fornecedoresCarregados = false;
+      },
+    });
   }
 
   /**

@@ -1,11 +1,20 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { HttpErrorResponse } from '@angular/common/http';
+import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { of, throwError } from 'rxjs';
 
 import { ProdutoForm, TAMANHO_MAX_IMAGEM_BYTES } from './produto-form';
 import { ProdutosService } from '../produtos.service';
-import { Movimentacao, Produto, ProdutoRequest, UnidadeMedida } from '../../../core/models/produto.model';
+import { ApiResponse } from '../../../core/models/api-response.model';
+import { Fornecedor } from '../../../core/models/fornecedor.model';
+import {
+  Movimentacao,
+  PaginaResponse,
+  Produto,
+  ProdutoRequest,
+  UnidadeMedida,
+} from '../../../core/models/produto.model';
 
 /** Evento sintético de `<input type="file">` para os testes de seleção (CA-12) — sem DOM real. */
 function eventoArquivo(arquivo: File): Event {
@@ -30,6 +39,10 @@ interface Probe {
   };
   /** Controle STANDALONE da entrada inicial (T-M2-11/AD-SQ-35) — fora do form group. */
   entradaInicial: { setValue(v: number | null): void };
+  /** Fornecedor opcional da entrada inicial (T-M5.1-3/CA-4..6) — standalone, fora do form group. */
+  fornecedorInicial: { setValue(v: number | null): void };
+  /** Carga sob demanda das opções de fornecedor ao abrir o select (espelha movimentar-estoque). */
+  aoAbrirFornecedores(aberto: boolean): void;
   salvar(): void;
   enviando(): boolean;
   salvo: { subscribe(fn: (p: Produto) => void): void };
@@ -143,7 +156,15 @@ describe('ProdutoForm (T-M2-8, CA-20 — parte form)', () => {
     serviceSpy.imagemBlob.and.returnValue(of(new Blob()));
     TestBed.configureTestingModule({
       imports: [ProdutoForm],
-      providers: [provideNoopAnimations(), { provide: ProdutosService, useValue: serviceSpy }],
+      // provideHttpClient(Testing) permite construir o `FornecedoresService` real injetado pelo form
+      // (T-M5.1-3). A carga é sob demanda: nenhum GET dispara sem abrir o select ⇒ os testes herdados
+      // seguem sem tráfego HTTP (anti-burla §12). Só os testes NOVOS do fornecedor usam o httpMock.
+      providers: [
+        provideNoopAnimations(),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: ProdutosService, useValue: serviceSpy },
+      ],
     });
   });
 
@@ -472,5 +493,150 @@ describe('ProdutoForm (T-M2-8, CA-20 — parte form)', () => {
     // Cria normalmente (payload de 6 campos), mas SEM imagem — nada foi recortado/enviado.
     expect(serviceSpy.criar).toHaveBeenCalledWith(payloadMinimo);
     expect(serviceSpy.enviarImagem).not.toHaveBeenCalled();
+  });
+
+  // --- Fornecedor opcional na entrada inicial (T-M5.1-3, CA-4/CA-5/CA-6, HISTÓRIA #3) ---
+
+  const FORN_BASE = 'http://localhost:8080/api/v1/fornecedores';
+
+  /** Fornecedor FICTÍCIO (LGPD — SPEC §9): "Sítio das Flores". */
+  const sitio: Fornecedor = {
+    id: 7,
+    nome: 'Sítio das Flores',
+    telefone: null,
+    email: null,
+    observacoes: null,
+    produtoIds: null,
+    criadoEm: '2026-09-05T14:00:00Z',
+    atualizadoEm: '2026-09-05T14:00:00Z',
+  };
+
+  function envelope<T>(data: T): ApiResponse<T> {
+    return { success: true, data, error: null, timestamp: '', path: '' };
+  }
+
+  function paginaForn(conteudo: Fornecedor[]): PaginaResponse<Fornecedor> {
+    return {
+      conteudo,
+      pagina: 0,
+      tamanho: 100,
+      totalElementos: conteudo.length,
+      totalPaginas: 1,
+      primeira: true,
+      ultima: true,
+    };
+  }
+
+  it('CA-4: opções do fornecedor só carregam ao ABRIR o select (1 GET ?tamanho=100; nada no ngOnInit)', () => {
+    const httpMock = TestBed.inject(HttpTestingController);
+    const probe = montar();
+    // Anti-burla (§12): o `ngOnInit`/render NÃO dispara GET de fornecedores.
+    httpMock.expectNone((r) => r.url === FORN_BASE);
+
+    probe.aoAbrirFornecedores(true);
+    const req = httpMock.expectOne((r) => r.url === FORN_BASE);
+    expect(req.request.method).toBe('GET');
+    expect(req.request.params.get('pagina')).toBe('0');
+    expect(req.request.params.get('tamanho')).toBe('100');
+    req.flush(envelope(paginaForn([sitio])));
+
+    // Reabrir NÃO refaz o GET (carrega uma única vez, espelho de movimentar-estoque).
+    probe.aoAbrirFornecedores(true);
+    httpMock.expectNone((r) => r.url === FORN_BASE);
+    httpMock.verify();
+  });
+
+  it('CA-5: entrada > 0 + fornecedor selecionado ⇒ movimentar inclui fornecedorId', () => {
+    serviceSpy.criar.and.returnValue(of(rosa)); // rosa.id === 10
+    serviceSpy.movimentar.and.returnValue(of(movEntrada));
+    const probe = montar();
+
+    probe.form.setValue(minimo);
+    probe.entradaInicial.setValue(30);
+    probe.fornecedorInicial.setValue(7);
+    probe.salvar();
+
+    // POST /produtos com 6 campos intacto (fornecedor NÃO vaza no ProdutoRequest).
+    expect(serviceSpy.criar).toHaveBeenCalledWith(payloadMinimo);
+    // ENTRADA leva a contraparte.
+    expect(serviceSpy.movimentar).toHaveBeenCalledWith(10, {
+      tipo: 'ENTRADA',
+      quantidade: 30,
+      motivo: 'Estoque inicial (cadastro)',
+      fornecedorId: 7,
+    });
+  });
+
+  it('CA-5: entrada > 0 SEM fornecedor ⇒ payload da ENTRADA idêntico ao M5 (sem fornecedorId)', () => {
+    serviceSpy.criar.and.returnValue(of(rosa));
+    serviceSpy.movimentar.and.returnValue(of(movEntrada));
+    const probe = montar();
+
+    probe.form.setValue(minimo);
+    probe.entradaInicial.setValue(30);
+    // fornecedorInicial permanece null (backward compat).
+    probe.salvar();
+
+    expect(serviceSpy.movimentar).toHaveBeenCalledWith(10, {
+      tipo: 'ENTRADA',
+      quantidade: 30,
+      motivo: 'Estoque inicial (cadastro)',
+    });
+  });
+
+  it('CA-6: entrada 0 ignora o fornecedor selecionado (nenhuma movimentação — AD-SQ-35 intacto)', () => {
+    serviceSpy.criar.and.returnValue(of(rosa));
+    const probe = montar();
+
+    probe.form.setValue(minimo);
+    probe.entradaInicial.setValue(0);
+    probe.fornecedorInicial.setValue(7);
+    probe.salvar();
+
+    expect(serviceSpy.criar).toHaveBeenCalledWith(payloadMinimo);
+    expect(serviceSpy.movimentar).not.toHaveBeenCalled();
+  });
+
+  it('CA-6: fornecedorId inexistente (400 field=fornecedorId) ⇒ falha parcial (salvo + entradaInicialFalhou), sem recriar', () => {
+    serviceSpy.criar.and.returnValue(of(rosa));
+    serviceSpy.movimentar.and.returnValue(
+      throwError(
+        () =>
+          new HttpErrorResponse({
+            status: 400,
+            statusText: 'Bad Request',
+            error: {
+              success: false,
+              data: null,
+              error: {
+                code: 'VALIDATION_ERROR',
+                message: 'Fornecedor inexistente.',
+                details: [{ field: 'fornecedorId', message: 'Fornecedor não encontrado.' }],
+              },
+              timestamp: '',
+              path: '',
+            },
+          }),
+      ),
+    );
+    const probe = montar();
+    let emitido: Produto | undefined;
+    let falhou = false;
+    probe.salvo.subscribe((p) => (emitido = p));
+    probe.entradaInicialFalhou.subscribe(() => (falhou = true));
+
+    probe.form.setValue(minimo);
+    probe.entradaInicial.setValue(30);
+    probe.fornecedorInicial.setValue(999);
+    probe.salvar();
+
+    // Produto já existe (deriva AD-SQ-35): salvo emite, sinaliza a falha, criar NÃO é re-chamado.
+    expect(emitido).toEqual(rosa);
+    expect(falhou).toBeTrue();
+    expect(serviceSpy.criar).toHaveBeenCalledTimes(1);
+    expect(serviceSpy.movimentar).toHaveBeenCalledWith(
+      10,
+      jasmine.objectContaining({ fornecedorId: 999 }),
+    );
   });
 });
