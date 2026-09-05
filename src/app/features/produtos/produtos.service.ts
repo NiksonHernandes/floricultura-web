@@ -11,6 +11,7 @@ import {
   MovimentacaoRequest,
   PaginaResponse,
   Produto,
+  ProdutoRelacionamentos,
 } from '../../core/models/produto.model';
 
 /**
@@ -49,6 +50,18 @@ export class ProdutosService {
   /** GET /produtos/{id} → detalhe (inexistente → 404 tratado pelo chamador). */
   detalhar(id: number): Observable<Produto> {
     return this.http.get<ApiResponse<Produto>>(`${this.baseUrl}/${id}`).pipe(map((r) => r.data!));
+  }
+
+  /**
+   * GET /produtos/{id}/relacionamentos → derivados por NOME (SPEC-M5 REVISÃO 2026-09-04, R3.5/AD-SQ-66)
+   * para o modal "Visualizar produto" (RF-4): `eventos` (junção), `fornecedores` (ENTRADAS), `clientes`
+   * (SAÍDAS). Leitura USER+ADMIN (só GET, catch-all — sem matcher novo); 404 se o produto não existe
+   * (tratado pelo chamador). Nunca traz binário/`bytea` (AD-SQ-38).
+   */
+  relacionamentos(id: number): Observable<ProdutoRelacionamentos> {
+    return this.http
+      .get<ApiResponse<ProdutoRelacionamentos>>(`${this.baseUrl}/${id}/relacionamentos`)
+      .pipe(map((r) => r.data!));
   }
 
   /**

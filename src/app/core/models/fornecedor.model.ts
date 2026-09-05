@@ -10,9 +10,10 @@
  */
 
 /**
- * `FornecedorResponse` (§3.3) — item de lista / detalhe / retorno de POST-PUT. `telefone`, `email` e
- * `observacoes` anuláveis. `produtoIds` (vínculo N:N informativo, AD-SQ-44) vem SÓ no detalhe e no
- * retorno de POST/PUT; na LISTA vem `null` (AD-SQ-38/44). `criadoEm`/`atualizadoEm` instantes ISO.
+ * `FornecedorResponse` (§3.3 + REVISÃO 2026-09-04/AD-SQ-65) — item de lista / detalhe / retorno de
+ * POST-PUT. `telefone`, `email` e `observacoes` anuláveis. `produtoIds` agora é **DERIVADO da
+ * movimentação** (read-only; produtos das ENTRADAS deste fornecedor): vem SÓ no detalhe e no retorno de
+ * POST/PUT; na LISTA vem `null` (AD-SQ-38). O form NÃO usa este campo (RF-1). `criadoEm`/`atualizadoEm` ISO.
  */
 export interface Fornecedor {
   id: number;
@@ -28,13 +29,13 @@ export interface Fornecedor {
 /**
  * Payload de escrita de fornecedor (§3.3, POST/PUT). Só `nome` obrigatório (1..150); `telefone` (≤40,
  * string livre), `email` (formato válido quando presente, ≤180) e `observacoes` (≤500) opcionais.
- * `produtoIds` opcional com semântica de replace-set (AD-SQ-48): presente (inclusive `[]`) substitui;
- * ausente/`null` NÃO altera. O front sempre envia o campo (§4.2).
+ * **REVISÃO 2026-09-04 (RF-1/AD-SQ-65):** `produtoIds` REMOVIDO — o vínculo fornecedor↔produto deixou
+ * de ser junção editável no cadastro e passou a ser DERIVADO da movimentação (ENTRADAS). O form não
+ * escreve mais vínculo.
  */
 export interface FornecedorRequest {
   nome: string;
   telefone?: string | null;
   email?: string | null;
   observacoes?: string | null;
-  produtoIds?: number[];
 }

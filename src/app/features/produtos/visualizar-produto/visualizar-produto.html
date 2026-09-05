@@ -1,0 +1,115 @@
+<div class="ficha" role="document">
+  <header class="ficha__cabecalho">
+    <div class="ficha__titulos">
+      <span class="ficha__eyebrow">Ateliê · Estoque</span>
+      <h2 mat-dialog-title class="ficha__titulo">
+        {{ produto()?.nome ?? 'Produto' }}
+      </h2>
+    </div>
+    <button
+      type="button"
+      mat-icon-button
+      class="ficha__fechar"
+      aria-label="Fechar"
+      (click)="fechar()"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
+
+  <div mat-dialog-content class="ficha__corpo">
+    @if (carregando()) {
+      <p class="ficha__estado" aria-live="polite">
+        <mat-progress-spinner diameter="22" mode="indeterminate" aria-hidden="true" />
+        <span>Carregando a ficha…</span>
+      </p>
+    } @else if (erro()) {
+      <p class="ficha__estado ficha__estado--erro" role="alert">
+        <mat-icon aria-hidden="true">error_outline</mat-icon>
+        <span>Não foi possível carregar o produto.</span>
+        <button mat-button (click)="carregarFicha()">Tentar de novo</button>
+      </p>
+    } @else if (produto(); as p) {
+      <div class="ficha__foto">
+        <app-imagem-produto [produto]="p" />
+      </div>
+
+      @if (p.descricao) {
+        <p class="ficha__descricao">{{ p.descricao }}</p>
+      }
+
+      <dl class="ficha__dados">
+        <div class="dado">
+          <dt>Estoque</dt>
+          <dd>
+            {{ p.estoqueAtual }} {{ rotuloUnidade(p.unidadeMedida) }}
+            @if (rotuloMinimo(p); as minimo) {
+              <span class="dado__minimo">· {{ minimo }}</span>
+            }
+          </dd>
+        </div>
+
+        <div class="dado">
+          <dt>Unidade</dt>
+          <dd>{{ rotuloUnidade(p.unidadeMedida) }}</dd>
+        </div>
+
+        <!-- Preço só aparece se não-nulo (V3 opcional — sem "R$ 0,00" fake). -->
+        @if (precoFormatado(p); as preco) {
+          <div class="dado">
+            <dt>Preço</dt>
+            <dd>{{ preco }}</dd>
+          </div>
+        }
+      </dl>
+
+      <!-- Relacionamentos derivados (RF-4): cada seção só aparece quando há dados. -->
+      @if (temRelacionamentos()) {
+        <section class="relacoes" aria-label="Relacionamentos do produto">
+          @if (relacionamentos()?.eventos?.length) {
+            <div class="relacao">
+              <h3 class="relacao__titulo">
+                <mat-icon aria-hidden="true">event</mat-icon> Eventos
+              </h3>
+              <ul class="relacao__lista">
+                @for (e of relacionamentos()!.eventos; track e.id) {
+                  <li class="chip">{{ e.nome }}</li>
+                }
+              </ul>
+            </div>
+          }
+
+          @if (relacionamentos()?.fornecedores?.length) {
+            <div class="relacao">
+              <h3 class="relacao__titulo">
+                <mat-icon aria-hidden="true">local_shipping</mat-icon> Fornecedores
+              </h3>
+              <ul class="relacao__lista">
+                @for (f of relacionamentos()!.fornecedores; track f.id) {
+                  <li class="chip">{{ f.nome }}</li>
+                }
+              </ul>
+            </div>
+          }
+
+          @if (relacionamentos()?.clientes?.length) {
+            <div class="relacao">
+              <h3 class="relacao__titulo">
+                <mat-icon aria-hidden="true">people</mat-icon> Clientes
+              </h3>
+              <ul class="relacao__lista">
+                @for (c of relacionamentos()!.clientes; track c.id) {
+                  <li class="chip">{{ c.nome }}</li>
+                }
+              </ul>
+            </div>
+          }
+        </section>
+      }
+    }
+  </div>
+
+  <div mat-dialog-actions class="ficha__acoes">
+    <button type="button" mat-flat-button class="acao" (click)="fechar()">Fechar</button>
+  </div>
+</div>

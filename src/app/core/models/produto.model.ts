@@ -93,11 +93,21 @@ export type AtualizarProdutoRequest = ProdutoRequest;
  */
 export type TipoMovimentacao = 'ENTRADA' | 'SAIDA' | 'AJUSTE';
 
-/** Request de `POST /produtos/{id}/movimentacoes` (§3.2). `motivo` opcional (≤255). */
+/**
+ * Request de `POST /produtos/{id}/movimentacoes` (§3.2). `motivo` opcional (≤255).
+ *
+ * **REVISÃO 2026-09-04 (RF-2/AD-SQ-64) — contraparte opcional por tipo:**
+ * - `fornecedorId`: SÓ em `ENTRADA` (de quem veio o abastecimento). Ausente = sem contraparte.
+ * - `clienteId`: SÓ em `SAIDA` (para quem foi a saída). Ausente = sem contraparte.
+ * - `AJUSTE` nunca leva contraparte. Exclusividade/existência são validadas no back (400 com `field`);
+ *   o front só envia o campo do tipo vigente quando há seleção (mutuamente exclusivos).
+ */
 export interface MovimentacaoRequest {
   tipo: TipoMovimentacao;
   quantidade: number;
   motivo?: string | null;
+  fornecedorId?: number | null;
+  clienteId?: number | null;
 }
 
 /**
@@ -120,8 +130,38 @@ export interface Movimentacao {
    * tipo: mudança aditiva — fixtures/telas do M2 que não o conhecem seguem válidas.
    */
   usuarioNome?: string | null;
+  /**
+   * Contraparte da movimentação (SPEC-M5 REVISÃO 2026-09-04/AD-SQ-64, aditivo — snapshot do ledger).
+   * `ENTRADA` pode trazer `fornecedorId`/`fornecedorNome`; `SAIDA`, `clienteId`/`clienteNome`. O `id`
+   * vem `null` após o hard delete (FC-08) do cadastro, mas o `nome` (snapshot) é preservado — o front
+   * exibe o nome; se ambos nulos, `—`. Opcionais no tipo: mudança aditiva (fixtures M2/M4 seguem válidas).
+   */
+  fornecedorId?: number | null;
+  fornecedorNome?: string | null;
+  clienteId?: number | null;
+  clienteNome?: string | null;
   criadoEm: string;
 }
 
 /** Alias semântico do payload de resposta da movimentação — mesma forma de `Movimentacao`. */
 export type MovimentacaoResponse = Movimentacao;
+
+/**
+ * Referência leve `{id, nome}` (SPEC-M5 REVISÃO 2026-09-04, R3.5/AD-SQ-66). Usada nos relacionamentos
+ * do produto — leitura por NOME (nunca binário/`bytea`; honra AD-SQ-38).
+ */
+export interface ReferenciaSimples {
+  id: number;
+  nome: string;
+}
+
+/**
+ * Relacionamentos derivados do produto (`GET /produtos/{id}/relacionamentos`, R3.5/AD-SQ-66) — para o
+ * modal "Visualizar produto" (RF-4/R-CA-10). `eventos` = junção `evento_produto`; `fornecedores` = das
+ * ENTRADAS; `clientes` = das SAÍDAS. Cada lista pode vir vazia (a seção só aparece quando há dados).
+ */
+export interface ProdutoRelacionamentos {
+  eventos: ReferenciaSimples[];
+  fornecedores: ReferenciaSimples[];
+  clientes: ReferenciaSimples[];
+}

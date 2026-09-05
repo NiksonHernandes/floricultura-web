@@ -24,6 +24,10 @@ import {
   MovimentarEstoque,
   MovimentarEstoqueDados,
 } from './movimentar-estoque/movimentar-estoque';
+import {
+  VisualizarProduto,
+  VisualizarProdutoDados,
+} from './visualizar-produto/visualizar-produto';
 import { AuthService } from '../../core/services/auth.service';
 import { Movimentacao, Produto, UnidadeMedida } from '../../core/models/produto.model';
 import { Evento } from '../../core/models/evento.model';
@@ -342,6 +346,19 @@ export class Produtos implements OnInit {
           this.carregar();
         }
       });
+  }
+
+  /**
+   * Abre o modal "Visualizar produto" (`MatDialog`, só leitura — RF-4/R-CA-10). Disponível para
+   * USER+ADMIN (não exige `ehAdmin`). O modal busca a ficha (`GET /produtos/{id}`) e os relacionamentos
+   * (`GET /produtos/{id}/relacionamentos`); nada muda no estoque, então não recarrega a lista.
+   */
+  protected visualizarProduto(p: Produto): void {
+    const dados: VisualizarProdutoDados = { produtoId: p.id };
+    this.dialog.open(VisualizarProduto, {
+      data: dados,
+      maxWidth: 'min(36rem, calc(100vw - 2rem))',
+    });
   }
 
   protected rotuloUnidade(u: UnidadeMedida): string {

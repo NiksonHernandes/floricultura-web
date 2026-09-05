@@ -80,7 +80,7 @@ describe('FornecedoresService (T-M5-6)', () => {
   });
 
   it('criar faz POST e desembrulha o FornecedorResponse', () => {
-    const body: FornecedorRequest = { nome: 'Sítio das Flores', produtoIds: [5, 8] };
+    const body: FornecedorRequest = { nome: 'Sítio das Flores' }; // RF-1: sem produtoIds na escrita
     let criado: Fornecedor | undefined;
     service.criar(body).subscribe((f) => (criado = f));
     const req = httpMock.expectOne(BASE);
@@ -90,7 +90,7 @@ describe('FornecedoresService (T-M5-6)', () => {
   });
 
   it('atualizar faz PUT no id', () => {
-    service.atualizar(3, { nome: 'Sítio das Flores', produtoIds: [8] }).subscribe();
+    service.atualizar(3, { nome: 'Sítio das Flores' }).subscribe(); // RF-1: sem produtoIds na escrita
     const req = httpMock.expectOne(`${BASE}/3`);
     expect(req.request.method).toBe('PUT');
     req.flush(envelope(fornecedor));

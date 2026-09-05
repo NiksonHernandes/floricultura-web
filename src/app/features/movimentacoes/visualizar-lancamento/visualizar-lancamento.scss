@@ -1,0 +1,121 @@
+// Visualizar lançamento — a ficha do razão (SPEC-M5 REVISÃO 2026-09-04, RF-3, R-CA-11).
+// Reusa o design system canônico do ateliê (_atelie-tokens.scss); mesma linguagem da lista de
+// Movimentações (selo de tipo, folhagem, Fraunces). Mobile-first (FC-02): 1 coluna, sem overflow.
+@use '../../../shared/styles/atelie-tokens' as atelie;
+
+:host {
+  @include atelie.base;
+  display: block;
+  color: var(--tinta);
+}
+
+.ficha__cabecalho {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1.1rem 1.25rem 0.75rem;
+  background: radial-gradient(120% 160% at 100% 0%, #274a3a 0%, var(--folhagem) 65%);
+  color: var(--estufa);
+}
+
+.ficha__tipo {
+  flex: none;
+  font: 600 0.72rem/1.6 var(--mat-sys-body-small);
+  padding: 0.1rem 0.6rem;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+}
+
+.ficha__tipo--ENTRADA {
+  background: color-mix(in srgb, var(--caule) 30%, white);
+  color: var(--folhagem);
+}
+
+.ficha__tipo--SAIDA {
+  background: color-mix(in srgb, var(--dalia) 22%, white);
+  color: #8f2450;
+}
+
+.ficha__tipo--AJUSTE {
+  background: color-mix(in srgb, var(--sais) 45%, white);
+  color: var(--folhagem);
+}
+
+.ficha__titulos {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ficha__eyebrow {
+  font: 600 0.66rem/1 var(--display);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--sais);
+}
+
+.ficha__titulo {
+  margin: 0.25rem 0 0;
+  padding: 0;
+  font: 400 clamp(1.3rem, 3.4vw, 1.6rem) / 1.1 var(--display);
+  font-optical-sizing: auto;
+  color: var(--estufa);
+  overflow-wrap: anywhere;
+}
+
+.ficha__fechar {
+  flex: none;
+  color: var(--estufa);
+}
+
+.ficha__corpo {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem 1.25rem;
+  margin: 0;
+  padding: 1.1rem 1.25rem 0.5rem;
+}
+
+.ficha__campo--largo {
+  grid-column: 1 / -1;
+}
+
+.ficha__campo {
+  min-width: 0;
+
+  dt {
+    font: 600 0.62rem/1 var(--display);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--caule);
+  }
+
+  dd {
+    margin: 0.2rem 0 0;
+    font: 600 0.98rem/1.3 var(--mat-sys-body-medium);
+    color: var(--tinta);
+    overflow-wrap: anywhere;
+  }
+}
+
+.ficha__seta {
+  color: color-mix(in srgb, var(--tinta) 60%, white);
+  font-weight: 400;
+}
+
+.ficha__acoes {
+  justify-content: flex-end;
+  padding: 0.5rem 1.25rem 1.25rem;
+}
+
+.ficha__acoes .acao {
+  min-height: 44px;
+  --mat-button-filled-container-color: var(--folhagem);
+  --mat-button-filled-label-text-color: #fff;
+}
+
+:host ::ng-deep .mdc-button:focus-visible,
+:host ::ng-deep .mat-mdc-icon-button:focus-visible {
+  outline: 2px solid var(--sais);
+  outline-offset: 2px;
+  border-radius: 8px;
+}

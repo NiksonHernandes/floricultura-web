@@ -330,7 +330,8 @@
   min-height: 44px;
 }
 
-/* Movimentar e Editar em folhagem (paleta); nada de azul do Material. */
+/* Visualizar, Movimentar e Editar em folhagem (paleta); nada de azul do Material. */
+.vaso__visualizar,
 .vaso__movimentar,
 .vaso__editar {
   --mat-button-text-label-text-color: var(--folhagem);

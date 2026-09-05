@@ -9,8 +9,13 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatPaginatorModule, MatPaginatorIntl, PageEvent } from '@angular/material/paginator';
+import { MatDialog } from '@angular/material/dialog';
 
 import { MovimentacoesService } from './movimentacoes.service';
+import {
+  VisualizarLancamento,
+  VisualizarLancamentoDados,
+} from './visualizar-lancamento/visualizar-lancamento';
 import { Movimentacao, TipoMovimentacao } from '../../core/models/produto.model';
 
 /** MatPaginator em pt-BR — ecoa `produtos.ts`, rótulo do domínio (o ledger é o "livro-caixa"). */
@@ -45,6 +50,12 @@ export const ROTULOS_TIPO_MOV: Record<TipoMovimentacao, string> = {
  * autor** (ILIKE no back), ordem `criado_em DESC`. Card mobile-first: tipo, quantidade, produto,
  * **autor** (`usuarioNome` ou `—` — CA-21) e data+hora pt-BR `dd/MM/yyyy HH:mm` em
  * `America/Sao_Paulo` (AD-SQ-40). Estados honestos de carregando/erro/vazio.
+ *
+ * **RF-3 (REVISÃO 2026-09-04/AD-SQ-67):** o card mostra a **contraparte quando houver** (fornecedor na
+ * ENTRADA / cliente na SAÍDA — snapshot do ledger, R3.3) e ganha a ação **"Visualizar"**, que abre a
+ * ficha completa do lançamento (`VisualizarLancamento`, `MatDialog`). Nada muda na fonte de dados: o
+ * `GET /movimentacoes` (paginação/filtro/ordem `criado_em DESC`) continua igual — a contraparte é
+ * aditiva no `MovimentacaoResponse`; a lista **não regride** (anti-regressão dos testes do M4).
  */
 @Component({
   selector: 'app-movimentacoes',
@@ -64,6 +75,7 @@ export const ROTULOS_TIPO_MOV: Record<TipoMovimentacao, string> = {
 })
 export class Movimentacoes implements OnInit {
   private readonly service = inject(MovimentacoesService);
+  private readonly dialog = inject(MatDialog);
 
   protected readonly movimentacoes = signal<Movimentacao[]>([]);
   protected readonly carregando = signal(false);
@@ -119,5 +131,29 @@ export class Movimentacoes implements OnInit {
 
   protected rotuloTipo(t: TipoMovimentacao): string {
     return ROTULOS_TIPO_MOV[t] ?? t;
+  }
+
+  /**
+   * Rótulo da contraparte do lançamento (RF-3): ENTRADA→"Fornecedor" (quando há `fornecedorNome`),
+   * SAÍDA→"Cliente" (quando há `clienteNome`); `null` = sem contraparte (não renderiza no card). Usa o
+   * NOME (snapshot preservado após hard delete FC-08), não o id.
+   */
+  protected contraparteRotulo(m: Movimentacao): string | null {
+    if (m.tipo === 'ENTRADA' && m.fornecedorNome) return 'Fornecedor';
+    if (m.tipo === 'SAIDA' && m.clienteNome) return 'Cliente';
+    return null;
+  }
+
+  protected contraparteNome(m: Movimentacao): string | null {
+    return m.fornecedorNome ?? m.clienteNome ?? null;
+  }
+
+  /** Abre a ficha do lançamento (`MatDialog`, só leitura — RF-3/R-CA-11). */
+  protected visualizar(m: Movimentacao): void {
+    const dados: VisualizarLancamentoDados = { movimentacao: m };
+    this.dialog.open(VisualizarLancamento, {
+      data: dados,
+      maxWidth: 'min(34rem, calc(100vw - 2rem))',
+    });
   }
 }

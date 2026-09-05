@@ -69,6 +69,13 @@
                 <dt>Autor</dt>
                 <dd>{{ m.usuarioNome ?? '—' }}</dd>
               </div>
+              <!-- Contraparte quando houver (RF-3): fornecedor na ENTRADA / cliente na SAÍDA. -->
+              @if (contraparteRotulo(m); as rot) {
+                <div class="campo campo--contraparte">
+                  <dt>{{ rot }}</dt>
+                  <dd>{{ contraparteNome(m) }}</dd>
+                </div>
+              }
             </dl>
             @if (m.motivo) {
               <p class="lancamento__motivo">{{ m.motivo }}</p>
@@ -78,6 +85,19 @@
           <time class="lancamento__data" [attr.datetime]="m.criadoEm">
             {{ m.criadoEm | date: 'dd/MM/yyyy HH:mm' : 'America/Sao_Paulo' : 'pt-BR' }}
           </time>
+
+          <div class="lancamento__acoes">
+            <button
+              type="button"
+              mat-button
+              class="lancamento__ver"
+              (click)="visualizar(m)"
+              [attr.aria-label]="'Visualizar lançamento de ' + m.produtoNome"
+            >
+              <mat-icon aria-hidden="true">visibility</mat-icon>
+              <span>Visualizar</span>
+            </button>
+          </div>
         </li>
       }
     </ul>
