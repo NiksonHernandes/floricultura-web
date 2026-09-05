@@ -238,7 +238,7 @@ describe('VisualizarProduto (RF-4, R-CA-10)', () => {
     }
   });
 
-  it('CA-9: busca as últimas 5 (?pagina=0&tamanho=5) e renderiza tipo/qtd→resultante/autor/contraparte/data pt-BR', () => {
+  it('CA-9: busca as últimas 3 (?pagina=0&tamanho=3 — AD-SQ-73) e renderiza tipo/qtd→resultante/autor/contraparte/data pt-BR', () => {
     const fixture = TestBed.createComponent(VisualizarProduto);
     fixture.detectChanges();
     httpMock.expectOne(`${BASE}/5`).flush(envelope(produto));
@@ -246,7 +246,7 @@ describe('VisualizarProduto (RF-4, R-CA-10)', () => {
     const req = httpMock.expectOne((r) => r.url === `${BASE}/5/movimentacoes`);
     expect(req.request.method).toBe('GET');
     expect(req.request.params.get('pagina')).toBe('0');
-    expect(req.request.params.get('tamanho')).toBe('5');
+    expect(req.request.params.get('tamanho')).toBe('3'); // HISTÓRIA #6: 5 → 3
     req.flush(envelope(paginaMov([movEntrada, movSaida])));
     fixture.detectChanges();
 
@@ -262,6 +262,23 @@ describe('VisualizarProduto (RF-4, R-CA-10)', () => {
     expect(txt).toContain('Maria Flores'); // contraparte da SAÍDA (cliente, por nome)
     // Data pt-BR em America/Sao_Paulo: '2026-09-02T14:05:00Z' (UTC) → 11:05 BRT.
     expect(el.querySelector('.mov__data')?.textContent?.trim()).toBe('02/09/2026 11:05');
+  });
+
+  it('CA-20: mais de 3 relacionamentos ⇒ no máximo 3 por categoria (slice(0,3) defensivo, sem reordenar)', () => {
+    const cinco = (p: string) => Array.from({ length: 5 }, (_, i) => ({ id: i + 1, nome: `${p} ${i + 1}` }));
+    const relac: ProdutoRelacionamentos = {
+      eventos: cinco('Ev'),
+      fornecedores: cinco('Forn'),
+      clientes: cinco('Cli'),
+    };
+    const el = montar(produto, relac).nativeElement as HTMLElement;
+    const blocos = el.querySelectorAll('.relacao');
+    expect(blocos.length).toBe(3); // eventos + fornecedores + clientes
+    blocos.forEach((b) => expect(b.querySelectorAll('.chip').length).toBe(3));
+    // Não reordena: exibe os 3 PRIMEIROS de cada lista (a recência real vem do back — T-M5.1-7).
+    expect(el.textContent).toContain('Ev 1');
+    expect(el.textContent).toContain('Ev 3');
+    expect(el.textContent).not.toContain('Ev 4');
   });
 
   it('CA-10: sem movimentações mostra "Nenhuma movimentação ainda." (não erro)', () => {

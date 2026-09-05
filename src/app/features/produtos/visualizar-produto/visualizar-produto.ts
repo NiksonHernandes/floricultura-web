@@ -1,5 +1,5 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { DatePipe, SlicePipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -53,6 +53,7 @@ const ROTULOS_TIPO: Record<TipoMovimentacao, string> = {
   selector: 'app-visualizar-produto',
   imports: [
     DatePipe,
+    SlicePipe,
     MatDialogModule,
     MatButtonModule,
     MatIconModule,
@@ -74,9 +75,9 @@ export class VisualizarProduto implements OnInit {
   protected readonly relacionamentos = signal<ProdutoRelacionamentos | null>(null);
 
   /**
-   * Últimas movimentações do produto (SPEC-M5.1 HISTÓRIA #4/CA-9, `?pagina=0&tamanho=5`, `criadoEm
-   * DESC`). `null` = ainda não carregado OU falhou (degrada em SILÊNCIO — a seção some, não mostra erro,
-   * não bloqueia a ficha, igual a `carregarRelacionamentos`). `[]` = carregado e sem movimentações.
+   * Últimas movimentações do produto (SPEC-M5.1 HISTÓRIA #4/#6, `?pagina=0&tamanho=3` — REVISÃO
+   * AD-SQ-73: dono pediu 3, era 5; `criadoEm DESC`). `null` = ainda não carregado OU falhou (degrada
+   * em SILÊNCIO — a seção some, não bloqueia a ficha). `[]` = carregado e sem movimentações.
    */
   protected readonly movimentacoes = signal<Movimentacao[] | null>(null);
 
@@ -121,7 +122,7 @@ export class VisualizarProduto implements OnInit {
    * bloquear a ficha nem os relacionamentos. Espelha o histórico curto do `movimentar-estoque`.
    */
   private carregarMovimentacoes(): void {
-    this.service.movimentacoes(this.dados.produtoId, 0, 5).subscribe({
+    this.service.movimentacoes(this.dados.produtoId, 0, 3).subscribe({
       next: (pagina) => this.movimentacoes.set(pagina.conteudo),
       error: () => this.movimentacoes.set(null),
     });

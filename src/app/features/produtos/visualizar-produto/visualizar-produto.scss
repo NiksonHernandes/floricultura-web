@@ -44,8 +44,13 @@
   color: var(--estufa);
 }
 
+// HISTÓRIA #6/CA-18 (refino LEVE — só fonte/escala/hierarquia/espaçamento, tokens; SEM efeito caro):
+// mais respiro entre as seções e ritmo vertical consistente para a ficha ficar legível/profissional.
 .ficha__corpo {
-  padding: 1.1rem 1.25rem 0.5rem;
+  padding: 1.25rem 1.25rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
 }
 
 .ficha__estado {
@@ -94,33 +99,39 @@
 }
 
 .ficha__descricao {
-  margin: 0.9rem 0 0;
+  margin: 0;
   font: var(--mat-sys-body-medium);
-  color: color-mix(in srgb, var(--tinta) 80%, var(--estufa));
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--tinta) 82%, var(--estufa));
   overflow-wrap: anywhere;
 }
 
+// Bloco de dados como painel suave (superfície plana por token — sem sombra/blur): agrupa e destaca
+// os números da ficha, dando hierarquia sem peso.
 .ficha__dados {
   flex: 1 1 12rem;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.9rem 1.25rem;
+  gap: 0.95rem 1.25rem;
   margin: 0;
+  padding: 0.95rem 1.05rem;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--orvalho) 24%, white);
 }
 
 .dado {
   min-width: 0;
 
   dt {
-    font: 600 0.62rem/1 var(--display);
-    letter-spacing: 0.16em;
+    font: 600 0.64rem/1 var(--display);
+    letter-spacing: 0.18em;
     text-transform: uppercase;
     color: var(--caule);
   }
 
   dd {
-    margin: 0.2rem 0 0;
-    font: 600 0.98rem/1.3 var(--mat-sys-body-medium);
+    margin: 0.3rem 0 0;
+    font: 600 1.06rem/1.25 var(--mat-sys-body-large);
     color: var(--tinta);
     font-variant-numeric: tabular-nums;
     overflow-wrap: anywhere;
@@ -134,12 +145,11 @@
 
 /* ---- Relacionamentos ---- */
 .relacoes {
-  margin-top: 1.1rem;
-  padding-top: 0.9rem;
+  padding-top: 1rem;
   border-top: 1px solid var(--orvalho);
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
+  gap: 0.9rem;
 }
 
 .relacao__titulo {
@@ -179,8 +189,7 @@
 
 /* ---- Movimentações recentes (HISTÓRIA #4/CA-9) ---- */
 .movs {
-  margin-top: 1.1rem;
-  padding-top: 0.9rem;
+  padding-top: 1rem;
   border-top: 1px solid var(--orvalho);
 }
 
@@ -218,16 +227,18 @@
 
 .mov {
   display: flex;
-  align-items: baseline;
-  gap: 0.6rem;
-  padding: 0.5rem 0.65rem;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.6rem 0.75rem;
   border-radius: 10px;
-  background: color-mix(in srgb, var(--orvalho) 30%, white);
+  background: color-mix(in srgb, var(--orvalho) 28%, white);
 }
 
 .mov__tipo {
   flex: none;
-  padding: 0.1rem 0.5rem;
+  align-self: flex-start;
+  margin-top: 0.1rem;
+  padding: 0.12rem 0.55rem;
   border-radius: 999px;
   font: 600 0.66rem/1.5 var(--display);
   letter-spacing: 0.06em;
@@ -255,7 +266,7 @@
 }
 
 .mov__qtd {
-  font: 600 0.92rem/1.3 var(--mat-sys-body-medium);
+  font: 600 0.96rem/1.3 var(--mat-sys-body-medium);
   color: var(--tinta);
   font-variant-numeric: tabular-nums;
 }
@@ -266,14 +277,16 @@
 
 .mov__meta {
   font: var(--mat-sys-body-small);
-  color: color-mix(in srgb, var(--tinta) 65%, var(--estufa));
+  color: color-mix(in srgb, var(--tinta) 68%, var(--estufa));
   overflow-wrap: anywhere;
 }
 
 .mov__data {
   flex: none;
+  align-self: flex-start;
+  margin-top: 0.1rem;
   font: var(--mat-sys-body-small);
-  color: color-mix(in srgb, var(--tinta) 55%, white);
+  color: color-mix(in srgb, var(--tinta) 58%, white);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
