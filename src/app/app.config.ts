@@ -22,6 +22,7 @@ import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { AuthService } from './core/services/auth.service';
 import { EventosService } from './features/eventos/eventos.service';
+import { FornecedoresService } from './features/fornecedores/fornecedores.service';
 import { PT_BR_DATE_FORMATS, PtBrDateAdapter } from './core/date/pt-br-date-adapter';
 
 // Locale pt-BR precisa ser registrado antes de qualquer DatePipe/DecimalPipe com locale 'pt-BR'
@@ -54,5 +55,8 @@ export const appConfig: ApplicationConfig = {
     // optar por NÃO carregá-lo nos seus testes (inject opcional → null), preservando os specs do
     // M2/M3 intactos (anti-burla). A app real resolve o serviço por este provider (SPEC-M4 §3.2).
     EventosService,
+    // Fornecedores: MESMO padrão (SPEC-M5.1 HISTÓRIA #5/AD-SQ-72) — provido aqui (não `root`) para que
+    // a lista-mãe `produtos` o injete opcional (null nos specs herdados → nenhum GET; anti-burla).
+    FornecedoresService,
   ],
 };

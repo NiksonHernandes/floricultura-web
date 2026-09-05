@@ -3,13 +3,14 @@ import {
   OnDestroy,
   OnInit,
   computed,
+  effect,
   inject,
   input,
   output,
   signal,
 } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -18,7 +19,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 import { ProdutosService } from '../produtos.service';
-import { FornecedoresService } from '../../fornecedores/fornecedores.service';
 import { ImagemProduto } from '../imagem-produto/imagem-produto';
 import { RecorteFoto } from '../recorte-foto/recorte-foto';
 import { ApiResponse } from '../../../core/models/api-response.model';
@@ -111,7 +111,6 @@ export const OPCOES_UNIDADE: ReadonlyArray<{ valor: UnidadeMedida; rotulo: strin
 export class ProdutoForm implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder);
   private readonly service = inject(ProdutosService);
-  private readonly fornecedoresService = inject(FornecedoresService);
 
   /** Produto em edição; `null`/ausente = modo criação (nova instância por abertura do diálogo). */
   readonly produto = input<Produto | null>(null);
@@ -122,6 +121,21 @@ export class ProdutoForm implements OnInit, OnDestroy {
    * os specs do M2/M3 (sem HttpClient) intactos (anti-burla).
    */
   readonly eventos = input<Evento[]>([]);
+
+  /**
+   * Opções do select de fornecedor da entrada inicial (SPEC-M5.1 HISTÓRIA #5/AD-SQ-72) — carregadas
+   * pela lista-mãe na ABERTURA do form e passadas por `@Input`, ESPELHANDO os eventos. O form deixa de
+   * injetar `FornecedoresService`/disparar GET: superfície HTTP ZERO (anti-burla mais forte).
+   */
+  readonly fornecedores = input<Fornecedor[]>([]);
+
+  /**
+   * "Carga resolvida" (settled) de fornecedores/eventos — a lista-mãe seta `true` quando o GET
+   * retorna (mesmo vazio) ou quando o serviço é ausente (AD-SQ-72). GUARD ANTI-FLASH: só com `prontos`
+   * o form mostra o estado "nada a vincular"/desabilitado — evita piscar "vazio" durante o cold start.
+   */
+  readonly fornecedoresProntos = input(false);
+  readonly eventosProntos = input(false);
 
   /** Emite o produto salvo (criado/editado) para a lista-mãe recarregar. */
   readonly salvo = output<Produto>();
@@ -201,14 +215,6 @@ export class ProdutoForm implements OnInit, OnDestroy {
   protected readonly fornecedorInicial = this.fb.control<number | null>(null);
 
   /**
-   * Opções do select de fornecedor — carregadas SOB DEMANDA ao abrir o select (`aoAbrirFornecedores`),
-   * espelhando `movimentar-estoque`. NÃO no `ngOnInit`: os specs herdados do form nunca abrem o select
-   * ⇒ `httpMock.verify()` limpo (invariante anti-burla §12). Só lista fornecedores JÁ cadastrados.
-   */
-  protected readonly fornecedores = signal<Fornecedor[]>([]);
-  private fornecedoresCarregados = false;
-
-  /**
    * Eventos vinculados (SPEC-M4 §3.4/CA-12) — controle STANDALONE, FORA do `form` group: mantém
    * `form.setValue(...)` dos specs do M2/M3 com os 6 campos originais (anti-burla). Vai ao payload
    * como `eventoIds` só quando há seleção ou quando o produto já tinha vínculos (replace-set/limpar).
@@ -217,6 +223,22 @@ export class ProdutoForm implements OnInit, OnDestroy {
 
   /** Vínculos originais do produto em edição (do detalhe `GET /{id}`) — base do replace-set/limpar. */
   private eventosOriginais: number[] = [];
+
+  /**
+   * Estado dos selects de vínculo VAZIOS (SPEC-M5.1 HISTÓRIA #5/AD-SQ-72). Reage aos `@Input` de
+   * opções + "prontos" e desabilita o controle correspondente (mat-select fica cinza/inerte) quando a
+   * carga RESOLVEU com zero itens — via `.disable()` num `effect()` (evita o warning do `[disabled]`
+   * reativo). Guard anti-flash: só age com `prontos` (nunca durante o carregamento). Eventos: nunca
+   * desabilita se já há seleção (edição com vínculos). Fornecedor: só no modo criação (onde é exibido).
+   */
+  private readonly estadoVinculosEffect = effect(() => {
+    const eventosVazioSettled = this.eventosProntos() && this.eventos().length === 0;
+    const semSelecaoEventos = this.eventosSelecionados.value.length === 0;
+    this.definirHabilitado(this.eventosSelecionados, !(eventosVazioSettled && semSelecaoEventos));
+
+    const fornecedorVazioSettled = this.fornecedoresProntos() && this.fornecedores().length === 0;
+    this.definirHabilitado(this.fornecedorInicial, !(fornecedorVazioSettled && !this.editando()));
+  });
 
   ngOnInit(): void {
     const p = this.produto();
@@ -315,22 +337,15 @@ export class ProdutoForm implements OnInit, OnDestroy {
   }
 
   /**
-   * Carrega os fornecedores ao ABRIR o select (`?tamanho=100`, teto MVP) — 1ª vez apenas, espelhando
-   * `movimentar-estoque.aoAbrirFornecedores`. Falha → lista vazia e permite nova tentativa na reabertura
-   * (o select degrada em silêncio; o fornecedor é opcional). NUNCA dispara no `ngOnInit` (anti-burla §12).
+   * Habilita/desabilita um controle standalone sem emitir eventos (evita disparar valueChanges/warnings).
+   * Idempotente: só age quando o estado muda. Usado pelo `estadoVinculosEffect` (AD-SQ-72).
    */
-  protected aoAbrirFornecedores(aberto: boolean): void {
-    if (!aberto || this.fornecedoresCarregados) {
-      return;
+  private definirHabilitado(control: AbstractControl, habilitar: boolean): void {
+    if (habilitar && control.disabled) {
+      control.enable({ emitEvent: false });
+    } else if (!habilitar && control.enabled) {
+      control.disable({ emitEvent: false });
     }
-    this.fornecedoresCarregados = true;
-    this.fornecedoresService.listar(0, 100).subscribe({
-      next: (pagina) => this.fornecedores.set(pagina.conteudo),
-      error: () => {
-        this.fornecedores.set([]);
-        this.fornecedoresCarregados = false;
-      },
-    });
   }
 
   /**

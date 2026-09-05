@@ -175,16 +175,26 @@
         </div>
       </div>
 
-      <!-- Eventos vinculados (T-M4-6, CA-9/CA-12 — SPEC-M4 §3.4): multiselect informativo. -->
-      <mat-form-field appearance="outline" class="ficha__campo ficha__campo--largo">
+      <!-- Eventos vinculados (T-M4-6, CA-9/CA-12 — SPEC-M4 §3.4): multiselect informativo.
+           HISTÓRIA #5/AD-SQ-72: vazio settled ⇒ controle desabilitado (effect) + hint "nada a vincular"
+           + cinza escuro (SCSS). Guard anti-flash: o hint só aparece com `eventosProntos()`. -->
+      <mat-form-field
+        appearance="outline"
+        class="ficha__campo ficha__campo--largo"
+        [class.ficha__campo--vazio]="eventosSelecionados.disabled"
+      >
         <mat-label>Eventos (sazonalidade)</mat-label>
-        <mat-select [formControl]="eventosSelecionados" multiple>
+        <mat-select
+          [formControl]="eventosSelecionados"
+          multiple
+          [attr.aria-disabled]="eventosSelecionados.disabled"
+        >
           @for (ev of eventos(); track ev.id) {
             <mat-option [value]="ev.id">{{ ev.nome }}</mat-option>
           }
         </mat-select>
-        @if (eventos().length === 0) {
-          <mat-hint>Cadastre eventos em “Eventos” para vincular a sazonalidade.</mat-hint>
+        @if (eventosProntos() && eventos().length === 0) {
+          <mat-hint>Nenhum evento cadastrado para vincular.</mat-hint>
         } @else {
           <mat-hint>Opcional — vincule o produto às datas em que ele é vendido.</mat-hint>
         }
@@ -210,21 +220,30 @@
           <mat-hint>Opcional — lança uma ENTRADA no estoque logo após o cadastro.</mat-hint>
         </mat-form-field>
 
-        <!-- Fornecedor opcional da entrada inicial (SPEC-M5.1 HISTÓRIA #3, CA-4..7). Opções carregadas
-             SOB DEMANDA ao abrir (openedChange) — só fornecedores já cadastrados (sem criação inline). -->
-        <mat-form-field appearance="outline" class="ficha__campo ficha__campo--largo">
+        <!-- Fornecedor opcional da entrada inicial (SPEC-M5.1 HISTÓRIA #3/#5, CA-4..7/CA-13..17). Opções
+             chegam por @Input da lista-mãe (AD-SQ-72 — form com HTTP zero); só fornecedores já cadastrados
+             (sem criação inline). Vazio settled ⇒ desabilitado (effect) + hint "nada a vincular" + cinza. -->
+        <mat-form-field
+          appearance="outline"
+          class="ficha__campo ficha__campo--largo"
+          [class.ficha__campo--vazio]="fornecedorInicial.disabled"
+        >
           <mat-label>Fornecedor</mat-label>
           <mat-select
             [formControl]="fornecedorInicial"
-            (openedChange)="aoAbrirFornecedores($event)"
             panelClass="ficha__painel-select"
+            [attr.aria-disabled]="fornecedorInicial.disabled"
           >
             <mat-option [value]="null">Sem fornecedor</mat-option>
             @for (f of fornecedores(); track f.id) {
               <mat-option [value]="f.id">{{ f.nome }}</mat-option>
             }
           </mat-select>
-          <mat-hint>Opcional — de qual fornecedor veio este estoque inicial.</mat-hint>
+          @if (fornecedoresProntos() && fornecedores().length === 0) {
+            <mat-hint>Nenhum fornecedor cadastrado para vincular.</mat-hint>
+          } @else {
+            <mat-hint>Opcional — de qual fornecedor veio este estoque inicial.</mat-hint>
+          }
         </mat-form-field>
       }
     </div>

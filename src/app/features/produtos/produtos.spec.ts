@@ -9,6 +9,7 @@ import { of } from 'rxjs';
 import { Produtos } from './produtos';
 import { ConfirmarExclusao } from './confirmar-exclusao/confirmar-exclusao';
 import { MovimentarEstoque } from './movimentar-estoque/movimentar-estoque';
+import { FornecedoresService } from '../fornecedores/fornecedores.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ApiResponse } from '../../core/models/api-response.model';
 import { Movimentacao, PaginaResponse, Produto } from '../../core/models/produto.model';
@@ -348,5 +349,78 @@ describe('Produtos (lista — T-M2-7, CA-19/CA-15)', () => {
     );
     // Movimentação concluída → a lista recarrega o estoque.
     httpMock.expectOne((r) => r.url === BASE && r.method === 'GET').flush(envelope(pagina([base])));
+  });
+});
+
+/**
+ * Carga de fornecedores pela lista-mãe na ABERTURA do form (SPEC-M5.1 HISTÓRIA #5/AD-SQ-72/CA-16).
+ * Aqui o `FornecedoresService` É provido → o parent dispara o GET ao abrir "Novo produto" (nada na Home).
+ * No describe principal ele NÃO é provido (optional → null) — por isso os testes de abrir o form lá NÃO
+ * disparam GET de fornecedores e seguem verdes: a superfície HTTP saiu do form e é da lista-mãe.
+ */
+describe('Produtos — carga de fornecedores na abertura do form (T-M5.1-5/CA-16 lista-mãe)', () => {
+  const BASE = 'http://localhost:8080/api/v1/produtos';
+  const FORN_BASE = 'http://localhost:8080/api/v1/fornecedores';
+  let httpMock: HttpTestingController;
+
+  function envelope<T>(data: T): ApiResponse<T> {
+    return { success: true, data, error: null, timestamp: '', path: '' };
+  }
+  const paginaVaziaProdutos: PaginaResponse<Produto> = {
+    conteudo: [],
+    pagina: 0,
+    tamanho: 12,
+    totalElementos: 0,
+    totalPaginas: 1,
+    primeira: true,
+    ultima: true,
+  };
+
+  beforeEach(() => {
+    const dialog = jasmine.createSpyObj<MatDialog>('MatDialog', ['open']);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    dialog.open.and.returnValue({ afterClosed: () => of(undefined) } as any);
+    TestBed.configureTestingModule({
+      imports: [Produtos],
+      providers: [
+        provideNoopAnimations(),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: AuthService, useValue: { ehAdmin: signal(true) } }, // ADMIN para abrir o form
+        { provide: MatDialog, useValue: dialog },
+        FornecedoresService, // provido → o parent carrega fornecedores na abertura
+      ],
+    });
+    httpMock = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => httpMock.verify());
+
+  it('nada na Home; ao abrir "Novo produto" dispara 1 GET /fornecedores?tamanho=100 e marca prontos', () => {
+    const fixture = TestBed.createComponent(Produtos);
+    fixture.detectChanges();
+    httpMock.expectOne((r) => r.url === BASE).flush(envelope(paginaVaziaProdutos)); // só produtos na Home
+    fixture.detectChanges();
+    // A Home NÃO pede fornecedores (leveza — igual eventos).
+    httpMock.expectNone((r) => r.url === FORN_BASE);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (fixture.componentInstance as any).novoProduto();
+    const req = httpMock.expectOne((r) => r.url === FORN_BASE);
+    expect(req.request.method).toBe('GET');
+    expect(req.request.params.get('tamanho')).toBe('100');
+    req.flush(
+      envelope({
+        conteudo: [],
+        pagina: 0,
+        tamanho: 100,
+        totalElementos: 0,
+        totalPaginas: 1,
+        primeira: true,
+        ultima: true,
+      }),
+    );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((fixture.componentInstance as any).fornecedoresProntos()).toBeTrue();
   });
 });

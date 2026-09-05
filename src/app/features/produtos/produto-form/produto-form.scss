@@ -326,6 +326,23 @@
   }
 }
 
+// Select de vínculo VAZIO settled (HISTÓRIA #5/AD-SQ-72/CA-13/CA-17): esmaecido em CINZA ESCURO por
+// token existente (color-mix sobre --tinta, mesmo espírito do .foto__dica) — nenhum hex novo. Sinaliza
+// "nada a vincular" sem virar campo morto e mudo (o hint continua legível). Só estilo; o desabilitar
+// efetivo é do `.disable()` no effect. `:host ::ng-deep` alcança os internos do Material.
+.ficha__campo--vazio {
+  ::ng-deep .mdc-floating-label,
+  ::ng-deep .mat-mdc-select-placeholder,
+  ::ng-deep .mat-mdc-select-value {
+    color: color-mix(in srgb, var(--tinta) 72%, white);
+  }
+
+  ::ng-deep .mat-mdc-form-field-hint {
+    color: color-mix(in srgb, var(--tinta) 68%, var(--folhagem));
+    font-weight: 600;
+  }
+}
+
 // Foco de teclado visível (piso de qualidade §9).
 :host ::ng-deep .mdc-button:focus-visible,
 :host ::ng-deep .mat-mdc-icon-button:focus-visible {
