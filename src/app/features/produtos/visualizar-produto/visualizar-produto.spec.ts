@@ -223,6 +223,21 @@ describe('VisualizarProduto (RF-4, R-CA-10)', () => {
     expect(dados.compareDocumentPosition(foto) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
+  it('CA-8 (guard de posicionamento): .ficha__thumb é containing block (position != static) — a foto absoluta NÃO escapa e engole o modal', () => {
+    // Regressão de smoke (T-M5.1-4): `<app-imagem-produto>` é `position:absolute; inset:0`; sem um
+    // ancestral posicionado ela ancora no painel do dialog e cobre header+dados. O thumb precisa ser
+    // o containing block. Anexa ao body para o getComputedStyle resolver o CSS scoped do componente.
+    const fixture = montar();
+    const host = fixture.nativeElement as HTMLElement;
+    document.body.appendChild(host);
+    try {
+      const thumb = host.querySelector('.ficha__thumb') as HTMLElement;
+      expect(getComputedStyle(thumb).position).toBe('relative');
+    } finally {
+      document.body.removeChild(host);
+    }
+  });
+
   it('CA-9: busca as últimas 5 (?pagina=0&tamanho=5) e renderiza tipo/qtd→resultante/autor/contraparte/data pt-BR', () => {
     const fixture = TestBed.createComponent(VisualizarProduto);
     fixture.detectChanges();

@@ -73,6 +73,10 @@
 
 .ficha__thumb {
   flex: none;
+  // `<app-imagem-produto>` é `position:absolute; inset:0` (imagem-produto.scss) — PRECISA de um
+  // ancestral posicionado (containing block), senão a foto escapa da miniatura e ancora no painel
+  // do dialog, engolindo header+dados (bug de smoke T-M5.1-4). `position:relative` a confina aos 88×88.
+  position: relative;
   width: 88px;
   height: 88px;
   order: 2; /* a foto vem DEPOIS dos dados na leitura (info-first) mesmo em linha */
