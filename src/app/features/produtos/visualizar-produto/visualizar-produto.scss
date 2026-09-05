@@ -63,16 +63,26 @@
   color: #8f2450;
 }
 
-.ficha__foto {
-  width: 100%;
-  aspect-ratio: 16 / 10;
+/* Info-first (HISTÓRIA #4/CA-8): dados à esquerda, thumbnail pequena à direita; empilha no celular. */
+.ficha__topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.ficha__thumb {
+  flex: none;
+  width: 88px;
+  height: 88px;
+  order: 2; /* a foto vem DEPOIS dos dados na leitura (info-first) mesmo em linha */
   border-radius: 12px;
   overflow: hidden;
   background: color-mix(in srgb, var(--orvalho) 45%, white);
 }
 
-.ficha__foto app-imagem-produto,
-.ficha__foto ::ng-deep img {
+.ficha__thumb app-imagem-produto,
+.ficha__thumb ::ng-deep img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -87,10 +97,11 @@
 }
 
 .ficha__dados {
+  flex: 1 1 12rem;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.9rem 1.25rem;
-  margin: 1rem 0 0;
+  margin: 0;
 }
 
 .dado {
@@ -160,6 +171,107 @@
   color: var(--folhagem);
   font: 600 0.8rem/1.4 var(--mat-sys-body-small);
   overflow-wrap: anywhere;
+}
+
+/* ---- Movimentações recentes (HISTÓRIA #4/CA-9) ---- */
+.movs {
+  margin-top: 1.1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--orvalho);
+}
+
+.movs__titulo {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0 0 0.6rem;
+  font: 600 0.72rem/1 var(--display);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--caule);
+
+  mat-icon {
+    font-size: 1rem;
+    width: 1rem;
+    height: 1rem;
+  }
+}
+
+.movs__vazio {
+  margin: 0;
+  font: var(--mat-sys-body-medium);
+  color: color-mix(in srgb, var(--tinta) 60%, var(--estufa));
+}
+
+.movs__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mov {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--orvalho) 30%, white);
+}
+
+.mov__tipo {
+  flex: none;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font: 600 0.66rem/1.5 var(--display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: color-mix(in srgb, var(--caule) 16%, white);
+  color: var(--folhagem);
+}
+
+.mov__tipo--SAIDA {
+  background: color-mix(in srgb, #8f2450 14%, white);
+  color: #8f2450;
+}
+
+.mov__tipo--AJUSTE {
+  background: color-mix(in srgb, var(--sais) 22%, white);
+  color: color-mix(in srgb, var(--tinta) 70%, var(--folhagem));
+}
+
+.mov__corpo {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.mov__qtd {
+  font: 600 0.92rem/1.3 var(--mat-sys-body-medium);
+  color: var(--tinta);
+  font-variant-numeric: tabular-nums;
+}
+
+.mov__seta {
+  color: color-mix(in srgb, var(--tinta) 55%, white);
+}
+
+.mov__meta {
+  font: var(--mat-sys-body-small);
+  color: color-mix(in srgb, var(--tinta) 65%, var(--estufa));
+  overflow-wrap: anywhere;
+}
+
+.mov__data {
+  flex: none;
+  font: var(--mat-sys-body-small);
+  color: color-mix(in srgb, var(--tinta) 55%, white);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .ficha__acoes {

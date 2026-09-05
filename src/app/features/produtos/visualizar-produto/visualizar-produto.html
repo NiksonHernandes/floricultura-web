@@ -30,38 +30,78 @@
         <button mat-button (click)="carregarFicha()">Tentar de novo</button>
       </p>
     } @else if (produto(); as p) {
-      <div class="ficha__foto">
-        <app-imagem-produto [produto]="p" />
+      <!-- Info-first (SPEC-M5.1 HISTÓRIA #4/CA-8): dados ANTES da foto; foto reduzida a thumbnail
+           pequena (só para identificar o produto — não o destaque de largura total anterior). -->
+      <div class="ficha__topo">
+        <dl class="ficha__dados">
+          <div class="dado">
+            <dt>Estoque</dt>
+            <dd>
+              {{ p.estoqueAtual }} {{ rotuloUnidade(p.unidadeMedida) }}
+              @if (rotuloMinimo(p); as minimo) {
+                <span class="dado__minimo">· {{ minimo }}</span>
+              }
+            </dd>
+          </div>
+
+          <div class="dado">
+            <dt>Unidade</dt>
+            <dd>{{ rotuloUnidade(p.unidadeMedida) }}</dd>
+          </div>
+
+          <!-- Preço só aparece se não-nulo (V3 opcional — sem "R$ 0,00" fake). -->
+          @if (precoFormatado(p); as preco) {
+            <div class="dado">
+              <dt>Preço</dt>
+              <dd>{{ preco }}</dd>
+            </div>
+          }
+        </dl>
+
+        <div class="ficha__thumb">
+          <app-imagem-produto [produto]="p" />
+        </div>
       </div>
 
       @if (p.descricao) {
         <p class="ficha__descricao">{{ p.descricao }}</p>
       }
 
-      <dl class="ficha__dados">
-        <div class="dado">
-          <dt>Estoque</dt>
-          <dd>
-            {{ p.estoqueAtual }} {{ rotuloUnidade(p.unidadeMedida) }}
-            @if (rotuloMinimo(p); as minimo) {
-              <span class="dado__minimo">· {{ minimo }}</span>
-            }
-          </dd>
-        </div>
-
-        <div class="dado">
-          <dt>Unidade</dt>
-          <dd>{{ rotuloUnidade(p.unidadeMedida) }}</dd>
-        </div>
-
-        <!-- Preço só aparece se não-nulo (V3 opcional — sem "R$ 0,00" fake). -->
-        @if (precoFormatado(p); as preco) {
-          <div class="dado">
-            <dt>Preço</dt>
-            <dd>{{ preco }}</dd>
-          </div>
-        }
-      </dl>
+      <!-- Movimentações recentes (HISTÓRIA #4/CA-9/CA-10) — últimas 5, espelha visualizar-lancamento.
+           Só renderiza quando carregado; falha ⇒ movimentacoes()=null ⇒ seção some (degrada em silêncio). -->
+      @if (movimentacoes(); as movs) {
+        <section class="movs" aria-label="Movimentações recentes">
+          <h3 class="movs__titulo">
+            <mat-icon aria-hidden="true">history</mat-icon> Movimentações recentes
+          </h3>
+          @if (movs.length === 0) {
+            <p class="movs__vazio">Nenhuma movimentação ainda.</p>
+          } @else {
+            <ul class="movs__lista">
+              @for (m of movs; track m.id) {
+                <li class="mov">
+                  <span class="mov__tipo mov__tipo--{{ m.tipo }}">{{ rotuloTipo(m.tipo) }}</span>
+                  <div class="mov__corpo">
+                    <span class="mov__qtd">
+                      {{ m.quantidade }}
+                      <span class="mov__seta">→ {{ m.quantidadeResultante }}</span>
+                    </span>
+                    <span class="mov__meta">
+                      {{ m.usuarioNome ?? '—' }}
+                      @if (contraparteNome(m); as cp) {
+                        <span class="mov__contraparte">· {{ cp }}</span>
+                      }
+                    </span>
+                  </div>
+                  <time class="mov__data" [attr.datetime]="m.criadoEm">
+                    {{ m.criadoEm | date: 'dd/MM/yyyy HH:mm' : 'America/Sao_Paulo' : 'pt-BR' }}
+                  </time>
+                </li>
+              }
+            </ul>
+          }
+        </section>
+      }
 
       <!-- Relacionamentos derivados (RF-4): cada seção só aparece quando há dados. -->
       @if (temRelacionamentos()) {

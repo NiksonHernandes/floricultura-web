@@ -1,4 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { registerLocaleData } from '@angular/common';
+import localePt from '@angular/common/locales/pt';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
@@ -6,7 +8,12 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 
 import { VisualizarProduto, VisualizarProdutoDados } from './visualizar-produto';
 import { ApiResponse } from '../../../core/models/api-response.model';
-import { Produto, ProdutoRelacionamentos } from '../../../core/models/produto.model';
+import {
+  Movimentacao,
+  PaginaResponse,
+  Produto,
+  ProdutoRelacionamentos,
+} from '../../../core/models/produto.model';
 
 /**
  * RF-4 (REVISÃO 2026-09-04/AD-SQ-66) — modal "Visualizar produto". Spec NOVO. Testa contra o CONTRATO
@@ -16,6 +23,10 @@ import { Produto, ProdutoRelacionamentos } from '../../../core/models/produto.mo
  * `temImagem:false` nos fixtures → o `<app-imagem-produto>` cai no placeholder e NÃO dispara GET de
  * binário, mantendo o `httpMock.verify()` limpo (só a ficha e os relacionamentos trafegam).
  */
+// CA-9: o DatePipe com locale 'pt-BR' exige a locale data registrada (app.config.ts faz em runtime;
+// no teste registramos aqui para a asserção de data+hora pt-BR rodar) — espelho do movimentar-estoque.spec.
+registerLocaleData(localePt, 'pt-BR');
+
 describe('VisualizarProduto (RF-4, R-CA-10)', () => {
   let httpMock: HttpTestingController;
   let ref: jasmine.SpyObj<MatDialogRef<VisualizarProduto>>;
@@ -45,18 +56,65 @@ describe('VisualizarProduto (RF-4, R-CA-10)', () => {
 
   const relacVazio: ProdutoRelacionamentos = { eventos: [], fornecedores: [], clientes: [] };
 
+  // --- Movimentações recentes (T-M5.1-4/HISTÓRIA #4) — fixtures FICTÍCIOS (LGPD). ---
+  const movEntrada: Movimentacao = {
+    id: 200,
+    produtoId: 5,
+    produtoNome: 'Rosa Vermelha',
+    tipo: 'ENTRADA',
+    quantidade: 10,
+    quantidadeResultante: 30,
+    motivo: 'Reposição',
+    usuarioId: 3,
+    usuarioNome: 'Ana Estufa',
+    fornecedorId: 7,
+    fornecedorNome: 'Sítio das Flores',
+    criadoEm: '2026-09-02T14:05:00Z',
+  };
+  const movSaida: Movimentacao = {
+    id: 201,
+    produtoId: 5,
+    produtoNome: 'Rosa Vermelha',
+    tipo: 'SAIDA',
+    quantidade: 4,
+    quantidadeResultante: 26,
+    motivo: null,
+    usuarioId: 3,
+    usuarioNome: 'Ana Estufa',
+    clienteId: 8,
+    clienteNome: 'Maria Flores',
+    criadoEm: '2026-09-02T15:00:00Z',
+  };
+
   function envelope<T>(data: T): ApiResponse<T> {
     return { success: true, data, error: null, timestamp: '', path: '' };
+  }
+
+  function paginaMov(conteudo: Movimentacao[]): PaginaResponse<Movimentacao> {
+    return {
+      conteudo,
+      pagina: 0,
+      tamanho: 5,
+      totalElementos: conteudo.length,
+      totalPaginas: 1,
+      primeira: true,
+      ultima: true,
+    };
   }
 
   function montar(
     detalhe: Produto = produto,
     relac: ProdutoRelacionamentos = relacVazio,
+    movs: Movimentacao[] = [],
   ): ComponentFixture<VisualizarProduto> {
     const fixture = TestBed.createComponent(VisualizarProduto);
     fixture.detectChanges(); // ngOnInit → dispara ficha + relacionamentos
     httpMock.expectOne(`${BASE}/5`).flush(envelope(detalhe));
     httpMock.expectOne(`${BASE}/5/relacionamentos`).flush(envelope(relac));
+    // A ficha carregada dispara as movimentações recentes (T-M5.1-4/CA-9).
+    httpMock
+      .expectOne((r) => r.url === `${BASE}/5/movimentacoes`)
+      .flush(envelope(paginaMov(movs)));
     fixture.detectChanges();
     return fixture;
   }
@@ -142,10 +200,74 @@ describe('VisualizarProduto (RF-4, R-CA-10)', () => {
     httpMock
       .expectOne(`${BASE}/5/relacionamentos`)
       .flush(null, { status: 500, statusText: 'Server Error' });
+    // A ficha carregou (200) ⇒ as movimentações recentes disparam; atende para o verify limpo.
+    httpMock.expectOne((r) => r.url === `${BASE}/5/movimentacoes`).flush(envelope(paginaMov([])));
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelector('.ficha__titulo')?.textContent).toContain('Rosa Vermelha');
     expect(el.querySelector('.relacoes')).toBeNull();
+  });
+
+  // --- Info-first + movimentações recentes (T-M5.1-4, CA-8/CA-9/CA-10) ---
+
+  it('CA-8: dados aparecem ANTES da foto e a foto é thumbnail pequena (não .ficha__foto full-width)', () => {
+    const el = montar().nativeElement as HTMLElement;
+    // A foto full-width 16/10 anterior deixou de existir; agora é thumbnail.
+    expect(el.querySelector('.ficha__foto')).toBeNull();
+    const thumb = el.querySelector('.ficha__thumb');
+    expect(thumb).toBeTruthy();
+    expect(thumb!.querySelector('app-imagem-produto')).toBeTruthy();
+    // Ordem no DOM: os dados vêm ANTES da foto (info-first).
+    const dados = el.querySelector('.ficha__dados')!;
+    const foto = el.querySelector('.ficha__thumb')!;
+    expect(dados.compareDocumentPosition(foto) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('CA-9: busca as últimas 5 (?pagina=0&tamanho=5) e renderiza tipo/qtd→resultante/autor/contraparte/data pt-BR', () => {
+    const fixture = TestBed.createComponent(VisualizarProduto);
+    fixture.detectChanges();
+    httpMock.expectOne(`${BASE}/5`).flush(envelope(produto));
+    httpMock.expectOne(`${BASE}/5/relacionamentos`).flush(envelope(relacVazio));
+    const req = httpMock.expectOne((r) => r.url === `${BASE}/5/movimentacoes`);
+    expect(req.request.method).toBe('GET');
+    expect(req.request.params.get('pagina')).toBe('0');
+    expect(req.request.params.get('tamanho')).toBe('5');
+    req.flush(envelope(paginaMov([movEntrada, movSaida])));
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelectorAll('.movs .mov').length).toBe(2);
+    const txt = el.querySelector('.movs')!.textContent!;
+    expect(txt).toContain('Entrada'); // tipo pt-BR
+    expect(txt).toContain('Saída');
+    expect(txt).toContain('10'); // quantidade da ENTRADA
+    expect(txt).toContain('30'); // resultante da ENTRADA
+    expect(txt).toContain('Ana Estufa'); // autor
+    expect(txt).toContain('Sítio das Flores'); // contraparte da ENTRADA (fornecedor, por nome)
+    expect(txt).toContain('Maria Flores'); // contraparte da SAÍDA (cliente, por nome)
+    // Data pt-BR em America/Sao_Paulo: '2026-09-02T14:05:00Z' (UTC) → 11:05 BRT.
+    expect(el.querySelector('.mov__data')?.textContent?.trim()).toBe('02/09/2026 11:05');
+  });
+
+  it('CA-10: sem movimentações mostra "Nenhuma movimentação ainda." (não erro)', () => {
+    const el = montar(produto, relacVazio, []).nativeElement as HTMLElement;
+    expect(el.querySelector('.movs')).toBeTruthy();
+    expect(el.querySelector('.movs__vazio')?.textContent).toContain('Nenhuma movimentação ainda.');
+    expect(el.querySelectorAll('.movs .mov').length).toBe(0);
+  });
+
+  it('CA-10: falha das movimentações degrada em silêncio (a seção some, a ficha permanece)', () => {
+    const fixture = TestBed.createComponent(VisualizarProduto);
+    fixture.detectChanges();
+    httpMock.expectOne(`${BASE}/5`).flush(envelope(produto));
+    httpMock.expectOne(`${BASE}/5/relacionamentos`).flush(envelope(relacVazio));
+    httpMock
+      .expectOne((r) => r.url === `${BASE}/5/movimentacoes`)
+      .flush(null, { status: 500, statusText: 'Server Error' });
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.movs')).toBeNull(); // seção some (sem mensagem de erro)
+    expect(el.querySelector('.ficha__titulo')?.textContent).toContain('Rosa Vermelha'); // ficha intacta
   });
 
   it('o botão Fechar chama ref.close()', () => {

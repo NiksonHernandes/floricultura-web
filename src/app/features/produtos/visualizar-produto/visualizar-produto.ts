@@ -1,4 +1,5 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -7,8 +8,10 @@ import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/materia
 import { ProdutosService } from '../produtos.service';
 import { ImagemProduto } from '../imagem-produto/imagem-produto';
 import {
+  Movimentacao,
   Produto,
   ProdutoRelacionamentos,
+  TipoMovimentacao,
   UnidadeMedida,
 } from '../../../core/models/produto.model';
 
@@ -27,6 +30,13 @@ const ROTULOS_UNIDADE: Record<UnidadeMedida, string> = {
   g: 'g',
 };
 
+/** Rótulos pt-BR dos tipos do ledger (AD-SQ-30) — espelho de `visualizar-lancamento`. */
+const ROTULOS_TIPO: Record<TipoMovimentacao, string> = {
+  ENTRADA: 'Entrada',
+  SAIDA: 'Saída',
+  AJUSTE: 'Ajuste',
+};
+
 /**
  * Modal "Visualizar produto" — a ficha completa do vaso (SPEC-M5 REVISÃO 2026-09-04, RF-4/AD-SQ-66,
  * R-CA-10). Leitura para USER+ADMIN.
@@ -42,6 +52,7 @@ const ROTULOS_UNIDADE: Record<UnidadeMedida, string> = {
 @Component({
   selector: 'app-visualizar-produto',
   imports: [
+    DatePipe,
     MatDialogModule,
     MatButtonModule,
     MatIconModule,
@@ -62,6 +73,13 @@ export class VisualizarProduto implements OnInit {
 
   protected readonly relacionamentos = signal<ProdutoRelacionamentos | null>(null);
 
+  /**
+   * Últimas movimentações do produto (SPEC-M5.1 HISTÓRIA #4/CA-9, `?pagina=0&tamanho=5`, `criadoEm
+   * DESC`). `null` = ainda não carregado OU falhou (degrada em SILÊNCIO — a seção some, não mostra erro,
+   * não bloqueia a ficha, igual a `carregarRelacionamentos`). `[]` = carregado e sem movimentações.
+   */
+  protected readonly movimentacoes = signal<Movimentacao[] | null>(null);
+
   /** Tem ao menos uma relação para exibir (evita renderizar a área de relações vazia). */
   protected readonly temRelacionamentos = computed(() => {
     const r = this.relacionamentos();
@@ -80,6 +98,8 @@ export class VisualizarProduto implements OnInit {
       next: (p) => {
         this.produto.set(p);
         this.carregando.set(false);
+        // Movimentações recentes só fazem sentido com a ficha carregada (produto existente).
+        this.carregarMovimentacoes();
       },
       error: () => {
         this.erro.set(true);
@@ -94,6 +114,31 @@ export class VisualizarProduto implements OnInit {
       next: (r) => this.relacionamentos.set(r),
       error: () => this.relacionamentos.set(null),
     });
+  }
+
+  /**
+   * Últimas 5 movimentações (HISTÓRIA #4/CA-9/CA-10) — degrada em silêncio na falha (`null`), sem
+   * bloquear a ficha nem os relacionamentos. Espelha o histórico curto do `movimentar-estoque`.
+   */
+  private carregarMovimentacoes(): void {
+    this.service.movimentacoes(this.dados.produtoId, 0, 5).subscribe({
+      next: (pagina) => this.movimentacoes.set(pagina.conteudo),
+      error: () => this.movimentacoes.set(null),
+    });
+  }
+
+  protected rotuloTipo(t: TipoMovimentacao): string {
+    return ROTULOS_TIPO[t] ?? t;
+  }
+
+  /**
+   * Contraparte por NOME conforme o tipo (snapshot do ledger — espelha `visualizar-lancamento`):
+   * ENTRADA→`fornecedorNome`, SAÍDA→`clienteNome`; `null` = sem contraparte (não renderiza).
+   */
+  protected contraparteNome(m: Movimentacao): string | null {
+    if (m.tipo === 'ENTRADA') return m.fornecedorNome ?? null;
+    if (m.tipo === 'SAIDA') return m.clienteNome ?? null;
+    return null;
   }
 
   protected rotuloUnidade(u: UnidadeMedida): string {
