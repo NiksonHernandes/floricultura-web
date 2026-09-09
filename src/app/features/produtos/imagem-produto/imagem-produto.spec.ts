@@ -77,6 +77,34 @@ describe('ImagemProduto (T-M3-4, CA-11)', () => {
     expect(html(fixture).querySelector('.vaso__placeholder')).toBeNull();
   });
 
+  it('@Input tamanho="thumb" pede a variante thumb ao back (URL com &tamanho=thumb) — CA-C12', () => {
+    const p: Produto = { ...base, temImagem: true };
+    const fixture = TestBed.createComponent(ImagemProduto);
+    // `tamanho` ANTES de `produto`: o setter de `produto` dispara a carga e lê `this.tamanho`.
+    fixture.componentRef.setInput('tamanho', 'thumb');
+    fixture.componentRef.setInput('produto', p);
+
+    const req = httpMock.expectOne(service.urlImagem(p, 'thumb'));
+    expect(req.request.urlWithParams).toContain('&tamanho=thumb');
+    expect(req.request.method).toBe('GET');
+    expect(req.request.responseType).toBe('blob');
+    req.flush(new Blob([new Uint8Array([1, 2, 3])], { type: 'image/webp' }));
+    fixture.detectChanges();
+
+    const img = html(fixture).querySelector('.vaso__img') as HTMLImageElement;
+    expect(img.getAttribute('src')).toBe('blob:fake-1');
+  });
+
+  it('sem tamanho (default) pede o original ao back (&tamanho=original) — CA-C13', () => {
+    const p: Produto = { ...base, temImagem: true };
+    const fixture = criar(p);
+
+    const req = httpMock.expectOne(service.urlImagem(p));
+    expect(req.request.urlWithParams).toContain('&tamanho=original');
+    req.flush(new Blob([new Uint8Array([1])], { type: 'image/jpeg' }));
+    fixture.detectChanges();
+  });
+
   it('só imagemUrl (temImagem:false) → usa a URL externa direto, sem tocar o back', () => {
     const fixture = criar({ ...base, imagemUrl: 'https://exemplo.local/rosa.jpg' });
     fixture.detectChanges();

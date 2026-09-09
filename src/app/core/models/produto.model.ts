@@ -28,6 +28,13 @@ export interface PaginaResponse<T> {
 /** Enum fixo de unidade (AD-SQ-31): código ASCII persistido; `m3` é exibido `m³` no front. */
 export type UnidadeMedida = 'un' | 'kg' | 'saco' | 'm3' | 'l' | 'g';
 
+/**
+ * Variante de imagem servida por `GET /produtos/{id}/imagem?tamanho=` (SPEC-M5.2 §3.2/§3.3): `thumb`
+ * (~200px, card da lista), `medio` (~800px, "Visualizar produto") e `original` (≤1280px, vitrine/form —
+ * **default**, preserva o comportamento M3). Legado sem variante cai no fallback ao original no back.
+ */
+export type VarianteImagem = 'thumb' | 'medio' | 'original';
+
 export interface Produto {
   id: number;
   nome: string;

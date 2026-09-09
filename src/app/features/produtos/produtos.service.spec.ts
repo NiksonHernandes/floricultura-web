@@ -141,6 +141,22 @@ describe('ProdutosService (T-M2-7)', () => {
     expect(recebido).toEqual(resposta);
   });
 
+  // --- SPEC-M5.2 T-M5.2-6: variante de imagem por contexto (CA-C12/CA-C13) ---
+
+  it('urlImagem(p, "medio") anexa &tamanho=medio mantendo o ?v= versionado (CA-C12)', () => {
+    const v = Date.parse(rosa.atualizadoEm);
+    expect(service.urlImagem(rosa, 'medio')).toBe(`${BASE}/10/imagem?v=${v}&tamanho=medio`);
+  });
+
+  it('urlImagem(p, "thumb") anexa &tamanho=thumb (card da lista)', () => {
+    expect(service.urlImagem(rosa, 'thumb')).toContain('&tamanho=thumb');
+  });
+
+  it('urlImagem(p) sem tamanho usa original — preserva a assinatura dos chamadores M3 (CA-C13)', () => {
+    const v = Date.parse(rosa.atualizadoEm);
+    expect(service.urlImagem(rosa)).toBe(`${BASE}/10/imagem?v=${v}&tamanho=original`);
+  });
+
   it('movimentacoes() faz GET /{id}/movimentacoes com pagina/tamanho e desembrulha a página', () => {
     let recebido: PaginaResponse<Movimentacao> | undefined;
     service.movimentacoes(10, 0, 5).subscribe((p) => (recebido = p));

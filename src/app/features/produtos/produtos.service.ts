@@ -12,6 +12,7 @@ import {
   PaginaResponse,
   Produto,
   ProdutoRelacionamentos,
+  VarianteImagem,
 } from '../../core/models/produto.model';
 
 /**
@@ -142,13 +143,15 @@ export class ProdutosService {
   }
 
   /**
-   * URL **versionada** do binário do banco (§3.3): `.../imagem?v=<atualizadoEm epoch>`. Upload/
-   * delete bumpam `atualizadoEm` → novo `?v` invalida o cache imutável ao trocar a foto. **NUNCA**
+   * URL **versionada** do binário do banco (§3.3): `.../imagem?v=<atualizadoEm epoch>&tamanho=<var>`.
+   * Upload/delete bumpam `atualizadoEm` → novo `?v` invalida o cache imutável ao trocar a foto. O
+   * `tamanho` (SPEC-M5.2 §3.3) pede a variante por contexto (`thumb`/`medio`/`original`); **default
+   * `original` preserva a assinatura dos chamadores M3** (vitrine/form seguem inalterados). **NUNCA**
    * usar em `<img src>` direto (sem Bearer → `401` → logout do interceptor, §12); é a chave que
    * `imagemBlob` carrega via `HttpClient`.
    */
-  urlImagem(p: Produto): string {
-    return `${this.baseUrl}/${p.id}/imagem?v=${Date.parse(p.atualizadoEm)}`;
+  urlImagem(p: Produto, tamanho: VarianteImagem = 'original'): string {
+    return `${this.baseUrl}/${p.id}/imagem?v=${Date.parse(p.atualizadoEm)}&tamanho=${tamanho}`;
   }
 
   /**

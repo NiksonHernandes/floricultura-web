@@ -66,7 +66,7 @@
       @for (p of produtos(); track p.id) {
         <li class="vaso" [class.vaso--alerta]="p.estoqueBaixo">
           <div class="vaso__planta">
-            <app-imagem-produto [produto]="p" />
+            <app-imagem-produto tamanho="thumb" [produto]="p" />
             @if (p.estoqueBaixo) {
               <span class="selo-baixo">
                 <mat-icon aria-hidden="true">warning_amber</mat-icon>
