@@ -5,6 +5,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 
 import { MovimentarEstoque, MovimentarEstoqueDados } from './movimentar-estoque';
+import { FornecedoresService } from '../../fornecedores/fornecedores.service';
 import { ApiResponse } from '../../../core/models/api-response.model';
 import { Movimentacao, PaginaResponse, Produto } from '../../../core/models/produto.model';
 
@@ -72,6 +73,8 @@ describe('MovimentarEstoque — autor no histórico (T-M4-12, CA-21/CA-25)', () 
         provideNoopAnimations(),
         provideHttpClient(),
         provideHttpClientTesting(),
+        // FornecedoresService deixou de ser `providedIn:'root'` (AD-SQ-72) → provider explícito no teste.
+        FornecedoresService,
         { provide: MatDialogRef, useValue: ref },
         { provide: MAT_DIALOG_DATA, useValue: dados },
       ],

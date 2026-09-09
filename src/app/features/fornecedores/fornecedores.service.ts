@@ -16,7 +16,14 @@ import { Fornecedor, FornecedorRequest } from '../../core/models/fornecedor.mode
  * filtro por nome) e `GET /fornecedores/{id}` (traz `produtoIds`). ESCRITA (ADMIN, RBAC no back —
  * FC-07): `POST`/`PUT`/`DELETE`. O front só orienta a UX; o RBAC efetivo é do servidor.
  */
-@Injectable({ providedIn: 'root' })
+/**
+ * REVISÃO 2026-09-05 (SPEC-M5.1 HISTÓRIA #5/AD-SQ-72): deixa de ser `providedIn:'root'` e passa a ser
+ * provido no `app.config` — MESMO padrão do `EventosService`. Assim `produtos`/`produto-form` podem
+ * optar por NÃO carregá-lo nos seus testes (inject **opcional → null** nos specs do M2/M3), preservando
+ * a anti-burla (nenhum `GET /fornecedores` dispara sem registro). A app real resolve pelo provider do
+ * `app.config`; os specs que USAM o serviço já o provêm explicitamente (fornecedores/movimentar).
+ */
+@Injectable()
 export class FornecedoresService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiBaseUrl}/fornecedores`;

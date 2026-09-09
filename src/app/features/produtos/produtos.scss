@@ -344,13 +344,16 @@
   --mat-button-text-icon-color: #8f2450;
 }
 
-/* ---- Véu do diálogo do form (T-M2-8) ---- */
+/* ---- Véu do diálogo do form (T-M2-8) ----
+   T-M5.1-2 (CA-2, spike CA-1): removido o `backdrop-filter: blur` — o blur de viewport atrás do
+   container com scroll (`.ficha__form`) e dos overlays de `mat-select` recompunha por frame (jank
+   medido). Véu sólido translúcido dá a separação visual sem custo de composição. Nó `.veu` mantido
+   (armadilha §12). Site de gerenciamento: leveza > efeito. */
 .veu {
   position: fixed;
   inset: 0;
   z-index: 20;
   background: color-mix(in srgb, var(--tinta) 55%, transparent);
-  backdrop-filter: blur(2px);
 }
 
 /* ---- Paginação ---- */

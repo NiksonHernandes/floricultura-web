@@ -357,13 +357,15 @@
   color: #8f2450;
 }
 
-/* ---- Véu do diálogo do form (T-M4-5) ---- */
+/* ---- Véu do diálogo do form (T-M4-5) ----
+   T-M5.1-2 (CA-2): removido o `backdrop-filter: blur` (mesma raiz do jank de Produtos — fecha a P1
+   do "Novo evento" do M4.2). Véu sólido translúcido sem custo de composição por frame. Nó `.veu`
+   mantido (armadilha §12 / eventos.spec.ts:221). */
 .veu {
   position: fixed;
   inset: 0;
   z-index: 20;
   background: color-mix(in srgb, var(--tinta) 55%, transparent);
-  backdrop-filter: blur(2px);
 }
 
 /* ---- Paginação ---- */

@@ -44,8 +44,13 @@
   color: var(--estufa);
 }
 
+// HISTÓRIA #6/CA-18 (refino LEVE — só fonte/escala/hierarquia/espaçamento, tokens; SEM efeito caro):
+// mais respiro entre as seções e ritmo vertical consistente para a ficha ficar legível/profissional.
 .ficha__corpo {
-  padding: 1.1rem 1.25rem 0.5rem;
+  padding: 1.25rem 1.25rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
 }
 
 .ficha__estado {
@@ -63,16 +68,30 @@
   color: #8f2450;
 }
 
-.ficha__foto {
-  width: 100%;
-  aspect-ratio: 16 / 10;
+/* Info-first (HISTÓRIA #4/CA-8): dados à esquerda, thumbnail pequena à direita; empilha no celular. */
+.ficha__topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.ficha__thumb {
+  flex: none;
+  // `<app-imagem-produto>` é `position:absolute; inset:0` (imagem-produto.scss) — PRECISA de um
+  // ancestral posicionado (containing block), senão a foto escapa da miniatura e ancora no painel
+  // do dialog, engolindo header+dados (bug de smoke T-M5.1-4). `position:relative` a confina aos 88×88.
+  position: relative;
+  width: 88px;
+  height: 88px;
+  order: 2; /* a foto vem DEPOIS dos dados na leitura (info-first) mesmo em linha */
   border-radius: 12px;
   overflow: hidden;
   background: color-mix(in srgb, var(--orvalho) 45%, white);
 }
 
-.ficha__foto app-imagem-produto,
-.ficha__foto ::ng-deep img {
+.ficha__thumb app-imagem-produto,
+.ficha__thumb ::ng-deep img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -80,32 +99,39 @@
 }
 
 .ficha__descricao {
-  margin: 0.9rem 0 0;
+  margin: 0;
   font: var(--mat-sys-body-medium);
-  color: color-mix(in srgb, var(--tinta) 80%, var(--estufa));
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--tinta) 82%, var(--estufa));
   overflow-wrap: anywhere;
 }
 
+// Bloco de dados como painel suave (superfície plana por token — sem sombra/blur): agrupa e destaca
+// os números da ficha, dando hierarquia sem peso.
 .ficha__dados {
+  flex: 1 1 12rem;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.9rem 1.25rem;
-  margin: 1rem 0 0;
+  gap: 0.95rem 1.25rem;
+  margin: 0;
+  padding: 0.95rem 1.05rem;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--orvalho) 24%, white);
 }
 
 .dado {
   min-width: 0;
 
   dt {
-    font: 600 0.62rem/1 var(--display);
-    letter-spacing: 0.16em;
+    font: 600 0.64rem/1 var(--display);
+    letter-spacing: 0.18em;
     text-transform: uppercase;
     color: var(--caule);
   }
 
   dd {
-    margin: 0.2rem 0 0;
-    font: 600 0.98rem/1.3 var(--mat-sys-body-medium);
+    margin: 0.3rem 0 0;
+    font: 600 1.06rem/1.25 var(--mat-sys-body-large);
     color: var(--tinta);
     font-variant-numeric: tabular-nums;
     overflow-wrap: anywhere;
@@ -119,12 +145,11 @@
 
 /* ---- Relacionamentos ---- */
 .relacoes {
-  margin-top: 1.1rem;
-  padding-top: 0.9rem;
+  padding-top: 1rem;
   border-top: 1px solid var(--orvalho);
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
+  gap: 0.9rem;
 }
 
 .relacao__titulo {
@@ -160,6 +185,110 @@
   color: var(--folhagem);
   font: 600 0.8rem/1.4 var(--mat-sys-body-small);
   overflow-wrap: anywhere;
+}
+
+/* ---- Movimentações recentes (HISTÓRIA #4/CA-9) ---- */
+.movs {
+  padding-top: 1rem;
+  border-top: 1px solid var(--orvalho);
+}
+
+.movs__titulo {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0 0 0.6rem;
+  font: 600 0.72rem/1 var(--display);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--caule);
+
+  mat-icon {
+    font-size: 1rem;
+    width: 1rem;
+    height: 1rem;
+  }
+}
+
+.movs__vazio {
+  margin: 0;
+  font: var(--mat-sys-body-medium);
+  color: color-mix(in srgb, var(--tinta) 60%, var(--estufa));
+}
+
+.movs__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mov {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--orvalho) 28%, white);
+}
+
+.mov__tipo {
+  flex: none;
+  align-self: flex-start;
+  margin-top: 0.1rem;
+  padding: 0.12rem 0.55rem;
+  border-radius: 999px;
+  font: 600 0.66rem/1.5 var(--display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: color-mix(in srgb, var(--caule) 16%, white);
+  color: var(--folhagem);
+}
+
+.mov__tipo--SAIDA {
+  background: color-mix(in srgb, #8f2450 14%, white);
+  color: #8f2450;
+}
+
+.mov__tipo--AJUSTE {
+  background: color-mix(in srgb, var(--sais) 22%, white);
+  color: color-mix(in srgb, var(--tinta) 70%, var(--folhagem));
+}
+
+.mov__corpo {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.mov__qtd {
+  font: 600 0.96rem/1.3 var(--mat-sys-body-medium);
+  color: var(--tinta);
+  font-variant-numeric: tabular-nums;
+}
+
+.mov__seta {
+  color: color-mix(in srgb, var(--tinta) 55%, white);
+}
+
+.mov__meta {
+  font: var(--mat-sys-body-small);
+  color: color-mix(in srgb, var(--tinta) 68%, var(--estufa));
+  overflow-wrap: anywhere;
+}
+
+.mov__data {
+  flex: none;
+  align-self: flex-start;
+  margin-top: 0.1rem;
+  font: var(--mat-sys-body-small);
+  color: color-mix(in srgb, var(--tinta) 58%, white);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .ficha__acoes {

@@ -175,6 +175,9 @@
   <app-produto-form
     [produto]="produtoEmEdicao()"
     [eventos]="eventos()"
+    [eventosProntos]="eventosProntos()"
+    [fornecedores]="fornecedores()"
+    [fornecedoresProntos]="fornecedoresProntos()"
     (salvo)="aoSalvar($event)"
     (entradaInicialFalhou)="aoEntradaInicialFalhou()"
     (imagemFalhou)="aoImagemFalhou()"

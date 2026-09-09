@@ -7,6 +7,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 
 import { MovimentarEstoque, MovimentarEstoqueDados } from './movimentar-estoque';
+import { FornecedoresService } from '../../fornecedores/fornecedores.service';
 import { ApiResponse } from '../../../core/models/api-response.model';
 import { Movimentacao, PaginaResponse, Produto } from '../../../core/models/produto.model';
 
@@ -90,6 +91,10 @@ describe('MovimentarEstoque (T-M2-9 — CA-20 movimentação / CA-11)', () => {
         provideNoopAnimations(),
         provideHttpClient(),
         provideHttpClientTesting(),
+        // FornecedoresService deixou de ser `providedIn:'root'` (AD-SQ-72) → o componente que o injeta
+        // precisa do provider explícito no teste. Carga sob demanda ⇒ nenhum GET dispara aqui (só ao
+        // abrir o select de fornecedor, o que estes testes não fazem) — `httpMock.verify()` segue limpo.
+        FornecedoresService,
         { provide: MatDialogRef, useValue: ref },
         { provide: MAT_DIALOG_DATA, useValue: dados },
       ],

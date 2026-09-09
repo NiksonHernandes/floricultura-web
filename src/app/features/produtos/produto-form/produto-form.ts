@@ -3,13 +3,14 @@ import {
   OnDestroy,
   OnInit,
   computed,
+  effect,
   inject,
   input,
   output,
   signal,
 } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -21,7 +22,13 @@ import { ProdutosService } from '../produtos.service';
 import { ImagemProduto } from '../imagem-produto/imagem-produto';
 import { RecorteFoto } from '../recorte-foto/recorte-foto';
 import { ApiResponse } from '../../../core/models/api-response.model';
-import { Produto, ProdutoRequest, UnidadeMedida } from '../../../core/models/produto.model';
+import {
+  MovimentacaoRequest,
+  Produto,
+  ProdutoRequest,
+  UnidadeMedida,
+} from '../../../core/models/produto.model';
+import { Fornecedor } from '../../../core/models/fornecedor.model';
 import { Evento } from '../../../core/models/evento.model';
 
 /**
@@ -115,6 +122,21 @@ export class ProdutoForm implements OnInit, OnDestroy {
    */
   readonly eventos = input<Evento[]>([]);
 
+  /**
+   * Opções do select de fornecedor da entrada inicial (SPEC-M5.1 HISTÓRIA #5/AD-SQ-72) — carregadas
+   * pela lista-mãe na ABERTURA do form e passadas por `@Input`, ESPELHANDO os eventos. O form deixa de
+   * injetar `FornecedoresService`/disparar GET: superfície HTTP ZERO (anti-burla mais forte).
+   */
+  readonly fornecedores = input<Fornecedor[]>([]);
+
+  /**
+   * "Carga resolvida" (settled) de fornecedores/eventos — a lista-mãe seta `true` quando o GET
+   * retorna (mesmo vazio) ou quando o serviço é ausente (AD-SQ-72). GUARD ANTI-FLASH: só com `prontos`
+   * o form mostra o estado "nada a vincular"/desabilitado — evita piscar "vazio" durante o cold start.
+   */
+  readonly fornecedoresProntos = input(false);
+  readonly eventosProntos = input(false);
+
   /** Emite o produto salvo (criado/editado) para a lista-mãe recarregar. */
   readonly salvo = output<Produto>();
   /** Emite quando o operador cancela/fecha sem salvar. */
@@ -185,6 +207,14 @@ export class ProdutoForm implements OnInit, OnDestroy {
   protected readonly entradaInicial = this.fb.control<number | null>(null, [Validators.min(0)]);
 
   /**
+   * Fornecedor OPCIONAL da entrada inicial (SPEC-M5.1 HISTÓRIA #3/CA-4..7) — controle STANDALONE,
+   * FORA do `form` group (como `entradaInicial`): NUNCA entra no `ProdutoRequest`, só compõe o
+   * `MovimentacaoRequest` da ENTRADA quando há quantidade > 0 E fornecedor selecionado. `null` = sem
+   * contraparte (payload idêntico ao M5 — backward compat). A validação/snapshot são do back (AD-SQ-64).
+   */
+  protected readonly fornecedorInicial = this.fb.control<number | null>(null);
+
+  /**
    * Eventos vinculados (SPEC-M4 §3.4/CA-12) — controle STANDALONE, FORA do `form` group: mantém
    * `form.setValue(...)` dos specs do M2/M3 com os 6 campos originais (anti-burla). Vai ao payload
    * como `eventoIds` só quando há seleção ou quando o produto já tinha vínculos (replace-set/limpar).
@@ -193,6 +223,22 @@ export class ProdutoForm implements OnInit, OnDestroy {
 
   /** Vínculos originais do produto em edição (do detalhe `GET /{id}`) — base do replace-set/limpar. */
   private eventosOriginais: number[] = [];
+
+  /**
+   * Estado dos selects de vínculo VAZIOS (SPEC-M5.1 HISTÓRIA #5/AD-SQ-72). Reage aos `@Input` de
+   * opções + "prontos" e desabilita o controle correspondente (mat-select fica cinza/inerte) quando a
+   * carga RESOLVEU com zero itens — via `.disable()` num `effect()` (evita o warning do `[disabled]`
+   * reativo). Guard anti-flash: só age com `prontos` (nunca durante o carregamento). Eventos: nunca
+   * desabilita se já há seleção (edição com vínculos). Fornecedor: só no modo criação (onde é exibido).
+   */
+  private readonly estadoVinculosEffect = effect(() => {
+    const eventosVazioSettled = this.eventosProntos() && this.eventos().length === 0;
+    const semSelecaoEventos = this.eventosSelecionados.value.length === 0;
+    this.definirHabilitado(this.eventosSelecionados, !(eventosVazioSettled && semSelecaoEventos));
+
+    const fornecedorVazioSettled = this.fornecedoresProntos() && this.fornecedores().length === 0;
+    this.definirHabilitado(this.fornecedorInicial, !(fornecedorVazioSettled && !this.editando()));
+  });
 
   ngOnInit(): void {
     const p = this.produto();
@@ -267,17 +313,38 @@ export class ProdutoForm implements OnInit, OnDestroy {
   private aposCriar(criado: Produto): void {
     const entrada = this.entradaInicial.value;
     if (entrada !== null && entrada > 0) {
-      this.service
-        .movimentar(criado.id, { tipo: 'ENTRADA', quantidade: entrada, motivo: MOTIVO_ENTRADA_INICIAL })
-        .subscribe({
-          next: () => this.enviarImagemCriacao(criado),
-          error: () => {
-            this.entradaInicialFalhou.emit();
-            this.enviarImagemCriacao(criado);
-          },
-        });
+      const req: MovimentacaoRequest = {
+        tipo: 'ENTRADA',
+        quantidade: entrada,
+        motivo: MOTIVO_ENTRADA_INICIAL,
+      };
+      // Contraparte opcional (HISTÓRIA #3/CA-5): só inclui `fornecedorId` quando há seleção; sem
+      // seleção o payload fica IDÊNTICO ao M5 (backward compat). O nome é snapshot server-side.
+      const fornecedor = this.fornecedorInicial.value;
+      if (fornecedor != null) {
+        req.fornecedorId = fornecedor;
+      }
+      this.service.movimentar(criado.id, req).subscribe({
+        next: () => this.enviarImagemCriacao(criado),
+        error: () => {
+          this.entradaInicialFalhou.emit();
+          this.enviarImagemCriacao(criado);
+        },
+      });
     } else {
       this.enviarImagemCriacao(criado);
+    }
+  }
+
+  /**
+   * Habilita/desabilita um controle standalone sem emitir eventos (evita disparar valueChanges/warnings).
+   * Idempotente: só age quando o estado muda. Usado pelo `estadoVinculosEffect` (AD-SQ-72).
+   */
+  private definirHabilitado(control: AbstractControl, habilitar: boolean): void {
+    if (habilitar && control.disabled) {
+      control.enable({ emitEvent: false });
+    } else if (!habilitar && control.enabled) {
+      control.disable({ emitEvent: false });
     }
   }
 

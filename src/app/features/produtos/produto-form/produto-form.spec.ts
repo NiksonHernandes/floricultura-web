@@ -1,11 +1,19 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { HttpErrorResponse } from '@angular/common/http';
+import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { of, throwError } from 'rxjs';
 
 import { ProdutoForm, TAMANHO_MAX_IMAGEM_BYTES } from './produto-form';
 import { ProdutosService } from '../produtos.service';
-import { Movimentacao, Produto, ProdutoRequest, UnidadeMedida } from '../../../core/models/produto.model';
+import { Fornecedor } from '../../../core/models/fornecedor.model';
+import { Evento } from '../../../core/models/evento.model';
+import {
+  Movimentacao,
+  Produto,
+  ProdutoRequest,
+  UnidadeMedida,
+} from '../../../core/models/produto.model';
 
 /** Evento sintético de `<input type="file">` para os testes de seleção (CA-12) — sem DOM real. */
 function eventoArquivo(arquivo: File): Event {
@@ -30,6 +38,13 @@ interface Probe {
   };
   /** Controle STANDALONE da entrada inicial (T-M2-11/AD-SQ-35) — fora do form group. */
   entradaInicial: { setValue(v: number | null): void };
+  /**
+   * Fornecedor opcional da entrada inicial (T-M5.1-3/CA-5/CA-6; estado disabled T-M5.1-5/CA-13..15) —
+   * standalone, fora do form group. As opções chegam por `@Input` da lista-mãe (AD-SQ-72 — form HTTP zero).
+   */
+  fornecedorInicial: { setValue(v: number | null): void; readonly disabled: boolean; readonly enabled: boolean };
+  /** Multiselect de eventos (T-M4-6; estado disabled T-M5.1-5/CA-13..15) — standalone. */
+  eventosSelecionados: { readonly disabled: boolean; readonly enabled: boolean };
   salvar(): void;
   enviando(): boolean;
   salvo: { subscribe(fn: (p: Produto) => void): void };
@@ -143,7 +158,15 @@ describe('ProdutoForm (T-M2-8, CA-20 — parte form)', () => {
     serviceSpy.imagemBlob.and.returnValue(of(new Blob()));
     TestBed.configureTestingModule({
       imports: [ProdutoForm],
-      providers: [provideNoopAnimations(), { provide: ProdutosService, useValue: serviceSpy }],
+      // provideHttpClient(Testing) permite construir o `FornecedoresService` real injetado pelo form
+      // (T-M5.1-3). A carga é sob demanda: nenhum GET dispara sem abrir o select ⇒ os testes herdados
+      // seguem sem tráfego HTTP (anti-burla §12). Só os testes NOVOS do fornecedor usam o httpMock.
+      providers: [
+        provideNoopAnimations(),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: ProdutosService, useValue: serviceSpy },
+      ],
     });
   });
 
@@ -472,5 +495,223 @@ describe('ProdutoForm (T-M2-8, CA-20 — parte form)', () => {
     // Cria normalmente (payload de 6 campos), mas SEM imagem — nada foi recortado/enviado.
     expect(serviceSpy.criar).toHaveBeenCalledWith(payloadMinimo);
     expect(serviceSpy.enviarImagem).not.toHaveBeenCalled();
+  });
+
+  // --- Fornecedor na entrada inicial: payload (T-M5.1-3) + selects vazios desabilitados (T-M5.1-5) ---
+
+  /** Fornecedor FICTÍCIO (LGPD — SPEC §9): "Sítio das Flores". */
+  const sitio: Fornecedor = {
+    id: 7,
+    nome: 'Sítio das Flores',
+    telefone: null,
+    email: null,
+    observacoes: null,
+    produtoIds: null,
+    criadoEm: '2026-09-05T14:00:00Z',
+    atualizadoEm: '2026-09-05T14:00:00Z',
+  };
+
+  /** Evento FICTÍCIO para os testes de habilitação do multiselect. */
+  const natal: Evento = {
+    id: 1,
+    nome: 'Natal',
+    tipo: 'COMEMORATIVA',
+    dataInicio: '2026-12-25',
+    dataFim: null,
+    dataUnica: true,
+    repeteTodoAno: true,
+    descricao: null,
+    criadoEm: '2026-09-05T14:00:00Z',
+    atualizadoEm: '2026-09-05T14:00:00Z',
+  };
+
+  /**
+   * Monta o form dirigindo os `@Input` de vínculo (HISTÓRIA #5/AD-SQ-72) — as opções chegam da lista-mãe,
+   * não de um GET do form. `detectChanges()` roda o `estadoVinculosEffect` que decide o disabled.
+   */
+  function montarComInputs(inputs: {
+    produto?: Produto | null;
+    eventos?: Evento[];
+    eventosProntos?: boolean;
+    fornecedores?: Fornecedor[];
+    fornecedoresProntos?: boolean;
+  }): ComponentFixture<ProdutoForm> {
+    const fixture = TestBed.createComponent(ProdutoForm);
+    if (inputs.produto !== undefined) fixture.componentRef.setInput('produto', inputs.produto);
+    if (inputs.eventos) fixture.componentRef.setInput('eventos', inputs.eventos);
+    if (inputs.eventosProntos !== undefined)
+      fixture.componentRef.setInput('eventosProntos', inputs.eventosProntos);
+    if (inputs.fornecedores) fixture.componentRef.setInput('fornecedores', inputs.fornecedores);
+    if (inputs.fornecedoresProntos !== undefined)
+      fixture.componentRef.setInput('fornecedoresProntos', inputs.fornecedoresProntos);
+    fixture.detectChanges();
+    // 2ª passada: reflete no DOM o disable aplicado pelo `estadoVinculosEffect` (a classe/aria reagem).
+    fixture.detectChanges();
+    return fixture;
+  }
+
+  it('CA-16: form tem superfície HTTP ZERO — montar/interagir não dispara NENHUM GET (httpMock.verify limpo)', () => {
+    const httpMock = TestBed.inject(HttpTestingController);
+    const fixture = montarComInputs({
+      eventos: [natal],
+      eventosProntos: true,
+      fornecedores: [sitio],
+      fornecedoresProntos: true,
+    });
+    const probe = fixture.componentInstance as unknown as Probe;
+    // Preencher o form e selecionar um fornecedor não fala com o back (as opções vêm por @Input).
+    probe.form.setValue(minimo);
+    probe.fornecedorInicial.setValue(7);
+    httpMock.verify(); // nenhum GET de fornecedores/eventos saiu do form
+  });
+
+  it('CA-13/CA-17: fornecedores=[] + prontos ⇒ select de fornecedor DESABILITADO + hint "nada a vincular"', () => {
+    const fixture = montarComInputs({ fornecedores: [], fornecedoresProntos: true });
+    const probe = fixture.componentInstance as unknown as Probe;
+    expect(probe.fornecedorInicial.disabled).toBeTrue();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.textContent).toContain('Nenhum fornecedor cadastrado para vincular.');
+    // Cinza escuro por classe de estado (SCSS token — sem hex novo).
+    expect(el.querySelector('.ficha__campo--vazio')).toBeTruthy();
+  });
+
+  it('CA-14: fornecedores=[sitio] ⇒ select de fornecedor HABILITADO (opções selecionáveis)', () => {
+    const fixture = montarComInputs({ fornecedores: [sitio], fornecedoresProntos: true });
+    const probe = fixture.componentInstance as unknown as Probe;
+    expect(probe.fornecedorInicial.enabled).toBeTrue();
+    expect(probe.fornecedorInicial.disabled).toBeFalse();
+  });
+
+  it('CA-13/CA-17: eventos=[] + prontos ⇒ multiselect de eventos DESABILITADO + hint "nada a vincular"', () => {
+    const fixture = montarComInputs({ eventos: [], eventosProntos: true });
+    const probe = fixture.componentInstance as unknown as Probe;
+    expect(probe.eventosSelecionados.disabled).toBeTrue();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.textContent).toContain('Nenhum evento cadastrado para vincular.');
+  });
+
+  it('CA-14: eventos=[natal] ⇒ multiselect de eventos HABILITADO', () => {
+    const fixture = montarComInputs({ eventos: [natal], eventosProntos: true });
+    const probe = fixture.componentInstance as unknown as Probe;
+    expect(probe.eventosSelecionados.enabled).toBeTrue();
+  });
+
+  it('CA-15 (anti-flash): carregando (!prontos) ⇒ selects NÃO desabilitam e o hint "nada a vincular" NÃO aparece', () => {
+    const fixture = montarComInputs({
+      eventos: [],
+      eventosProntos: false,
+      fornecedores: [],
+      fornecedoresProntos: false,
+    });
+    const probe = fixture.componentInstance as unknown as Probe;
+    expect(probe.eventosSelecionados.disabled).toBeFalse();
+    expect(probe.fornecedorInicial.disabled).toBeFalse();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.textContent).not.toContain('Nenhum evento cadastrado para vincular.');
+    expect(el.textContent).not.toContain('Nenhum fornecedor cadastrado para vincular.');
+  });
+
+  it('CA-15 (edição com vínculos): eventoIds=[...] + eventos=[] + prontos ⇒ multiselect NÃO desabilita (seleção > 0)', () => {
+    const fixture = montarComInputs({
+      produto: { ...rosa, eventoIds: [1, 2] },
+      eventos: [],
+      eventosProntos: true,
+    });
+    const probe = fixture.componentInstance as unknown as Probe;
+    expect(probe.eventosSelecionados.disabled).toBeFalse();
+  });
+
+  it('CA-5: entrada > 0 + fornecedor selecionado ⇒ movimentar inclui fornecedorId', () => {
+    serviceSpy.criar.and.returnValue(of(rosa)); // rosa.id === 10
+    serviceSpy.movimentar.and.returnValue(of(movEntrada));
+    const probe = montar();
+
+    probe.form.setValue(minimo);
+    probe.entradaInicial.setValue(30);
+    probe.fornecedorInicial.setValue(7);
+    probe.salvar();
+
+    // POST /produtos com 6 campos intacto (fornecedor NÃO vaza no ProdutoRequest).
+    expect(serviceSpy.criar).toHaveBeenCalledWith(payloadMinimo);
+    // ENTRADA leva a contraparte.
+    expect(serviceSpy.movimentar).toHaveBeenCalledWith(10, {
+      tipo: 'ENTRADA',
+      quantidade: 30,
+      motivo: 'Estoque inicial (cadastro)',
+      fornecedorId: 7,
+    });
+  });
+
+  it('CA-5: entrada > 0 SEM fornecedor ⇒ payload da ENTRADA idêntico ao M5 (sem fornecedorId)', () => {
+    serviceSpy.criar.and.returnValue(of(rosa));
+    serviceSpy.movimentar.and.returnValue(of(movEntrada));
+    const probe = montar();
+
+    probe.form.setValue(minimo);
+    probe.entradaInicial.setValue(30);
+    // fornecedorInicial permanece null (backward compat).
+    probe.salvar();
+
+    expect(serviceSpy.movimentar).toHaveBeenCalledWith(10, {
+      tipo: 'ENTRADA',
+      quantidade: 30,
+      motivo: 'Estoque inicial (cadastro)',
+    });
+  });
+
+  it('CA-6: entrada 0 ignora o fornecedor selecionado (nenhuma movimentação — AD-SQ-35 intacto)', () => {
+    serviceSpy.criar.and.returnValue(of(rosa));
+    const probe = montar();
+
+    probe.form.setValue(minimo);
+    probe.entradaInicial.setValue(0);
+    probe.fornecedorInicial.setValue(7);
+    probe.salvar();
+
+    expect(serviceSpy.criar).toHaveBeenCalledWith(payloadMinimo);
+    expect(serviceSpy.movimentar).not.toHaveBeenCalled();
+  });
+
+  it('CA-6: fornecedorId inexistente (400 field=fornecedorId) ⇒ falha parcial (salvo + entradaInicialFalhou), sem recriar', () => {
+    serviceSpy.criar.and.returnValue(of(rosa));
+    serviceSpy.movimentar.and.returnValue(
+      throwError(
+        () =>
+          new HttpErrorResponse({
+            status: 400,
+            statusText: 'Bad Request',
+            error: {
+              success: false,
+              data: null,
+              error: {
+                code: 'VALIDATION_ERROR',
+                message: 'Fornecedor inexistente.',
+                details: [{ field: 'fornecedorId', message: 'Fornecedor não encontrado.' }],
+              },
+              timestamp: '',
+              path: '',
+            },
+          }),
+      ),
+    );
+    const probe = montar();
+    let emitido: Produto | undefined;
+    let falhou = false;
+    probe.salvo.subscribe((p) => (emitido = p));
+    probe.entradaInicialFalhou.subscribe(() => (falhou = true));
+
+    probe.form.setValue(minimo);
+    probe.entradaInicial.setValue(30);
+    probe.fornecedorInicial.setValue(999);
+    probe.salvar();
+
+    // Produto já existe (deriva AD-SQ-35): salvo emite, sinaliza a falha, criar NÃO é re-chamado.
+    expect(emitido).toEqual(rosa);
+    expect(falhou).toBeTrue();
+    expect(serviceSpy.criar).toHaveBeenCalledTimes(1);
+    expect(serviceSpy.movimentar).toHaveBeenCalledWith(
+      10,
+      jasmine.objectContaining({ fornecedorId: 999 }),
+    );
   });
 });

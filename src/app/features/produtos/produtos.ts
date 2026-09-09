@@ -13,6 +13,7 @@ import { MatDialog } from '@angular/material/dialog';
 
 import { ProdutosService } from './produtos.service';
 import { EventosService } from '../eventos/eventos.service';
+import { FornecedoresService } from '../fornecedores/fornecedores.service';
 import { ProximosEventos } from '../eventos/proximos-eventos/proximos-eventos';
 import { ProdutoForm } from './produto-form/produto-form';
 import { ImagemProduto } from './imagem-produto/imagem-produto';
@@ -31,6 +32,7 @@ import {
 import { AuthService } from '../../core/services/auth.service';
 import { Movimentacao, Produto, UnidadeMedida } from '../../core/models/produto.model';
 import { Evento } from '../../core/models/evento.model';
+import { Fornecedor } from '../../core/models/fornecedor.model';
 
 /** MatPaginator em pt-BR — sem o "Items per page" em inglês do default (design-distintivo §texto). */
 function paginatorPtBr(): MatPaginatorIntl {
@@ -105,6 +107,12 @@ export class Produtos implements OnInit {
    * testes que não o registram — assim os specs do M2/M3 não disparam `GET /eventos` (anti-burla).
    */
   private readonly eventosService = inject(EventosService, { optional: true });
+  /**
+   * Serviço de fornecedores (HISTÓRIA #5/AD-SQ-72) — MESMO padrão OPCIONAL do `eventosService`: null
+   * nos specs herdados do M2/M3 (nenhum `GET /fornecedores` dispara — anti-burla). A lista-mãe é a dona
+   * da carga; o `produto-form` recebe as opções por `@Input` e fica com superfície HTTP zero.
+   */
+  private readonly fornecedoresService = inject(FornecedoresService, { optional: true });
 
   /** RBAC de UX (FC-07): só ADMIN vê/usa as ações de escrita. O back é a fonte de verdade. */
   protected readonly ehAdmin = this.auth.ehAdmin;
@@ -129,6 +137,16 @@ export class Produtos implements OnInit {
   /** Opções de eventos para o multiselect do form (T-M4-6) — carregadas 1x sob demanda. */
   protected readonly eventos = signal<Evento[]>([]);
   private eventosCarregados = false;
+
+  /**
+   * Opções de fornecedores para o select da entrada inicial (HISTÓRIA #5/AD-SQ-72) — carregadas 1x na
+   * ABERTURA do form (create-only), MESMO padrão dos eventos. `*Prontos` (settled) alimenta o guard
+   * anti-flash do form: só com ele o select vazio mostra o estado desabilitado/"nada a vincular".
+   */
+  protected readonly fornecedores = signal<Fornecedor[]>([]);
+  protected readonly fornecedoresProntos = signal(false);
+  protected readonly eventosProntos = signal(false);
+  private fornecedoresCarregados = false;
 
   /**
    * Marca transitória (T-M2-11/CA-22): o form emite `entradaInicialFalhou` ANTES de `salvo` quando o
@@ -193,6 +211,7 @@ export class Produtos implements OnInit {
       return;
     }
     this.carregarEventos();
+    this.carregarFornecedores();
     this.produtoEmEdicao.set(null);
     this.formAberto.set(true);
   }
@@ -224,14 +243,48 @@ export class Produtos implements OnInit {
    * honesto, sem quebrar o cadastro. Falha de rede também degrada em silêncio (opções vazias).
    */
   private carregarEventos(): void {
-    if (this.eventosCarregados || !this.eventosService) {
+    if (this.eventosCarregados) {
+      return;
+    }
+    // Serviço ausente (specs M2/M3): estado vazio-honesto resolve de imediato, sem GET (AD-SQ-72).
+    if (!this.eventosService) {
+      this.eventosProntos.set(true);
       return;
     }
     this.eventosCarregados = true;
     this.eventosService.listar(0, 100).subscribe({
-      next: (pagina) => this.eventos.set(pagina.conteudo),
+      next: (pagina) => {
+        this.eventos.set(pagina.conteudo);
+        this.eventosProntos.set(true); // settled (mesmo vazio) → libera o estado desabilitado/hint
+      },
       error: () => {
-        this.eventosCarregados = false; // permite nova tentativa numa próxima abertura
+        this.eventosCarregados = false; // permite nova tentativa numa próxima abertura (fica neutro)
+      },
+    });
+  }
+
+  /**
+   * Carrega as opções do select de fornecedor 1x na abertura do form (HISTÓRIA #5/AD-SQ-72) — MESMO
+   * padrão de `carregarEventos`. Serviço opcional (null nos specs herdados → nenhum GET). `next` seta
+   * `fornecedoresProntos` (settled, mesmo vazio); serviço ausente resolve de imediato (vazio-honesto);
+   * falha degrada em silêncio (fica neutro, permite nova tentativa) — não pisca "nada a vincular".
+   */
+  private carregarFornecedores(): void {
+    if (this.fornecedoresCarregados) {
+      return;
+    }
+    if (!this.fornecedoresService) {
+      this.fornecedoresProntos.set(true);
+      return;
+    }
+    this.fornecedoresCarregados = true;
+    this.fornecedoresService.listar(0, 100).subscribe({
+      next: (pagina) => {
+        this.fornecedores.set(pagina.conteudo);
+        this.fornecedoresProntos.set(true);
+      },
+      error: () => {
+        this.fornecedoresCarregados = false;
       },
     });
   }
