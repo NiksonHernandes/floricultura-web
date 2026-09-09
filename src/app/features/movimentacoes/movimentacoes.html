@@ -59,7 +59,16 @@
           <span class="lancamento__tipo lancamento__tipo--{{ m.tipo }}">{{ rotuloTipo(m.tipo) }}</span>
 
           <div class="lancamento__corpo">
-            <h2 class="lancamento__produto">{{ m.produtoNome }}</h2>
+            <h2 class="lancamento__produto">
+              {{ m.produtoNome }}
+              <!-- Selo do produto excluído: só em linha órfã (produtoId=null, FC-08). B-R1/B-R5. -->
+              @if (produtoExcluido(m)) {
+                <span class="selo-excluido" aria-label="Produto excluído">
+                  <mat-icon class="selo-excluido__icone" aria-hidden="true">delete_outline</mat-icon>
+                  <span class="selo-excluido__texto">Excluído</span>
+                </span>
+              }
+            </h2>
             <dl class="lancamento__meta">
               <div class="campo">
                 <dt>Quantidade</dt>

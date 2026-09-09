@@ -134,6 +134,16 @@ export class Movimentacoes implements OnInit {
   }
 
   /**
+   * Produto do lançamento foi hard-deletado (SPEC-M5.2 §3.1, B-R1). O ledger é imutável: o back anula
+   * `produtoId` (FK `ON DELETE SET NULL`, FC-08/AD-SQ-34) mas preserva `produtoNome` (snapshot legível).
+   * Deriva-se do contrato já existente — **sem** flag nova no back. `== null` cobre `null` e `undefined`
+   * (fixtures herdados usam `produtoId:5` → não acionam o selo).
+   */
+  protected produtoExcluido(m: Movimentacao): boolean {
+    return m.produtoId === null || m.produtoId === undefined;
+  }
+
+  /**
    * Rótulo da contraparte do lançamento (RF-3): ENTRADA→"Fornecedor" (quando há `fornecedorNome`),
    * SAÍDA→"Cliente" (quando há `clienteNome`); `null` = sem contraparte (não renderiza no card). Usa o
    * NOME (snapshot preservado após hard delete FC-08), não o id.

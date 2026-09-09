@@ -186,6 +186,31 @@
   overflow-wrap: anywhere;
 }
 
+/* Selo "Excluído" — linha órfã do ledger (produtoId=null, FC-08/AD-SQ-34). SPEC-M5.2 B-R3/B-R4/B-R5.
+   Leve por token: sem backdrop-filter, sem filter, sem box-shadow custoso, sem animação. Cor sóbria só
+   por color-mix de tokens existentes (--tinta/--estufa). inline-flex + wrap → nome longo + selo não
+   estouram a linha do card em 375px. */
+.selo-excluido {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  vertical-align: middle;
+  background: color-mix(in srgb, var(--tinta) 8%, var(--estufa));
+  color: color-mix(in srgb, var(--tinta) 55%, var(--estufa));
+  font: 600 0.66rem/1.5 var(--mat-sys-body-small);
+  letter-spacing: 0.02em;
+  overflow-wrap: anywhere;
+}
+
+.selo-excluido__icone {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+}
+
 .lancamento__meta {
   display: flex;
   flex-wrap: wrap;

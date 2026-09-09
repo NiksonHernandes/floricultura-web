@@ -41,6 +41,15 @@ export class VisualizarLancamento {
   }
 
   /**
+   * Produto hard-deletado (SPEC-M5.2 §3.1, B-R1/CA-B3). `produtoId` anulado pelo back (FC-08/AD-SQ-34),
+   * `produtoNome` (snapshot) preservado. Deriva do contrato existente — sem flag nova. `== null` cobre
+   * `null` e `undefined`.
+   */
+  protected produtoExcluido(): boolean {
+    return this.m.produtoId === null || this.m.produtoId === undefined;
+  }
+
+  /**
    * Rótulo da contraparte conforme o tipo: ENTRADA→"Fornecedor" (quando há `fornecedorNome`),
    * SAÍDA→"Cliente" (quando há `clienteNome`). `null` = sem contraparte (não renderiza o campo).
    * Baseia-se no NOME (snapshot preservado após hard delete FC-08), não no id.

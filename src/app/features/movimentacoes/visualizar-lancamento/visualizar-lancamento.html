@@ -3,7 +3,16 @@
     <span class="ficha__tipo ficha__tipo--{{ m.tipo }}">{{ rotuloTipo(m.tipo) }}</span>
     <div class="ficha__titulos">
       <span class="ficha__eyebrow">Ateliê · Estoque</span>
-      <h2 mat-dialog-title class="ficha__titulo">{{ m.produtoNome }}</h2>
+      <h2 mat-dialog-title class="ficha__titulo">
+        {{ m.produtoNome }}
+        <!-- Selo do produto excluído (CA-B3): coerência com a lista de Movimentações. -->
+        @if (produtoExcluido()) {
+          <span class="selo-excluido" aria-label="Produto excluído">
+            <mat-icon class="selo-excluido__icone" aria-hidden="true">delete_outline</mat-icon>
+            <span class="selo-excluido__texto">Excluído</span>
+          </span>
+        }
+      </h2>
     </div>
     <button
       type="button"
