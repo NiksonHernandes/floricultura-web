@@ -3,7 +3,7 @@ import { Subscription } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
 
 import { ProdutosService } from '../produtos.service';
-import { Produto } from '../../../core/models/produto.model';
+import { Produto, VarianteImagem } from '../../../core/models/produto.model';
 
 /**
  * Imagem do produto — "a planta no vaso" (SPEC-M3 §3.6, T-M3-4, CA-11, AD-SQ-37).
@@ -41,13 +41,21 @@ export class ImagemProduto implements OnDestroy {
   private objectUrl: string | null = null;
   private carga?: Subscription;
 
+  /**
+   * Variante pedida ao back por contexto (SPEC-M5.2 §3.3): card=`thumb`, "Visualizar produto"=`medio`,
+   * vitrine/form=`original` (**default** → preserva o comportamento M3). No template, declarar `tamanho`
+   * **antes** de `[produto]`: o setter de `produto` dispara a carga e lê `this.tamanho` — a ordem garante
+   * a variante correta na 1ª (única) resolução (o binding é estático/one-time).
+   */
+  @Input() tamanho: VarianteImagem = 'original';
+
   @Input({ required: true })
   set produto(p: Produto) {
     this.reiniciar();
     this.alt.set(p.nome);
     if (p.temImagem) {
-      // Prioridade 1: binário do banco (blob + object URL).
-      this.carga = this.service.imagemBlob(this.service.urlImagem(p)).subscribe({
+      // Prioridade 1: binário do banco (blob + object URL, variante por contexto).
+      this.carga = this.service.imagemBlob(this.service.urlImagem(p, this.tamanho)).subscribe({
         next: (blob) => {
           this.objectUrl = URL.createObjectURL(blob);
           this.fonteBanco.set(this.objectUrl);

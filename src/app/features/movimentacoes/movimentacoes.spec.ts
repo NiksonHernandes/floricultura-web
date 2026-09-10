@@ -81,6 +81,20 @@ describe('Movimentacoes (lista global — T-M4-11, CA-22/CA-24)', () => {
     expect(autor?.textContent?.trim()).toBe('—');
   });
 
+  it('linha órfã (produtoId:null) mostra o selo "Excluído" + aria-label, sem perder o nome (CA-B1)', () => {
+    const el = iniciar([{ ...base, produtoId: null }]).nativeElement as HTMLElement;
+    const selo = el.querySelector('.selo-excluido');
+    expect(selo).toBeTruthy();
+    expect(selo?.getAttribute('aria-label')).toBe('Produto excluído');
+    expect(selo?.textContent).toContain('Excluído');
+    expect(el.textContent).toContain('Rosa Vermelha'); // snapshot do nome continua (B-R2)
+  });
+
+  it('linha de produto vivo (produtoId:5) NÃO mostra o selo "Excluído" (CA-B2)', () => {
+    const el = iniciar([base]).nativeElement as HTMLElement;
+    expect(el.querySelector('.selo-excluido')).toBeNull();
+  });
+
   it('empty-state quando a página vem vazia', () => {
     const el = iniciar([]).nativeElement as HTMLElement;
     expect(el.querySelector('.estado--vazio')).toBeTruthy();

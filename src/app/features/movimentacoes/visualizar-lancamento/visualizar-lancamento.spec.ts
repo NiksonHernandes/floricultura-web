@@ -98,6 +98,20 @@ describe('VisualizarLancamento (RF-3, R-CA-11)', () => {
     expect(el.textContent).toContain('—');
   });
 
+  it('lançamento órfão (produtoId:null) mostra o selo "Excluído" no título (CA-B3)', () => {
+    const el = montar({ ...base, produtoId: null });
+    const selo = el.querySelector('.selo-excluido');
+    expect(selo).toBeTruthy();
+    expect(selo?.getAttribute('aria-label')).toBe('Produto excluído');
+    expect(selo?.textContent).toContain('Excluído');
+    expect(el.textContent).toContain('Rosa Vermelha'); // snapshot do nome preservado
+  });
+
+  it('lançamento de produto vivo (produtoId:5) NÃO mostra o selo', () => {
+    const el = montar(base);
+    expect(el.querySelector('.selo-excluido')).toBeNull();
+  });
+
   it('o botão Fechar chama ref.close()', () => {
     const el = montar(base);
     const botao = Array.from(el.querySelectorAll('button')).find((b) =>

@@ -82,7 +82,8 @@ describe('ProdutosService — imagem (T-M3-4)', () => {
   it('urlImagem() versiona a URL com ?v=<atualizadoEm epoch> (cache imutável × troca de foto)', () => {
     const url = service.urlImagem(rosa);
     const epoch = Date.parse(rosa.atualizadoEm);
-    expect(url).toBe(`${BASE}/10/imagem?v=${epoch}`);
+    // M5.2/CA-C13: o default de `urlImagem` passou a anexar `&tamanho=original` (variantes) — mantendo o `?v=`.
+    expect(url).toBe(`${BASE}/10/imagem?v=${epoch}&tamanho=original`);
     // O `?v` muda quando `atualizadoEm` muda (upload/delete bumpam) → invalida o cache.
     const outro = service.urlImagem({ ...rosa, atualizadoEm: '2026-09-03T09:00:00Z' });
     expect(outro).not.toBe(url);
