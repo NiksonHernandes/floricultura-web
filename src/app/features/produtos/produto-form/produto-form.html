@@ -204,56 +204,91 @@
         }
       </mat-form-field>
 
-      <!-- Entrada inicial de estoque (T-M2-11, CA-22 — SÓ no modo criação; AD-SQ-35). -->
+      <!-- Entrada inicial de estoque (T-M2-11, CA-22 — SÓ no modo criação; AD-SQ-35).
+           Ajuste 1/M6 (T-M6-10, §3.13/CA-35): quantidade e fornecedor passam a viver num BOX
+           sim/não; desligado (default) limpa os dois ⇒ nenhum lançamento nasce do cadastro.
+           O conteúdo some por [hidden] (display:none — fora do tab order e do leitor de tela),
+           não por @if: assim os hooks de DOM dos testes herdados do M5.1 seguem válidos. -->
       @if (!editando()) {
-        <mat-form-field
-          appearance="outline"
-          class="ficha__campo ficha__campo--largo"
-          subscriptSizing="dynamic"
-        >
-          <mat-label>Entrada inicial de estoque</mat-label>
-          <input
-            matInput
-            type="number"
-            [formControl]="entradaInicial"
-            min="0"
-            step="0.001"
-            inputmode="decimal"
-            placeholder="Opcional"
-          />
-          <span matTextSuffix>já em estoque</span>
-          @if (entradaInicial.hasError('min')) {
-            <mat-error>Não pode ser negativa.</mat-error>
-          }
-          <mat-hint>Opcional — lança uma ENTRADA no estoque logo após o cadastro.</mat-hint>
-        </mat-form-field>
-
-        <!-- Fornecedor opcional da entrada inicial (SPEC-M5.1 HISTÓRIA #3/#5, CA-4..7/CA-13..17). Opções
-             chegam por @Input da lista-mãe (AD-SQ-72 — form com HTTP zero); só fornecedores já cadastrados
-             (sem criação inline). Vazio settled ⇒ desabilitado (effect) + hint "nada a vincular" + cinza. -->
-        <mat-form-field
-          appearance="outline"
-          class="ficha__campo ficha__campo--largo"
-          [class.ficha__campo--vazio]="fornecedorInicial.disabled"
-          subscriptSizing="dynamic"
-        >
-          <mat-label>Fornecedor</mat-label>
-          <mat-select
-            [formControl]="fornecedorInicial"
-            panelClass="ficha__painel-select"
-            [attr.aria-disabled]="fornecedorInicial.disabled"
+        <div class="ficha__campo--largo caixa">
+          <mat-slide-toggle
+            class="caixa__chave"
+            [checked]="entradaAberta()"
+            (change)="alternarEntrada($event.checked)"
           >
-            <mat-option [value]="null">Sem fornecedor</mat-option>
-            @for (f of fornecedores(); track f.id) {
-              <mat-option [value]="f.id">{{ f.nome }}</mat-option>
+            Registrar entrada inicial de estoque
+          </mat-slide-toggle>
+          <p class="caixa__dica">Sem isto, o produto nasce com estoque 0.</p>
+
+          <div class="caixa__conteudo" [hidden]="!entradaAberta()">
+            <mat-form-field
+              appearance="outline"
+              class="ficha__campo ficha__campo--largo"
+              subscriptSizing="dynamic"
+            >
+              <!-- O rótulo é só "Quantidade": o box acima já diz que se trata da entrada inicial, e a
+                   375px o rótulo longo colidia com o sufixo dentro do campo (visto no print). -->
+              <mat-label>Quantidade</mat-label>
+              <input
+                matInput
+                type="number"
+                [formControl]="entradaInicial"
+                min="0"
+                step="0.001"
+                inputmode="decimal"
+                placeholder="Opcional"
+              />
+              <span matTextSuffix>já em estoque</span>
+              @if (entradaInicial.hasError('min')) {
+                <mat-error>Não pode ser negativa.</mat-error>
+              }
+              <mat-hint>Opcional — lança uma ENTRADA no estoque logo após o cadastro.</mat-hint>
+            </mat-form-field>
+
+            <!-- Fornecedor da entrada inicial (SPEC-M5.1 HISTÓRIA #3/#5, CA-4..7/CA-13..17). Opções chegam
+                 por @Input da lista-mãe (AD-SQ-72 — form com HTTP zero) e são somadas às criadas aqui.
+                 T-M6-10/§3.13: a 1ª opção é a sentinela que abre o sub-form de fornecedor. Vazio settled ⇒
+                 desabilitado (effect) + hint "nada a vincular" + cinza. -->
+            <mat-form-field
+              appearance="outline"
+              class="ficha__campo ficha__campo--largo"
+              [class.ficha__campo--vazio]="fornecedorInicial.disabled"
+              subscriptSizing="dynamic"
+            >
+              <mat-label>Fornecedor</mat-label>
+              <mat-select
+                #fornecedorSelect
+                [formControl]="fornecedorInicial"
+                panelClass="ficha__painel-select"
+                [attr.aria-disabled]="fornecedorInicial.disabled"
+                (selectionChange)="aoEscolherFornecedor($event.value)"
+              >
+                <mat-option class="opcao-novo" [value]="NOVO_FORNECEDOR">
+                  + Cadastrar novo fornecedor
+                </mat-option>
+                <mat-option [value]="null">Sem fornecedor</mat-option>
+                @for (f of fornecedoresLocal(); track f.id) {
+                  <mat-option [value]="f.id">{{ f.nome }}</mat-option>
+                }
+              </mat-select>
+              @if (fornecedoresProntos() && fornecedoresLocal().length === 0) {
+                <mat-hint>Nenhum fornecedor cadastrado para vincular.</mat-hint>
+              } @else {
+                <mat-hint>Opcional — de qual fornecedor veio este estoque inicial.</mat-hint>
+              }
+            </mat-form-field>
+
+            <!-- Catálogo vazio ⇒ o select é inerte (AD-SQ-72/CA-13) e a opção acima fica inalcançável.
+                 Sem esta saída, o operador que ainda não tem NENHUM fornecedor cairia justo no beco que
+                 o ajuste 1 veio eliminar. Só aparece nesse caso — nunca junto do select utilizável. -->
+            @if (fornecedorInicial.disabled) {
+              <button type="button" mat-button class="caixa__novo" (click)="abrirFornecedorForm()">
+                <mat-icon aria-hidden="true">add</mat-icon>
+                <span>Cadastrar novo fornecedor</span>
+              </button>
             }
-          </mat-select>
-          @if (fornecedoresProntos() && fornecedores().length === 0) {
-            <mat-hint>Nenhum fornecedor cadastrado para vincular.</mat-hint>
-          } @else {
-            <mat-hint>Opcional — de qual fornecedor veio este estoque inicial.</mat-hint>
-          }
-        </mat-form-field>
+          </div>
+        </div>
       }
     </div>
 
@@ -279,6 +314,20 @@
           [arquivo]="fonte"
           (recortado)="aoRecortar($event)"
           (cancelado)="aoCancelarRecorte()"
+        />
+      </div>
+    }
+  }
+
+  <!-- Sub-form de fornecedor (T-M6-10, §3.13/CA-35/AD-SQ-87): REUSO ad-hoc do <app-fornecedor-form>,
+       sobreposto à ficha no mesmo padrão do overlay do cropper — ele faz o próprio POST (armadilha #12).
+       @defer pelo mesmo motivo do cropper (AD-SQ-56): o chunk de /produtos (a Home) não paga por ele. -->
+  @defer (when fornecedorFormAberto()) {
+    @if (fornecedorFormAberto()) {
+      <div class="ficha__subforma">
+        <app-fornecedor-form
+          (salvo)="aoSalvarFornecedor($event)"
+          (cancelado)="aoCancelarFornecedor()"
         />
       </div>
     }

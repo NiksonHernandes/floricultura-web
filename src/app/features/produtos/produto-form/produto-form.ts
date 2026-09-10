@@ -1,5 +1,6 @@
 import {
   Component,
+  HostListener,
   OnDestroy,
   OnInit,
   computed,
@@ -8,19 +9,22 @@ import {
   input,
   output,
   signal,
+  viewChild,
 } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
+import { MatSelect, MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 
 import { ProdutosService } from '../produtos.service';
 import { ImagemProduto } from '../imagem-produto/imagem-produto';
 import { RecorteFoto } from '../recorte-foto/recorte-foto';
+import { FornecedorForm } from '../../fornecedores/fornecedor-form/fornecedor-form';
 import { ApiResponse } from '../../../core/models/api-response.model';
 import {
   MovimentacaoRequest,
@@ -45,6 +49,13 @@ export const TIPOS_IMAGEM_ACEITOS = ['image/jpeg', 'image/png', 'image/webp'] as
 
 /** Limite de 5 MB espelhado do back (`APP_UPLOAD_IMAGEM_MAX_BYTES` default — §3.3). Só orientação. */
 export const TAMANHO_MAX_IMAGEM_BYTES = 5 * 1024 * 1024;
+
+/**
+ * Sentinela da opção fixa "+ Cadastrar novo fornecedor" (T-M6-10/§3.13/AD-SQ-87). Valor impossível
+ * de id real (o back só emite ids positivos) e que NUNCA chega ao estado do form: ao ser escolhida, o
+ * `fornecedorInicial` volta AO VALOR ANTERIOR no mesmo handler e o sub-form é aberto.
+ */
+export const NOVO_FORNECEDOR = -1;
 
 /** Opções do select de unidade (AD-SQ-31): valor = código ASCII persistido; rótulo amigável (`m³`, `L`). */
 export const OPCOES_UNIDADE: ReadonlyArray<{ valor: UnidadeMedida; rotulo: string }> = [
@@ -91,6 +102,13 @@ export const OPCOES_UNIDADE: ReadonlyArray<{ valor: UnidadeMedida; rotulo: strin
  * confirmado (`aoRecortar`, File JPEG) segue o fluxo acima (staged na criação / envio direto na
  * edição), com a guarda de 5 MB no recorte final. Cancelar o cropper preserva o estado. As
  * assinaturas de `enviarImagem`/`removerImagem` NÃO mudam (o recorte já vem como File).
+ *
+ * T-M6-10 (SPEC-M6 §3.13/CA-35 — ajuste 1 do dono): a entrada inicial + o fornecedor deixam de ficar
+ * soltos no fim da ficha e passam a viver num **box** (`mat-slide-toggle` + conteúdo revelado);
+ * desligado (default) = nenhum lançamento. E o select de fornecedor ganha a opção fixa
+ * "+ Cadastrar novo fornecedor", que abre o `<app-fornecedor-form>` JÁ EXISTENTE sobreposto à ficha
+ * (`@defer`, padrão do overlay do cropper — AD-SQ-87). Ao salvar, o novo fornecedor entra nas opções
+ * locais e é selecionado; **nenhum controle do produto é tocado** — o operador não perde o que digitou.
  */
 @Component({
   selector: 'app-produto-form',
@@ -102,8 +120,10 @@ export const OPCOES_UNIDADE: ReadonlyArray<{ valor: UnidadeMedida; rotulo: strin
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    MatSlideToggleModule,
     ImagemProduto,
     RecorteFoto,
+    FornecedorForm,
   ],
   templateUrl: './produto-form.html',
   styleUrl: './produto-form.scss',
@@ -157,8 +177,30 @@ export class ProdutoForm implements OnInit, OnDestroy {
   protected readonly enviando = signal(false);
   protected readonly erroGeral = signal<string | null>(null);
   protected readonly opcoesUnidade = OPCOES_UNIDADE;
+  protected readonly NOVO_FORNECEDOR = NOVO_FORNECEDOR;
 
   protected readonly editando = computed(() => this.produto() !== null);
+
+  // --- Box da entrada inicial + sub-form de fornecedor (T-M6-10, §3.13/CA-35) --------------------
+
+  /** Box "Registrar entrada inicial de estoque" — desligado (default) = nenhum lançamento (§3.13). */
+  protected readonly entradaAberta = signal(false);
+  /** Sub-form `<app-fornecedor-form>` sobreposto à ficha (overlay `@defer`, padrão do cropper). */
+  protected readonly fornecedorFormAberto = signal(false);
+  /**
+   * Fornecedores criados NESTE diálogo. `fornecedores` é `@Input` (AD-SQ-72) e não pode ser mutado —
+   * o form mantém as opções num sinal local e a lista-mãe recarrega por conta própria depois.
+   */
+  private readonly fornecedoresCriados = signal<Fornecedor[]>([]);
+  /** Opções efetivas do select: as que vieram da lista-mãe + as criadas aqui (§3.13). */
+  protected readonly fornecedoresLocal = computed(() => [
+    ...this.fornecedores(),
+    ...this.fornecedoresCriados(),
+  ]);
+  /** Último fornecedor REAL escolhido — repõe o select quando a sentinela é selecionada/cancelada. */
+  private fornecedorAnterior: number | null = null;
+  /** Gatilho do select, para devolver o foco ao fechar o sub-form (§3.13). */
+  private readonly fornecedorSelect = viewChild<MatSelect>('fornecedorSelect');
 
   // --- Estado da imagem (T-M3-5, CA-12) ---
   /** Produto vivo no diálogo (edição): mutado após enviar/remover imagem para refletir `temImagem`. */
@@ -236,7 +278,9 @@ export class ProdutoForm implements OnInit, OnDestroy {
     const semSelecaoEventos = this.eventosSelecionados.value.length === 0;
     this.definirHabilitado(this.eventosSelecionados, !(eventosVazioSettled && semSelecaoEventos));
 
-    const fornecedorVazioSettled = this.fornecedoresProntos() && this.fornecedores().length === 0;
+    // T-M6-10: a conta é sobre as opções LOCAIS — cadastrar o 1º fornecedor pelo sub-form reabilita
+    // o select na hora (sem esperar a lista-mãe recarregar).
+    const fornecedorVazioSettled = this.fornecedoresProntos() && this.fornecedoresLocal().length === 0;
     this.definirHabilitado(this.fornecedorInicial, !(fornecedorVazioSettled && !this.editando()));
   });
 
@@ -496,6 +540,67 @@ export class ProdutoForm implements OnInit, OnDestroy {
       this.previewObjectUrl = null;
     }
     this.previewUrl.set(null);
+  }
+
+  // --- Box da entrada inicial + sub-form de fornecedor (T-M6-10, §3.13/CA-35) --------------------
+
+  /**
+   * Liga/desliga o box. Desligar LIMPA quantidade e fornecedor: a regra de envio continua sendo
+   * "quantidade > 0 ⇒ ENTRADA" (`aposCriar` intacto), então box desligado = NENHUMA movimentação —
+   * a invariante da armadilha #13/AD-SQ-35 vira consequência do estado, não de um `if` novo.
+   */
+  protected alternarEntrada(ligado: boolean): void {
+    this.entradaAberta.set(ligado);
+    if (!ligado) {
+      this.entradaInicial.setValue(null);
+      this.fornecedorInicial.setValue(null);
+      this.fornecedorAnterior = null;
+    }
+  }
+
+  /**
+   * Seleção no select de fornecedor. Escolher a sentinela NÃO é escolher um fornecedor: o controle
+   * volta ao valor anterior IMEDIATAMENTE (a sentinela nunca chega ao payload, nem se o diálogo for
+   * fechado com o sub-form aberto) e o `<app-fornecedor-form>` abre por cima.
+   */
+  protected aoEscolherFornecedor(valor: number | null): void {
+    if (valor !== NOVO_FORNECEDOR) {
+      this.fornecedorAnterior = valor;
+      return;
+    }
+    this.fornecedorInicial.setValue(this.fornecedorAnterior, { emitEvent: false });
+    this.abrirFornecedorForm();
+  }
+
+  protected abrirFornecedorForm(): void {
+    this.fornecedorFormAberto.set(true);
+  }
+
+  /**
+   * Fornecedor criado no sub-form (ele mesmo fez o POST — armadilha #12: NÃO duplicar a criação).
+   * Fecha o overlay, acrescenta a opção, seleciona o novo id e devolve o foco ao select. NENHUM
+   * controle do produto é tocado: sem `reset`, sem recarga, sem perder o recorte de foto pendente.
+   */
+  protected aoSalvarFornecedor(novo: Fornecedor): void {
+    this.fornecedorFormAberto.set(false);
+    this.fornecedoresCriados.update((atuais) => [...atuais, novo]);
+    this.fornecedorAnterior = novo.id;
+    this.fornecedorInicial.setValue(novo.id);
+    this.fornecedorSelect()?.focus();
+  }
+
+  /** Cancelar o sub-form: nada é criado e o select segue com o valor anterior (já reposto). */
+  protected aoCancelarFornecedor(): void {
+    this.fornecedorFormAberto.set(false);
+    this.fornecedorSelect()?.focus();
+  }
+
+  /** `Esc` fecha APENAS o sub-form (§3.13) — o diálogo de produto não tem/ganha atalho de fechar. */
+  @HostListener('document:keydown.escape')
+  protected aoPressionarEsc(): void {
+    if (this.fornecedorFormAberto()) {
+      this.aoCancelarFornecedor();
+    }
   }
 
   protected cancelar(): void {
