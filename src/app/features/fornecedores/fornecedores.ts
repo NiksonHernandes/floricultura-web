@@ -52,9 +52,13 @@ function paginatorPtBr(): MatPaginatorIntl {
  * (Novo/Editar) entra com a T-M5-10: os handlers já armam os signals `formAberto`/`fornecedorEmEdicao`.
  *
  * **T-M6-08c (ajuste 8 do dono — SPEC-M6 §3.11, CA-31/CA-37):** espelho fiel da T-M6-08b (Clientes).
- * Os cards viraram uma `<table>` densa (`_tabela-densa.scss`), com dois filtros tri-estado (com/sem
- * telefone, com/sem e-mail) e ordenação por cabeçalho — tudo **server-side** (§3.7), porque
- * filtrar/ordenar só a página corrente mentiria com paginação. Busca e `mat-paginator` permanecem.
+ * Os cards viraram uma `<table>` densa (`_tabela-densa.scss`), com ordenação por cabeçalho —
+ * **server-side** (§3.7), porque ordenar só a página corrente mentiria com paginação. Busca e
+ * `mat-paginator` permanecem.
+ *
+ * **T-M6-A2 (reversão do dono — CA-44/AD-SQ-107):** os dois filtros tri-estado foram REMOVIDOS
+ * ("deixe somente a busca por nome"). A tela ficou com busca + paginação + ordenação (cabeçalho no
+ * desktop, `<select>` no celular). O contrato do back segue intacto e coberto no serviço.
  */
 @Component({
   selector: 'app-fornecedores',
@@ -94,18 +98,12 @@ export class Fornecedores implements OnInit {
   /** Campo de busca por nome (filtro server-side com debounce — §3.4 `nome` ILIKE). */
   protected readonly filtro = new FormControl('', { nonNullable: true });
 
-  // --- Ajuste 8 (T-M6-08c): filtros tri-estado + ordenação, ambos server-side (§3.7/§3.11) ---
-
-  /** Tri-estado dos filtros de contato: `null` = Todos · `true` = Com · `false` = Sem. */
-  protected readonly comTelefone = signal<boolean | null>(null);
-  protected readonly comEmail = signal<boolean | null>(null);
-
-  /** As 3 opções de cada filtro, na ordem da fileira (evita repetir 3 botões no template). */
-  protected readonly opcoesFiltro: ReadonlyArray<{ rotulo: string; valor: boolean | null }> = [
-    { rotulo: 'Todos', valor: null },
-    { rotulo: 'Com', valor: true },
-    { rotulo: 'Sem', valor: false },
-  ];
+  // --- Ajuste 8 (T-M6-08c): ordenação server-side (§3.7/§3.11) ---
+  //
+  // T-M6-A2/AD-SQ-107: os dois tri-estados de contato SAÍRAM daqui inteiros (sinais, opções e
+  // handlers). Estado sem controle que o escreva é código morto (armadilha §12 #34) — diferente
+  // da capacidade de SERVIÇO do §3.7, que fica em `FornecedoresService`/`ContatoConsulta` com
+  // contrato, Swagger e spec próprio (dívida DT-M6-1).
 
   /**
    * ESTADO DE ORDENAÇÃO — fonte única (§3.11.1/R31). `ordenarPor` + `direcao` são os **únicos**
@@ -149,12 +147,7 @@ export class Fornecedores implements OnInit {
   protected carregar(): void {
     this.carregando.set(true);
     this.erro.set(null);
-    const consulta = {
-      comTelefone: this.comTelefone(),
-      comEmail: this.comEmail(),
-      ordenarPor: this.ordenarPor(),
-      direcao: this.direcao(),
-    };
+    const consulta = { ordenarPor: this.ordenarPor(), direcao: this.direcao() };
     this.service.listar(this.pagina(), this.tamanho(), this.filtro.value, consulta).subscribe({
       next: (pagina) => {
         this.fornecedores.set(pagina.conteudo);
@@ -183,18 +176,6 @@ export class Fornecedores implements OnInit {
   private reiniciar(): void {
     this.pagina.set(0);
     this.carregar();
-  }
-
-  /** Filtro tri-estado de telefone (`null` = Todos). Uma requisição por clique. */
-  protected filtrarPorTelefone(valor: boolean | null): void {
-    this.comTelefone.set(valor);
-    this.reiniciar();
-  }
-
-  /** Filtro tri-estado de e-mail (`null` = Todos). Uma requisição por clique. */
-  protected filtrarPorEmail(valor: boolean | null): void {
-    this.comEmail.set(valor);
-    this.reiniciar();
   }
 
   /**

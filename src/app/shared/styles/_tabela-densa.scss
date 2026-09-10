@@ -49,16 +49,38 @@
     padding: var(--esp-1) 0;
   }
 
+  // Eyebrow do app desde o M1 (AD-SQ-106): mesmos literais do `.meta dt` do card. A etiqueta do
+  // celular e o cabeçalho do desktop são a MESMA tipografia — declará-la uma vez só, aqui fora do
+  // `@media`, devolve ~100 B por tela (§9 regra 8). No celular `thead` é `display:none`, então
+  // aplicar isto ao `<th>`/`.tabela__ord` abaixo de 640px não muda nada no render.
+  // O `<button>` entra na lista porque a folha do navegador zera `text-transform` em controles.
+  .tabela td[data-rotulo]::before,
+  .tabela th,
+  .tabela__ord {
+    font: 600 0.66rem/1 var(--display);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--caule);
+  }
+
+  // A ligadura do `mat-icon` é CASE-SENSITIVE: o `text-transform: uppercase` da etiqueta acima é
+  // HERDADO pelo ícone e transforma `arrow_upward` em `ARROW_UPWARD`, que a fonte Material Icons
+  // não conhece — a seta de ordenação sairia como TEXTO no cabeçalho (AD-SQ-105, achado no preview
+  // 375/1440 da T-M6-08c). Este reset anda COLADO na regra que o causa: desde a T-M6-A2 o
+  // `uppercase` vale nos dois breakpoints, então o antídoto também sai do `@media`.
+  .tabela__ord mat-icon {
+    text-transform: none;
+    font-size: 1rem;
+    width: 1rem;
+    height: 1rem;
+    color: var(--caule);
+  }
+
   // CONTRATO DE MARCAÇÃO (D8): a célula com `data-rotulo` ganha etiqueta; a que não tem (nome e
   // ações), não. Regra por atributo é mais barata que `content: none` E não perde especificidade.
   .tabela td[data-rotulo]::before {
     content: attr(data-rotulo);
     flex: 0 0 5.5rem;
-    // Eyebrow do app desde o M1 (AD-SQ-106): mesmos literais do `.meta dt` do card.
-    font: 600 0.66rem/1 var(--display);
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--caule);
   }
 
   // Primeira coluna (nome): manda na hierarquia, dispensa rótulo. Era o `.ficha__nome` da agenda
@@ -82,9 +104,9 @@
     overflow: hidden;
   }
 
+  // Um único gatilho por linha (§3.11.2): o `gap` da fileira de 2 botões deixou de ter função.
   .tabela__acoes {
     justify-content: flex-end;
-    gap: var(--esp-1);
   }
 
   // Célula sem conteúdo não gera vão fantasma: como `<td>` é `flex` aqui, a linha vazia ainda
@@ -95,6 +117,15 @@
 
   // ---- >= $bp-sm: tabela de verdade -------------------------------------------------------------
   @include atelie.acima(atelie.$bp-sm) {
+    // Cartão branco do print do dono (§3.11.2/CA-45). Só existe daqui para cima: no celular a
+    // etiqueta de cada `<tr>` já é o cartão. Sem sombra e sem blur — leveza (AD-SQ-69).
+    .tabela-cartao {
+      border: 1px solid var(--orvalho);
+      border-radius: var(--raio);
+      background: #fff;
+      overflow: hidden;
+    }
+
     .tabela {
       display: table;
     }
@@ -115,21 +146,13 @@
       border-radius: 0;
     }
 
-    // O cabeçalho é a MESMA etiqueta de viveiro da versão celular. O <button> entra na lista
-    // porque a folha do navegador zera `text-transform` em controles — herdar não basta.
-    .tabela th,
-    .tabela__ord {
-      // Eyebrow pré-M6, literal (AD-SQ-106).
-      font: 600 0.66rem/1 var(--display);
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: var(--caule);
-    }
-
+    // Cabeçalho em fundo claro (§3.11.2 item 3): o lilás do print NÃO entra — seria o 8º hex do
+    // ateliê; usa-se o verde-vidro que já é a cor de apoio do app.
     .tabela th {
       text-align: left;
       padding: var(--esp-1) var(--esp-2);
       border-bottom: 1px solid var(--orvalho);
+      background: color-mix(in srgb, var(--orvalho) 55%, #fff);
     }
 
     // Ordenável: `aria-sort` mora no <th>, o clique mora no <button>.
@@ -141,27 +164,17 @@
       border: 0;
       background: none;
       cursor: pointer;
-
-      // A ligadura do `mat-icon` é CASE-SENSITIVE: o `text-transform: uppercase` da etiqueta é
-      // HERDADO pelo ícone e transforma `arrow_upward` em `ARROW_UPWARD`, que a fonte Material
-      // Icons não conhece — a seta de ordenação sairia como TEXTO no cabeçalho. Achado no preview
-      // 375/1440 da T-M6-08c; o conserto mora aqui porque vale igual para Clientes (T-M6-08b).
-      mat-icon {
-        text-transform: none;
-        font-size: 1rem;
-        width: 1rem;
-        height: 1rem;
-        color: var(--caule);
-      }
     }
 
     // `:empty` volta à lista porque `.tabela td:empty` (0,2,1) venceria `.tabela td` (0,1,1) e
     // apagaria a célula vazia na tabela de verdade — aqui todo `<td>` desenha a sua coluna.
+    // O respiro do print (≈60px de linha) vem do PADDING, nunca do token `--linha-densa`: ele é
+    // cravado em 2.25rem pela sonda `atelie-tokens.spec.ts` (armadilha §12 #33).
     .tabela td,
     .tabela td:empty {
       display: table-cell;
       height: var(--linha-densa);
-      padding: var(--esp-1) var(--esp-2);
+      padding: var(--esp-2);
       border-bottom: 1px solid var(--orvalho);
       vertical-align: middle;
     }
@@ -170,19 +183,14 @@
       content: none;
     }
 
-    // Zebra em verde-vidro (orvalho), não em cinza de planilha.
-    .tabela tbody tr:nth-child(2n) {
-      background: color-mix(in srgb, var(--orvalho) 40%, #fff);
-    }
+    // §3.11.2 item 7: a zebra SAIU — o print é de linhas brancas separadas pela hairline de
+    // orvalho que o `<td>` já desenha. (E a remoção devolve bytes ao orçamento do §9 regra 8.)
 
-    .tabela__acoes {
-      white-space: nowrap;
-      text-align: right;
-    }
-
-    // `.tabela th` (0,1,1) vence `.tabela__acoes` (0,1,0): sem esta linha o cabeçalho "Ações"
-    // fica à ESQUERDA, desalinhado dos botões que ele nomeia.
-    .tabela th.tabela__acoes {
+    // UMA regra para o `<th>` e o `<td>`: `.tabela .tabela__acoes` é (0,2,0) e vence o
+    // `.tabela th { text-align: left }` (0,1,1) — sem ela o cabeçalho "Ações" fica à ESQUERDA,
+    // desalinhado do gatilho que ele nomeia. O `white-space: nowrap` saiu junto com o par de
+    // botões: com um gatilho único não há fileira que possa quebrar.
+    .tabela .tabela__acoes {
       text-align: right;
     }
   }

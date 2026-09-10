@@ -89,17 +89,6 @@
   --mat-button-filled-ripple-color: color-mix(in srgb, white 30%, transparent);
 }
 
-@media (min-width: 640px) {
-  .placa:has(.placa__acao) {
-    grid-template-columns: 1fr auto;
-    align-items: center;
-  }
-
-  .placa__acao {
-    justify-self: end;
-  }
-}
-
 .placa__titulo {
   margin: 0.35rem 0 0;
   font: 400 clamp(1.7rem, 4.5vw, 2.4rem) / 1.05 var(--display);
@@ -114,45 +103,15 @@
   color: color-mix(in srgb, var(--sais) 92%, white);
 }
 
-/* ---- Fileira de controles: busca + filtros tri-estado (§3.11) ----
-   `flex-wrap` em vez de grid por breakpoint: no celular cada controle ocupa sua linha, no desktop
-   eles se acomodam lado a lado — e o seletor "Ordenar por" da T-M6-08d entra como último item sem
-   mexer em nada aqui. */
+/* ---- Fileira de controles: busca por nome + "Ordenar por" do celular (§3.11) ----
+   T-M6-A2 (AD-SQ-107): os 4 blocos que estilizavam os botões tri-estado SAÍRAM junto com eles —
+   o dono revogou os filtros ("deixe somente a busca por nome"). */
 .controles {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--esp-2);
   margin-bottom: var(--esp-3);
-}
-
-.filtro {
-  display: flex;
-  align-items: center;
-  gap: var(--esp-1);
-}
-
-/* Rótulo do grupo — versalete de etiqueta pré-M6, literal (AD-SQ-106). */
-.filtro__rotulo {
-  margin-right: var(--esp-1);
-  font: 600 0.66rem/1 var(--display);
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--caule);
-}
-
-.filtro__op {
-  min-height: var(--toque);
-  border-radius: var(--raio);
-
-  --mat-button-text-label-text-color: color-mix(in srgb, var(--tinta) 70%, var(--estufa));
-}
-
-/* O estado escolhido é sólido em folhagem (a dália segue reservada à ação primária). */
-.filtro__op--ativo {
-  background: var(--folhagem);
-
-  --mat-button-text-label-text-color: var(--estufa);
 }
 
 /* ---- Busca ---- */
@@ -219,14 +178,14 @@
 /* Seletor "Ordenar por" do celular (T-M6-08d, §3.11.1) — mixin à parte: só quem ordena paga (D3). */
 @include tabela.tabela-ordenar;
 
-/* Assinatura preservada: o monograma da agenda, agora do tamanho da linha densa. */
+/* Assinatura preservada: o monograma da agenda é o avatar circular do print (§3.11.2 item 5). */
 .ficha__monograma {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  width: 1.75rem;
-  height: 1.75rem;
+  width: 2.25rem;
+  height: 2.25rem;
   border-radius: 50%;
   color: var(--estufa);
   background: linear-gradient(180deg, #274a3a 0%, var(--folhagem) 100%);
@@ -234,23 +193,50 @@
   vertical-align: middle;
 }
 
+/* ---- Ação ÚNICA por linha (§3.11.2 item 8) — `<details>` NATIVO, como no card de produto
+   (AD-SQ-85). Fechado, os hooks `.ficha__editar`/`.ficha__excluir` continuam no DOM. */
+.ficha__mais {
+  position: relative;
+}
+
+.ficha__mais__gatilho {
+  display: inline-flex;
+  align-items: center;
+  min-width: var(--toque);
+  min-height: var(--toque);
+  color: var(--folhagem);
+  cursor: pointer;
+  list-style: none; /* o marcador ▸ do <summary> (Firefox); o inline-flex cobre o WebKit */
+}
+
+/* Absoluto e alinhado à direita: a linha não muda de altura ao abrir. */
+.ficha__mais__lista {
+  position: absolute;
+  right: 0;
+  z-index: 5;
+  display: grid;
+  padding: var(--esp-1);
+  border: 1px solid var(--orvalho);
+  background: #fff;
+}
+
 /* E-mail longo quebra dentro da célula em vez de empurrar a tabela (CA-37: zero scroll lateral). */
 .ficha__email {
   overflow-wrap: anywhere;
 }
 
+/* Dentro do expansor as ações são rotuladas por extenso (CA-46), com alvo de toque >= 44px. */
 .ficha__acao {
-  width: var(--toque);
-  height: var(--toque);
+  min-height: var(--toque);
+
+  --mat-button-text-label-text-color: var(--folhagem);
+  --mat-button-text-icon-color: var(--folhagem);
 }
 
-.ficha__editar {
-  --mat-icon-button-icon-color: var(--folhagem);
-}
-
-/* Excluir sinaliza perigo na dália carmim — sem gritar (só o ícone). */
+/* Excluir sinaliza perigo na dália carmim — sem gritar. */
 .ficha__excluir {
-  --mat-icon-button-icon-color: #8f2450;
+  --mat-button-text-label-text-color: #8f2450;
+  --mat-button-text-icon-color: #8f2450;
 }
 
 /* ---- Paginação ---- */
@@ -264,16 +250,28 @@
   --mat-paginator-enabled-icon-color: var(--folhagem);
 }
 
-/* ---- Desktop: larguras das 5 colunas (§3.11) ----
+/* ---- Desktop (>= 640px): placa em 2 colunas + larguras das 5 colunas da tabela (§3.11) ----
+   Um `@media` só para a tela inteira (o da placa foi fundido aqui na T-M6-A2): cada abertura de
+   media query custa ~25 B no CSS emitido, e o §9 regra 8 exige que esta onda DEVOLVA bytes.
    `table-layout: fixed` é requisito, não estética: sem ele a célula de Observações se estica com o
    conteúdo e o `-webkit-line-clamp: 1` do `.tabela__apoio` nunca chega a cortar nada. */
 @include atelie.acima(atelie.$bp-sm) {
+  .placa:has(.placa__acao) {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+  }
+
+  .placa__acao {
+    justify-self: end;
+  }
+
   .tabela {
     table-layout: fixed;
   }
 
+  /* 24% (era 20%): o avatar de 2.25rem do print entra sem espremer o nome (§3.11.2). */
   .tabela th:nth-child(1) {
-    width: 20%;
+    width: 24%;
   }
 
   .tabela th:nth-child(2) {
@@ -290,7 +288,7 @@
   }
 
   .ficha__monograma {
-    margin-right: var(--esp-1);
+    margin-right: var(--esp-2);
   }
 }
 
@@ -298,6 +296,7 @@
    O `.tabela__ord` é `<button>` puro (não passa pelo MDC), então entra na lista explicitamente. */
 :host ::ng-deep .mdc-button:focus-visible,
 :host ::ng-deep .mat-mdc-paginator .mdc-icon-button:focus-visible,
+.ficha__mais__gatilho:focus-visible,
 .tabela__ord:focus-visible {
   outline: 2px solid var(--caule);
   outline-offset: -2px;

@@ -155,80 +155,15 @@ describe('Clientes em tabela (T-M6-08b, CA-31)', () => {
     expect(obs.getAttribute('title')).toBe(maria.observacoes!); // texto completo no title
   });
 
-  // --- Filtros tri-estado → params do back (§3.7) ---
-
-  it('filtro "Telefone: Com" faz UMA requisição com comTelefone=true e pagina=0', () => {
-    const fixture = iniciar();
-    const el = fixture.nativeElement as HTMLElement;
-    const botoes = el.querySelectorAll('.filtro')[0].querySelectorAll('.filtro__op');
-    expect(Array.from(botoes).map((b) => b.textContent?.trim())).toEqual(['Todos', 'Com', 'Sem']);
-
-    (botoes[1] as HTMLButtonElement).click();
-    fixture.detectChanges();
-
-    const req = httpMock.expectOne((r) => r.url === BASE);
-    expect(req.request.params.get('comTelefone')).toBe('true');
-    expect(req.request.params.get('pagina')).toBe('0');
-    expect(req.request.params.has('comEmail')).toBeFalse();
-    req.flush(envelope(pagina([maria])));
-    fixture.detectChanges();
-    expect(botoes[1].getAttribute('aria-pressed')).toBe('true');
-    expect(botoes[0].getAttribute('aria-pressed')).toBe('false');
-  });
-
-  it('"E-mail: Sem" manda comEmail=false e combina com o filtro de telefone (E)', () => {
-    const fixture = iniciar();
-    const el = fixture.nativeElement as HTMLElement;
-
-    (el.querySelectorAll('.filtro')[0].querySelectorAll('.filtro__op')[2] as HTMLButtonElement)
-      .click();
-    fixture.detectChanges();
-    httpMock.expectOne((r) => r.url === BASE).flush(envelope(pagina([semContato])));
-    fixture.detectChanges();
-
-    (el.querySelectorAll('.filtro')[1].querySelectorAll('.filtro__op')[2] as HTMLButtonElement)
-      .click();
-    fixture.detectChanges();
-
-    const req = httpMock.expectOne((r) => r.url === BASE);
-    expect(req.request.params.get('comTelefone')).toBe('false'); // "Sem" é filtro, não ausência
-    expect(req.request.params.get('comEmail')).toBe('false');
-    req.flush(envelope(pagina([semContato])));
-  });
-
-  it('voltar para "Todos" tira o param da requisição (tri-estado)', () => {
-    const fixture = iniciar();
-    const opcoes = (fixture.nativeElement as HTMLElement)
-      .querySelectorAll('.filtro')[1]
-      .querySelectorAll('.filtro__op');
-
-    (opcoes[1] as HTMLButtonElement).click();
-    fixture.detectChanges();
-    httpMock.expectOne((r) => r.url === BASE).flush(envelope(pagina([maria])));
-    fixture.detectChanges();
-
-    (opcoes[0] as HTMLButtonElement).click();
-    fixture.detectChanges();
-    const req = httpMock.expectOne((r) => r.url === BASE);
-    expect(req.request.params.has('comEmail')).toBeFalse();
-    req.flush(envelope(pagina([maria])));
-  });
-
-  it('vazio SOB FILTRO não mente dizendo que a agenda está vazia (P2 do review — T-M6-08c)', () => {
-    const fixture = iniciar();
-    const opcoes = (fixture.nativeElement as HTMLElement)
-      .querySelectorAll('.filtro')[0]
-      .querySelectorAll('.filtro__op');
-
-    (opcoes[2] as HTMLButtonElement).click(); // "Telefone: Sem"
-    fixture.detectChanges();
-    httpMock.expectOne((r) => r.url === BASE).flush(envelope(pagina([])));
-    fixture.detectChanges();
-
-    const vazio = (fixture.nativeElement as HTMLElement).querySelector('.estado--vazio');
-    expect(vazio?.textContent).toContain('Nenhum cliente com esses filtros.');
-    expect(vazio?.textContent).not.toContain('A agenda ainda está vazia');
-  });
+  // --- Filtros tri-estado → params do back (§3.7): 4 casos REMOVIDOS na T-M6-A2 ---
+  //
+  // O dono REVOGOU o comportamento por escrito ("Remova os filtros de clientes e fornecedores,
+  // deixe somente a busca por nome") — CA-31 (cláusula dos filtros) e AD-SQ-107. Os controles não
+  // existem mais, então os casos "Telefone: Com", "E-mail: Sem", "voltar para Todos" e "vazio SOB
+  // FILTRO" testavam DOM inexistente. Removidos inteiros (nada de `xit`, que só deixa código
+  // morto), com autorização humana registrada em `squad/.permitir-edicao-teste` (AD-SQ-109).
+  // O que ficou coberto no lugar: `features/contatos-consulta.service.spec.ts` (CA-44), que prova
+  // o mapeamento dos 2 params direto no serviço — a capacidade do §3.7 segue viva e testada.
 
   // --- Ordenação pelo cabeçalho (§3.11) ---
 
@@ -291,6 +226,27 @@ describe('Clientes em tabela (T-M6-08b, CA-31)', () => {
     const el = iniciar().nativeElement as HTMLElement;
     expect(el.querySelector('.controles .busca input')).toBeTruthy();
     expect(el.querySelector('.ficha__monograma')?.textContent?.trim()).toBe('M');
+  });
+
+  // --- Layout do print + ação única (T-M6-A2, §3.11.2 / CA-45 / CA-46) ---
+
+  it('a tabela vive dentro do cartão e cada linha tem UM gatilho, com os 2 hooks fechados dentro', () => {
+    const el = iniciar([maria, semContato]).nativeElement as HTMLElement;
+
+    // CA-45: o cartão branco do print é o pai direto da tabela.
+    expect(el.querySelector('.tabela-cartao > table.tabela')).toBeTruthy();
+
+    // CA-46: um único gatilho visível por linha, rotulado para o leitor de tela.
+    const gatilhos = el.querySelectorAll('tbody .ficha__mais > summary');
+    expect(gatilhos.length).toBe(2);
+    expect(gatilhos[0].getAttribute('aria-label')).toBe('Ações de Maria Flores');
+    expect(gatilhos[0].querySelector('mat-icon')?.textContent?.trim()).toBe('menu');
+
+    // ...e Editar/Excluir seguem no DOM com o <details> FECHADO, agora rotulados por extenso.
+    const expansor = el.querySelector('tbody .ficha__mais') as HTMLDetailsElement;
+    expect(expansor.open).toBeFalse();
+    expect(expansor.querySelector('.ficha__editar')?.textContent).toContain('Editar');
+    expect(expansor.querySelector('.ficha__excluir')?.textContent).toContain('Excluir');
   });
 
   it('USER lê a tabela inteira, mas sem as ações de escrita (FC-07)', () => {
