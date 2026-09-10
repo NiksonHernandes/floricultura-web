@@ -113,7 +113,11 @@
 .ficha__grade {
   display: grid;
   grid-template-columns: minmax(0, 1fr); // minmax(0,…) deixa o campo encolher (evita overflow)
-  gap: 0.25rem 1rem;
+  column-gap: 1rem;
+  // Ajuste 3/M6 (CA-27, §3.9): era 0.25rem. Com hint de 2 linhas a 375px a folga não separava as
+  // linhas do grid — o hint do preço encostava no campo seguinte. Token --esp-2 (T-M6-03), com
+  // fallback igual ao valor do token para não depender da ordem de merge das tasks da onda 1.
+  row-gap: var(--esp-2, 0.75rem);
 }
 
 .ficha__campo {

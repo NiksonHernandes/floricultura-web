@@ -79,8 +79,10 @@
         }
       </mat-form-field>
 
-      <mat-form-field appearance="outline" class="ficha__campo">
-        <mat-label>Preço</mat-label>
+      <!-- Ajuste 3/M6 (CA-27): rótulo "Preço de venda" (P9) e `subscriptSizing="dynamic"` — o subscript de
+           altura FIXA do Material fazia o hint de 2 linhas invadir o campo "URL da imagem" a 375px (§3.9). -->
+      <mat-form-field appearance="outline" class="ficha__campo" subscriptSizing="dynamic">
+        <mat-label>Preço de venda</mat-label>
         <span matTextPrefix>R$&nbsp;</span>
         <input matInput type="number" formControlName="preco" min="0" step="0.01" placeholder="Opcional" />
         @if (form.controls.preco.hasError('min')) {
@@ -164,7 +166,8 @@
                 (change)="aoSelecionarArquivo($event)"
               />
             </div>
-            <p class="foto__dica">Do seu dispositivo — JPG, PNG ou WEBP até 5 MB.</p>
+            <!-- Teto real de entrada = 2 MB desde o M5.2 (AD-SQ-77) — texto corrigido em T-M6-04/PA#5. -->
+            <p class="foto__dica">Do seu dispositivo — JPG, PNG ou WEBP até 2 MB.</p>
             @if (erroImagem(); as msg) {
               <p class="foto__erro" role="alert">
                 <mat-icon aria-hidden="true">error_outline</mat-icon>
@@ -182,6 +185,7 @@
         appearance="outline"
         class="ficha__campo ficha__campo--largo"
         [class.ficha__campo--vazio]="eventosSelecionados.disabled"
+        subscriptSizing="dynamic"
       >
         <mat-label>Eventos (sazonalidade)</mat-label>
         <mat-select
@@ -202,7 +206,11 @@
 
       <!-- Entrada inicial de estoque (T-M2-11, CA-22 — SÓ no modo criação; AD-SQ-35). -->
       @if (!editando()) {
-        <mat-form-field appearance="outline" class="ficha__campo ficha__campo--largo">
+        <mat-form-field
+          appearance="outline"
+          class="ficha__campo ficha__campo--largo"
+          subscriptSizing="dynamic"
+        >
           <mat-label>Entrada inicial de estoque</mat-label>
           <input
             matInput
@@ -227,6 +235,7 @@
           appearance="outline"
           class="ficha__campo ficha__campo--largo"
           [class.ficha__campo--vazio]="fornecedorInicial.disabled"
+          subscriptSizing="dynamic"
         >
           <mat-label>Fornecedor</mat-label>
           <mat-select
