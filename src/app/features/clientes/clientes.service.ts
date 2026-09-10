@@ -7,6 +7,27 @@ import { ApiResponse } from '../../core/models/api-response.model';
 import { PaginaResponse } from '../../core/models/produto.model';
 import { Cliente, ClienteRequest } from '../../core/models/cliente.model';
 
+/** Campo de ordenação aceito pelo back em `GET /clientes` (SPEC-M6 §3.7). */
+export type OrdemContato = 'nome' | 'telefone' | 'email';
+
+/** Direção da ordenação (SPEC-M6 §3.7). */
+export type DirecaoOrdem = 'asc' | 'desc';
+
+/**
+ * Filtros/ordenação da lista de contatos (SPEC-M6 §3.7, T-M6-08a).
+ *
+ * `comTelefone`/`comEmail` são TRI-ESTADO: `null`/ausente = sem filtro · `true` = tem ·
+ * `false` = **não** tem (nulo ou vazio após trim, R25). Vai como 4º argumento OPCIONAL de
+ * `listar` de propósito: a assinatura posicional `(pagina, tamanho, nome?)` do M5 continua
+ * válida para os chamadores que não filtram (`movimentar-estoque`, testes herdados).
+ */
+export interface ContatoConsulta {
+  comTelefone?: boolean | null;
+  comEmail?: boolean | null;
+  ordenarPor?: OrdemContato;
+  direcao?: DirecaoOrdem;
+}
+
 /**
  * Serviço de Clientes (SPEC-M5 §3.4/§3.6, T-M5-6). Espelho fiel de `EventosService`.
  *
@@ -25,15 +46,31 @@ export class ClientesService {
   private readonly baseUrl = `${environment.apiBaseUrl}/clientes`;
 
   /**
-   * GET /clientes?pagina&tamanho&nome → página de clientes (§3.4, 0-based; ordem `nome ASC` no back;
-   * itens da lista com `produtoIds=null`). `nome` só entra no request quando há filtro (evita
-   * `nome=` vazio na URL).
+   * GET /clientes?pagina&tamanho&nome[&comTelefone&comEmail&ordenarPor&direcao] → página de clientes
+   * (§3.4, 0-based; itens da lista com `produtoIds=null`). `nome` só entra no request quando há
+   * filtro (evita `nome=` vazio na URL); os tri-estados só entram quando o operador escolheu
+   * "Com"/"Sem" (SPEC-M6 §3.7 — ausente é "sem filtro", e `comTelefone=false` é filtro LEGÍTIMO,
+   * por isso o teste é contra `null`/`undefined`, nunca falsy).
    */
-  listar(pagina: number, tamanho: number, nome?: string): Observable<PaginaResponse<Cliente>> {
+  listar(
+    pagina: number,
+    tamanho: number,
+    nome?: string,
+    consulta?: ContatoConsulta,
+  ): Observable<PaginaResponse<Cliente>> {
     let params = new HttpParams().set('pagina', pagina).set('tamanho', tamanho);
     const termo = nome?.trim();
     if (termo) {
       params = params.set('nome', termo);
+    }
+    if (consulta?.comTelefone !== null && consulta?.comTelefone !== undefined) {
+      params = params.set('comTelefone', consulta.comTelefone);
+    }
+    if (consulta?.comEmail !== null && consulta?.comEmail !== undefined) {
+      params = params.set('comEmail', consulta.comEmail);
+    }
+    if (consulta?.ordenarPor) {
+      params = params.set('ordenarPor', consulta.ordenarPor).set('direcao', consulta.direcao ?? 'asc');
     }
     return this.http
       .get<ApiResponse<PaginaResponse<Cliente>>>(this.baseUrl, { params })

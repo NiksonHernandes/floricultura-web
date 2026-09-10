@@ -15,28 +15,66 @@
     }
   </header>
 
-  <mat-form-field appearance="outline" class="busca">
-    <mat-icon matPrefix aria-hidden="true">search</mat-icon>
-    <mat-label>Buscar por nome</mat-label>
-    <input
-      matInput
-      type="text"
-      [formControl]="filtro"
-      autocomplete="off"
-      aria-label="Buscar clientes por nome"
-    />
-    @if (filtro.value) {
-      <button
-        matSuffix
-        mat-icon-button
-        type="button"
-        aria-label="Limpar busca"
-        (click)="limparFiltro()"
-      >
-        <mat-icon>close</mat-icon>
-      </button>
-    }
-  </mat-form-field>
+  <!--
+    Fileira de controles (T-M6-08b): busca + os 2 filtros tri-estado. O seletor "Ordenar por" do
+    celular (T-M6-08d, §3.11.1) entra AQUI como último item — por isso o contêiner já existe.
+  -->
+  <div class="controles">
+    <mat-form-field appearance="outline" class="busca">
+      <mat-icon matPrefix aria-hidden="true">search</mat-icon>
+      <mat-label>Buscar por nome</mat-label>
+      <input
+        matInput
+        type="text"
+        [formControl]="filtro"
+        autocomplete="off"
+        aria-label="Buscar clientes por nome"
+      />
+      @if (filtro.value) {
+        <button
+          matSuffix
+          mat-icon-button
+          type="button"
+          aria-label="Limpar busca"
+          (click)="limparFiltro()"
+        >
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+    </mat-form-field>
+
+    <div class="filtro" role="group" aria-label="Filtrar por telefone">
+      <span class="filtro__rotulo">Telefone</span>
+      @for (op of opcoesFiltro; track op.rotulo) {
+        <button
+          type="button"
+          mat-button
+          class="filtro__op"
+          [class.filtro__op--ativo]="comTelefone() === op.valor"
+          [attr.aria-pressed]="comTelefone() === op.valor"
+          (click)="filtrarPorTelefone(op.valor)"
+        >
+          {{ op.rotulo }}
+        </button>
+      }
+    </div>
+
+    <div class="filtro" role="group" aria-label="Filtrar por e-mail">
+      <span class="filtro__rotulo">E-mail</span>
+      @for (op of opcoesFiltro; track op.rotulo) {
+        <button
+          type="button"
+          mat-button
+          class="filtro__op"
+          [class.filtro__op--ativo]="comEmail() === op.valor"
+          [attr.aria-pressed]="comEmail() === op.valor"
+          (click)="filtrarPorEmail(op.valor)"
+        >
+          {{ op.rotulo }}
+        </button>
+      }
+    </div>
+  </div>
 
   @if (carregando()) {
     <p class="estado" aria-live="polite">
@@ -59,68 +97,99 @@
       }
     </div>
   } @else {
-    <ul class="fichas" aria-label="Clientes cadastrados">
-      @for (c of clientes(); track c.id) {
-        <li class="ficha">
-          <!-- Assinatura: monograma do contato (inicial do nome) — motivo de agenda/rolodex. -->
-          <div class="ficha__monograma" aria-hidden="true">{{ inicial(c.nome) }}</div>
-
-          <div class="ficha__corpo">
-            <h2 class="ficha__nome">{{ c.nome }}</h2>
-
-            <dl class="ficha__contato">
-              @if (c.telefone) {
-                <div class="ficha__linha">
-                  <dt><mat-icon aria-hidden="true">call</mat-icon><span class="sr">Telefone</span></dt>
-                  <dd>{{ c.telefone }}</dd>
-                </div>
-              }
-              @if (c.email) {
-                <div class="ficha__linha">
-                  <dt><mat-icon aria-hidden="true">mail_outline</mat-icon><span class="sr">E-mail</span></dt>
-                  <dd class="ficha__email">{{ c.email }}</dd>
-                </div>
-              }
+    <!--
+      Tabela SEMÂNTICA (§3.11): no desktop é tabela de verdade (ordenação no <th>); abaixo de
+      640px o `_tabela-densa.scss` desmonta cada <tr> numa etiqueta com rótulo por célula.
+      A coluna "Ações" existe sempre (CA-31); o conteúdo é que é RBAC de UX (FC-07).
+    -->
+    <table class="tabela" aria-label="Clientes cadastrados">
+      <thead>
+        <tr>
+          @for (col of colunas; track col.campo) {
+            <th scope="col" [attr.aria-sort]="ariaSort(col.campo)">
+              <button
+                type="button"
+                class="tabela__ord"
+                (click)="alternarOrdem(col.campo)"
+                [attr.aria-label]="'Ordenar por ' + col.rotulo"
+              >
+                <span>{{ col.rotulo }}</span>
+                @if (ordenarPor() === col.campo) {
+                  <mat-icon aria-hidden="true">{{
+                    direcao() === 'asc' ? 'arrow_upward' : 'arrow_downward'
+                  }}</mat-icon>
+                }
+              </button>
+            </th>
+          }
+          <th scope="col">Observações</th>
+          <th scope="col" class="tabela__acoes">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (c of clientes(); track c.id) {
+          <tr class="ficha">
+            <td class="tabela__titulo">
+              <!-- Assinatura preservada: o monograma da agenda, encolhido para a linha densa. -->
+              <span class="ficha__monograma" aria-hidden="true">{{ inicial(c.nome) }}</span>
+              <span class="ficha__nome">{{ c.nome }}</span>
               @if (!c.telefone && !c.email) {
-                <div class="ficha__linha ficha__linha--sem">
-                  <dt><mat-icon aria-hidden="true">contact_page</mat-icon></dt>
-                  <dd>Sem telefone ou e-mail cadastrado.</dd>
-                </div>
+                <span class="ficha__linha--sem sr">Sem telefone ou e-mail cadastrado.</span>
               }
-            </dl>
-
-            @if (c.observacoes) {
-              <p class="ficha__obs">{{ c.observacoes }}</p>
-            }
-
-            @if (ehAdmin()) {
-              <div class="ficha__acoes">
+            </td>
+            <td data-rotulo="Telefone">
+              @if (c.telefone) {
+                {{ c.telefone }}
+              } @else {
+                <span class="tabela__vazio">—</span>
+              }
+            </td>
+            <td data-rotulo="E-mail" class="ficha__email">
+              @if (c.email) {
+                {{ c.email }}
+              } @else {
+                <span class="tabela__vazio">—</span>
+              }
+            </td>
+            <!--
+              O clamp de 1 linha mora no <span>, NUNCA no <td>: `.tabela td` declara `display`
+              (flex/table-cell) com especificidade maior e engoliria o `-webkit-box` em silêncio.
+            -->
+            <td [attr.data-rotulo]="c.observacoes ? 'Observações' : null">
+              @if (c.observacoes) {
+                <span class="tabela__apoio ficha__obs" [title]="c.observacoes">{{
+                  c.observacoes
+                }}</span>
+              }
+            </td>
+            <td class="tabela__acoes">
+              @if (ehAdmin()) {
                 <button
                   type="button"
-                  mat-button
+                  mat-icon-button
                   class="ficha__acao ficha__editar"
                   (click)="editarCliente(c)"
                   [attr.aria-label]="'Editar ' + c.nome"
+                  [title]="'Editar ' + c.nome"
                 >
                   <mat-icon aria-hidden="true">edit</mat-icon>
-                  <span>Editar</span>
                 </button>
                 <button
                   type="button"
-                  mat-button
+                  mat-icon-button
                   class="ficha__acao ficha__excluir"
                   (click)="excluirCliente(c)"
                   [attr.aria-label]="'Excluir ' + c.nome"
+                  [title]="'Excluir ' + c.nome"
                 >
                   <mat-icon aria-hidden="true">delete_outline</mat-icon>
-                  <span>Excluir</span>
                 </button>
-              </div>
-            }
-          </div>
-        </li>
-      }
-    </ul>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
 
     <mat-paginator
       class="paginacao"
