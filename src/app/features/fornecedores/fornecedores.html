@@ -74,6 +74,28 @@
         </button>
       }
     </div>
+
+    <!--
+      Ordenar no CELULAR (T-M6-08d, §3.11.1 — espelho de Clientes): abaixo de 640px o `<thead>` é
+      `display:none`, então sem este seletor a ordenação existiria só no desktop (FC-02). O valor é
+      DERIVADO e o `change` delega ao MESMO `definirOrdem` do `<th>`; esconder é papel do CSS.
+    -->
+    <div class="tabela-ordenar">
+      <label class="tabela-ordenar__rotulo" for="ordenar-fornecedores">Ordenar por</label>
+      <select
+        id="ordenar-fornecedores"
+        class="tabela-ordenar__campo"
+        [value]="ordemSelecionada()"
+        (change)="aoOrdenarNoCelular($any($event.target).value)"
+      >
+        <option value="nome:asc">Nome (A–Z)</option>
+        <option value="nome:desc">Nome (Z–A)</option>
+        <option value="telefone:asc">Telefone (crescente)</option>
+        <option value="telefone:desc">Telefone (decrescente)</option>
+        <option value="email:asc">E-mail (A–Z)</option>
+        <option value="email:desc">E-mail (Z–A)</option>
+      </select>
+    </div>
   </div>
 
   @if (carregando()) {

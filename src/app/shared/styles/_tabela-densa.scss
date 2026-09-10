@@ -82,6 +82,12 @@
     gap: var(--esp-1);
   }
 
+  // Célula sem conteúdo não gera vão fantasma: como `<td>` é `flex` aqui, a linha vazia ainda
+  // pagaria ~11px de padding por registro na etiqueta do celular.
+  .tabela td:empty {
+    display: none;
+  }
+
   // ---- >= $bp-sm: tabela de verdade -------------------------------------------------------------
   @include atelie.acima(atelie.$bp-sm) {
     .tabela {
@@ -143,7 +149,10 @@
       }
     }
 
-    .tabela td {
+    // `:empty` volta à lista porque `.tabela td:empty` (0,2,1) venceria `.tabela td` (0,1,1) e
+    // apagaria a célula vazia na tabela de verdade — aqui todo `<td>` desenha a sua coluna.
+    .tabela td,
+    .tabela td:empty {
       display: table-cell;
       height: var(--linha-densa);
       padding: var(--esp-1) var(--esp-2);
@@ -163,6 +172,50 @@
     .tabela__acoes {
       white-space: nowrap;
       text-align: right;
+    }
+
+    // `.tabela th` (0,1,1) vence `.tabela__acoes` (0,1,0): sem esta linha o cabeçalho "Ações"
+    // fica à ESQUERDA, desalinhado dos botões que ele nomeia.
+    .tabela th.tabela__acoes {
+      text-align: right;
+    }
+  }
+}
+
+// Ordenação no CELULAR (SPEC-M6 §3.11.1 / AD-SQ-98) — mixin SEPARADO de propósito: quem consome
+// `tabela-densa` sem ter ordenação (o `cores.scss` da T-M6-06a) não pode pagar estes bytes (D3).
+// Abaixo de $bp-sm o `<thead>` (onde vivem os botões de ordenar) é `display:none`; este é o
+// afordance equivalente para o celular. Visibilidade por CSS, nunca `@if`, espelhando o `<thead>`:
+// exatamente um afordance de ordenação por breakpoint, no layout e na árvore de a11y.
+@mixin tabela-ordenar {
+  .tabela-ordenar {
+    display: grid;
+    gap: var(--esp-1);
+    flex: 1 1 100%; // linha própria na fileira `.controles` (que é flex-wrap)
+  }
+
+  // É rótulo, não dado: o versalete de etiqueta é legítimo aqui (D6/AD-SQ-95).
+  .tabela-ordenar__rotulo {
+    font: var(--txt-rotulo);
+    letter-spacing: var(--txt-rotulo-track);
+    text-transform: uppercase;
+    color: var(--tinta-fraca);
+  }
+
+  // MÍNIMO de propósito: sem `appearance: none`, o chevron e o picker do sistema vêm de graça
+  // (AD-SQ-69). Os 16px evitam o zoom automático do Safari iOS no foco — requisito, não estética.
+  .tabela-ordenar__campo {
+    min-height: var(--toque);
+    border: 1px solid var(--orvalho);
+    border-radius: var(--raio);
+    background: #fff;
+    font-family: inherit;
+    font-size: 1rem;
+  }
+
+  @include atelie.acima(atelie.$bp-sm) {
+    .tabela-ordenar {
+      display: none;
     }
   }
 }

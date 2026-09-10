@@ -115,6 +115,12 @@ export class Fornecedores implements OnInit {
   protected readonly ordenarPor = signal<OrdemContato>('nome');
   protected readonly direcao = signal<DirecaoOrdem>('asc');
 
+  /**
+   * Valor do `<select>` do celular (T-M6-08d): PROJEÇÃO do par (campo, direção). `computed` de
+   * propósito — um `signal`/`FormControl` aqui criaria um segundo dono da ordenação.
+   */
+  protected readonly ordemSelecionada = computed(() => `${this.ordenarPor()}:${this.direcao()}`);
+
   /** Colunas ordenáveis, na ordem do cabeçalho (Observações e Ações não ordenam — §3.11). */
   protected readonly colunas: ReadonlyArray<{ campo: OrdemContato; rotulo: string }> = [
     { campo: 'nome', rotulo: 'Nome' },
@@ -206,6 +212,15 @@ export class Fornecedores implements OnInit {
   protected alternarOrdem(campo: OrdemContato): void {
     const invertida = this.ordenarPor() === campo && this.direcao() === 'asc' ? 'desc' : 'asc';
     this.definirOrdem(campo, invertida);
+  }
+
+  /**
+   * Seletor do celular (§3.11.1): quebra `campo:direcao` e delega ao MESMO escritor do `<th>` — uma
+   * escolha, uma requisição, e meio-estado ("troquei o campo, ainda não a direção") impossível.
+   */
+  protected aoOrdenarNoCelular(valor: string): void {
+    const [campo, direcao] = valor.split(':');
+    this.definirOrdem(campo as OrdemContato, direcao as DirecaoOrdem);
   }
 
   /** `aria-sort` do `<th>` (a11y §9): só a coluna ativa anuncia a direção. */

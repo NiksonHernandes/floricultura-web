@@ -216,6 +216,9 @@
 /* ---- A agenda em tabela (§3.11): anatomia herdada do partial, ajustes só desta tela ---- */
 @include tabela.tabela-densa;
 
+/* Seletor "Ordenar por" do celular (T-M6-08d, §3.11.1) — mixin à parte: só quem ordena paga (D3). */
+@include tabela.tabela-ordenar;
+
 /* Assinatura preservada: o monograma da agenda, agora do tamanho da linha densa. */
 .ficha__monograma {
   display: inline-flex;
