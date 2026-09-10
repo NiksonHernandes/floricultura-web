@@ -132,20 +132,20 @@
   gap: var(--esp-1);
 }
 
-/* Rótulo do grupo — versalete de etiqueta (é RÓTULO, não dado: --txt-rotulo é legítimo aqui). */
+/* Rótulo do grupo — versalete de etiqueta pré-M6, literal (AD-SQ-106). */
 .filtro__rotulo {
   margin-right: var(--esp-1);
-  font: var(--txt-rotulo);
-  letter-spacing: var(--txt-rotulo-track);
+  font: 600 0.66rem/1 var(--display);
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--tinta-fraca);
+  color: var(--caule);
 }
 
 .filtro__op {
   min-height: var(--toque);
   border-radius: var(--raio);
 
-  --mat-button-text-label-text-color: var(--tinta-media);
+  --mat-button-text-label-text-color: color-mix(in srgb, var(--tinta) 70%, var(--estufa));
 }
 
 /* O estado escolhido é sólido em folhagem (a dália segue reservada à ação primária). */

@@ -153,7 +153,7 @@
 .lancamento__tipo {
   grid-area: tipo;
   justify-self: start;
-  font: 600 0.72rem/1.5 var(--corpo);
+  font: 600 0.72rem/1.5 var(--mat-sys-body-small);
   padding: 0.1rem 0.6rem;
   border-radius: 999px;
   letter-spacing: 0.02em;
@@ -200,7 +200,7 @@
   vertical-align: middle;
   background: color-mix(in srgb, var(--tinta) 8%, var(--estufa));
   color: color-mix(in srgb, var(--tinta) 55%, var(--estufa));
-  font: 600 0.66rem/1.5 var(--corpo);
+  font: 600 0.66rem/1.5 var(--mat-sys-body-small);
   letter-spacing: 0.02em;
   overflow-wrap: anywhere;
 }
@@ -228,7 +228,7 @@
 
   dd {
     margin: 0.15rem 0 0;
-    font: 600 0.92rem/1.2 var(--corpo);
+    font: 600 0.92rem/1.2 var(--mat-sys-body-medium);
     color: var(--tinta);
     font-variant-numeric: tabular-nums;
   }
@@ -252,7 +252,7 @@
   justify-self: end;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
-  font: 600 0.75rem/1.4 var(--corpo);
+  font: 600 0.74rem/1.4 var(--mat-sys-body-small);
   color: color-mix(in srgb, var(--tinta) 55%, white);
 }
 

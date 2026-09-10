@@ -10,11 +10,14 @@
 @use 'atelie-tokens' as atelie;
 
 @mixin tabela-densa {
+  // ⚠️ AD-SQ-106 (revisão 9): superfície NOVA não tem "estado anterior" para restaurar, então
+  // ela herda a tipografia da FICHA pré-M6 desta mesma tela, valor por valor (§3.8d tabela C).
+  // A base da célula é o corpo de texto do app — peso 400 —, não os 500/0.85rem do `--txt-dado`.
   .tabela {
     width: 100%;
     border-collapse: collapse;
-    font: var(--txt-dado);
-    color: var(--tinta-forte);
+    font: var(--mat-sys-body-medium);
+    color: var(--tinta);
   }
 
   // ---- Celular (< $bp-sm): a tabela desmonta em etiquetas ---------------------------------------
@@ -51,25 +54,27 @@
   .tabela td[data-rotulo]::before {
     content: attr(data-rotulo);
     flex: 0 0 5.5rem;
-    font: var(--txt-rotulo);
-    letter-spacing: var(--txt-rotulo-track);
+    // Eyebrow do app desde o M1 (AD-SQ-106): mesmos literais do `.meta dt` do card.
+    font: 600 0.66rem/1 var(--display);
+    letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: var(--tinta-fraca);
+    color: var(--caule);
   }
 
-  // Primeira coluna (nome): manda na hierarquia, dispensa rótulo.
+  // Primeira coluna (nome): manda na hierarquia, dispensa rótulo. Era o `.ficha__nome` da agenda
+  // pré-M6 — Fraunces 600, NUNCA 700 (AD-SQ-106; medido pelo §10 #38).
   .tabela__titulo {
-    font: var(--txt-valor-forte);
+    font: 600 1.1rem/1.2 var(--display);
   }
 
-  // Dado ausente ("—") e observação: apoio, nunca competem com o valor.
+  // Dado ausente ("—") e observação: apoio, nunca competem com o valor (valores do `.ficha__obs`).
   .tabela__vazio {
-    color: var(--tinta-fraca);
+    color: color-mix(in srgb, var(--tinta) 55%, var(--estufa));
   }
 
   .tabela__apoio {
-    font: var(--txt-apoio);
-    color: var(--tinta-media);
+    font: var(--mat-sys-body-small);
+    color: color-mix(in srgb, var(--tinta) 60%, var(--estufa));
     display: -webkit-box;
     -webkit-line-clamp: 1;
     line-clamp: 1;
@@ -114,10 +119,11 @@
     // porque a folha do navegador zera `text-transform` em controles — herdar não basta.
     .tabela th,
     .tabela__ord {
-      font: var(--txt-rotulo);
-      letter-spacing: var(--txt-rotulo-track);
+      // Eyebrow pré-M6, literal (AD-SQ-106).
+      font: 600 0.66rem/1 var(--display);
+      letter-spacing: 0.18em;
       text-transform: uppercase;
-      color: var(--tinta-media);
+      color: var(--caule);
     }
 
     .tabela th {
@@ -196,10 +202,11 @@
 
   // É rótulo, não dado: o versalete de etiqueta é legítimo aqui (D6/AD-SQ-95).
   .tabela-ordenar__rotulo {
-    font: var(--txt-rotulo);
-    letter-spacing: var(--txt-rotulo-track);
+    // Eyebrow pré-M6, literal (AD-SQ-106).
+    font: 600 0.66rem/1 var(--display);
+    letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: var(--tinta-fraca);
+    color: var(--caule);
   }
 
   // MÍNIMO de propósito: sem `appearance: none`, o chevron e o picker do sistema vêm de graça

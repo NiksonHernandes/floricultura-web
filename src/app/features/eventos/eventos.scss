@@ -243,7 +243,7 @@
   align-items: center;
   padding: 0.15rem 0.6rem;
   border-radius: 999px;
-  font: 600 0.68rem/1.5 var(--corpo);
+  font: 600 0.68rem/1.5 var(--mat-sys-body-small);
   letter-spacing: 0.02em;
   color: var(--folhagem);
   background: color-mix(in srgb, var(--caule) 22%, white);
@@ -262,7 +262,7 @@
   align-items: center;
   gap: 0.4rem 0.75rem;
   margin: 0;
-  font: 600 0.92rem/1.2 var(--corpo);
+  font: 600 0.92rem/1.2 var(--mat-sys-body-medium);
   color: var(--tinta);
 }
 
@@ -270,7 +270,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.2rem;
-  font: 600 0.7rem/1.4 var(--corpo);
+  font: 600 0.7rem/1.4 var(--mat-sys-body-small);
   letter-spacing: 0.02em;
   color: var(--caule);
 

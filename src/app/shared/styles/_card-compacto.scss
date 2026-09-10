@@ -41,17 +41,22 @@
 
   // clamp() para o nome caber em 2 colunas a 375px (~137px úteis) e voltar ao tamanho do M2 no
   // desktop; `anywhere` impede que um nome longo estoure a coluna.
+  // ⚠️ AD-SQ-106: EXCEÇÃO declarada da reversão. O peso (600) e a família (--display) são os de
+  // `develop`; só o TAMANHO no celular difere, e isso é aritmética das 2 colunas a 375px (D6),
+  // não estética. A cor volta ao `var(--tinta)` de `develop`.
   .#{$b}__nome {
     margin: 0;
     font: 600 clamp(0.95rem, 3.4vw, 1.15rem) / 1.2 var(--display);
-    color: var(--tinta-forte);
+    color: var(--tinta);
     overflow-wrap: anywhere;
   }
 
+  // ⚠️ AD-SQ-106: tipografia de `develop` (`.vaso__descricao`). `font: var(--mat-sys-body-small)`
+  // sozinho é CSS VÁLIDO (AD-SQ-97) — aqui não há defeito a preservar, só o valor original.
   .#{$b}__descricao {
     margin: 0;
-    font: var(--txt-apoio);
-    color: var(--tinta-media);
+    font: var(--mat-sys-body-small);
+    color: color-mix(in srgb, var(--tinta) 60%, var(--estufa));
     display: -webkit-box;
     -webkit-line-clamp: 2;
     line-clamp: 2;
@@ -68,18 +73,24 @@
     border-top: 1px solid var(--orvalho);
   }
 
-  // A etiqueta de viveiro: rótulo em versalete Fraunces, valor em destaque (ajuste 4).
+  // A etiqueta de viveiro: rótulo em versalete Fraunces (valor de `develop` — AD-SQ-106).
   .meta dt {
-    font: var(--txt-rotulo);
-    letter-spacing: var(--txt-rotulo-track);
+    font: 600 0.66rem/1 var(--display);
+    letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: var(--tinta-fraca);
+    color: var(--caule);
   }
 
+  // ⚠️ AD-SQ-106 (revisão 9) — ESTA é a declaração do negrito que o dono reprovou.
+  // Restaurada byte a byte de `develop` e, portanto, INVÁLIDA de propósito: o shorthand
+  // `var(--mat-sys-body-medium)` na posição de família faz o navegador DESCARTAR a declaração
+  // inteira, e o valor da etiqueta herda peso/tamanho do `.<b>__corpo`. Trocar por
+  // pelo token `--corpo` a torna válida e devolve o 600/0.95rem (na leva 1 era 700/1.05rem via
+  // `--txt-valor-forte`) — exatamente o que foi recusado. O §10 #38 falha se alguém "consertar".
   .meta dd {
     margin: 0.2rem 0 0;
-    font: var(--txt-valor-forte);
-    color: var(--tinta-forte);
+    font: 600 0.95rem/1.2 var(--mat-sys-body-medium);
+    color: var(--tinta);
   }
 
   .#{$b}__acoes {

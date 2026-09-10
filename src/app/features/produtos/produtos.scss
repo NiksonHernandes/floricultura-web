@@ -201,7 +201,12 @@
   border-radius: 999px;
   background: var(--dalia);
   color: #fff;
-  font: 600 0.72rem/1.4 var(--corpo);
+  // ⚠️ AD-SQ-106 (revisão 9): declaração RESTAURADA como estava em `develop` e, portanto,
+  // INVÁLIDA de propósito (`var(--mat-sys-body-small)` é o shorthand inteiro na posição de
+  // família) — o navegador a descarta e o selo herda a tipografia do card, que é o render
+  // pré-M6 que o dono pediu de volta. NÃO "consertar" para o token `--corpo`: isso reintroduz
+  // o 600/0.72rem que ele reprovou. Coberto pelo §10 #36/#38.
+  font: 600 0.72rem/1.4 var(--mat-sys-body-small);
   letter-spacing: 0.02em;
   box-shadow: 0 6px 16px -8px rgba(196, 50, 107, 0.7);
 
@@ -225,7 +230,8 @@
   border-radius: 999px;
   background: color-mix(in srgb, var(--folhagem) 88%, black 0%);
   color: var(--estufa);
-  font: 600 0.72rem/1.4 var(--corpo);
+  // ⚠️ AD-SQ-106: idem `.selo-baixo` — inválida de propósito, herda do card (render de `develop`).
+  font: 600 0.72rem/1.4 var(--mat-sys-body-small);
   letter-spacing: 0.02em;
   box-shadow: 0 6px 16px -10px rgba(20, 36, 28, 0.8);
 
@@ -245,21 +251,22 @@
   left: 0.6rem;
 }
 
-// Corpo, nome (clamp p/ 2 colunas), descrição e a etiqueta (`.meta dt` em --txt-rotulo/
-// --tinta-fraca × `.meta dd` em --txt-valor-forte/--tinta-forte, CA-29) vêm do mixin.
-/* Secundários da etiqueta: 12,48px (piso do D6) e tinta AA 6,28:1 (o color-mix de 50/55%
-   anterior dava ~3,9:1 e reprovava). */
+// Corpo, nome (clamp p/ 2 colunas), descrição e a etiqueta (`.meta dt`/`.meta dd`) vêm do mixin.
+/* ⚠️ AD-SQ-106 (revisão 9): tipografia/tinta RESTAURADAS ao valor de `develop`. O piso de 12px
+   do D6/AD-SQ-95 fica revogado para texto que já existia antes do M6 — vale só para texto que o
+   M6 cria (CA-37). Sem `--txt-*`/`--tinta-*` aqui: os tokens seguem declarados e inertes. */
 .meta__vazio {
-  font: var(--txt-apoio);
+  font-weight: 400;
   font-style: italic;
-  color: var(--tinta-media);
+  color: color-mix(in srgb, var(--tinta) 50%, var(--estufa));
 }
 
 /* Estoque mínimo no card (AD-SQ-55/T-M4.2-1): secundário — não compete com o estoque atual. */
 .meta__minimo {
-  font: var(--txt-apoio);
+  font-weight: 500;
+  font-size: 0.82rem;
   white-space: nowrap;
-  color: var(--tinta-media);
+  color: color-mix(in srgb, var(--tinta) 55%, var(--estufa));
 }
 
 /* Ações em UMA linha (D6): o `flex-wrap: wrap` de antes saiu (o default do flex já é `nowrap`)
