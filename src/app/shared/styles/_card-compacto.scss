@@ -1,0 +1,97 @@
+// Card compacto do ateliê (SPEC-M6 §3.8c) — a anatomia do VASO em densidade de 2 colunas no
+// celular (D6/§3.10). Um único mixin, parametrizado pelo bloco BEM do consumidor, para NÃO
+// renomear as classes que os testes herdados consultam (§12 armadilha 9).
+//
+//   .<b>            o vaso               .<b>__nome       nome (Fraunces, clamp p/ 2 colunas)
+//   .<b>__planta    faixa da foto 16/10  .<b>__descricao  apoio, 2 linhas
+//   .<b>__corpo     etiqueta de cerâmica .<b>__meta/.meta par rótulo/valor (etiqueta de viveiro)
+//   .<b>__acoes     fileira de ações (alvo --toque)
+//
+// Zero hex novo: só tokens. Sem sombra, sem blur, sem animação (leveza acima de estética).
+// Pressupõe `@include atelie.base` + `@include atelie.densa` no `:host` do consumidor.
+
+@mixin card-compacto($b) {
+  .#{$b} {
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border: 1px solid var(--orvalho);
+    border-radius: var(--raio);
+    overflow: hidden;
+  }
+
+  // Faixa da foto com altura UNIFORME (bug do RUN-LOCAL do dono, M2): item flex que não estica
+  // nem encolhe — a dimensão da imagem nunca influencia a altura do card.
+  .#{$b}__planta {
+    position: relative;
+    flex: 0 0 auto;
+    min-height: 0;
+    aspect-ratio: 16 / 10;
+    overflow: hidden;
+    background: color-mix(in srgb, var(--caule) 12%, #fff);
+  }
+
+  .#{$b}__corpo {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    gap: var(--esp-1);
+    padding: var(--esp-2);
+  }
+
+  // clamp() para o nome caber em 2 colunas a 375px (~137px úteis) e voltar ao tamanho do M2 no
+  // desktop; `anywhere` impede que um nome longo estoure a coluna.
+  .#{$b}__nome {
+    margin: 0;
+    font: 600 clamp(0.95rem, 3.4vw, 1.15rem) / 1.2 var(--display);
+    color: var(--tinta-forte);
+    overflow-wrap: anywhere;
+  }
+
+  .#{$b}__descricao {
+    margin: 0;
+    font: var(--txt-apoio);
+    color: var(--tinta-media);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .#{$b}__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--esp-1) var(--esp-3);
+    margin: auto 0 0;
+    padding-top: var(--esp-1);
+    border-top: 1px solid var(--orvalho);
+  }
+
+  // A etiqueta de viveiro: rótulo em versalete Fraunces, valor em destaque (ajuste 4).
+  .meta dt {
+    font: var(--txt-rotulo);
+    letter-spacing: var(--txt-rotulo-track);
+    text-transform: uppercase;
+    color: var(--tinta-fraca);
+  }
+
+  .meta dd {
+    margin: 0.2rem 0 0;
+    font: var(--txt-valor-forte);
+    color: var(--tinta-forte);
+  }
+
+  .#{$b}__acoes {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--esp-1);
+    margin-top: var(--esp-1);
+  }
+
+  .#{$b}__acao {
+    min-height: var(--toque);
+    min-width: var(--toque);
+  }
+}

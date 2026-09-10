@@ -216,7 +216,7 @@
   border-radius: 999px;
   background: var(--dalia);
   color: #fff;
-  font: 600 0.72rem/1.4 var(--mat-sys-body-small);
+  font: 600 0.72rem/1.4 var(--corpo);
   letter-spacing: 0.02em;
   box-shadow: 0 6px 16px -8px rgba(196, 50, 107, 0.7);
 
@@ -240,7 +240,7 @@
   border-radius: 999px;
   background: color-mix(in srgb, var(--folhagem) 88%, black 0%);
   color: var(--estufa);
-  font: 600 0.72rem/1.4 var(--mat-sys-body-small);
+  font: 600 0.72rem/1.4 var(--corpo);
   letter-spacing: 0.02em;
   box-shadow: 0 6px 16px -10px rgba(20, 36, 28, 0.8);
 
@@ -297,7 +297,7 @@
 
   dd {
     margin: 0.2rem 0 0;
-    font: 600 0.95rem/1.2 var(--mat-sys-body-medium);
+    font: 600 0.95rem/1.2 var(--corpo);
     color: var(--tinta);
   }
 }

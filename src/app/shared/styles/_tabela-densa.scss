@@ -1,0 +1,163 @@
+// Tabela densa do ateliê (SPEC-M6 §3.8b, PA#2/AD-SQ-84) — `<table>` SEMÂNTICA, sem MatTable.
+//
+// Assinatura: a ETIQUETA DE VIVEIRO. No celular a linha não vira "mini-tabela com scroll": ela
+// vira uma etiqueta — rótulo em versalete Fraunces à esquerda, dado à direita — o mesmo gesto do
+// par <dt>/<dd> do card de produto. No desktop a MESMA marcação vira tabela de verdade
+// (`display: table`), com hairline de orvalho e zebra verde-vidro; nada de cinza de planilha.
+//
+// Leveza (memória do dono): zero sombra, zero blur, zero animação por linha.
+// Pressupõe `@include atelie.base` + `@include atelie.densa` no `:host` do consumidor.
+@use 'atelie-tokens' as atelie;
+
+@mixin tabela-densa {
+  .tabela {
+    width: 100%;
+    border-collapse: collapse;
+    font: var(--txt-dado);
+    color: var(--tinta-forte);
+  }
+
+  // ---- Celular (< $bp-sm): a tabela desmonta em etiquetas ---------------------------------------
+  .tabela,
+  .tabela tbody,
+  .tabela tr,
+  .tabela td {
+    display: block;
+  }
+
+  // O cabeçalho sai do layout E da árvore de a11y: no celular o rótulo vive em cada célula.
+  .tabela thead {
+    display: none;
+  }
+
+  .tabela tr {
+    padding: var(--esp-2);
+    margin-bottom: var(--esp-2);
+    border: 1px solid var(--orvalho);
+    border-radius: var(--raio);
+    background: #fff;
+  }
+
+  .tabela td {
+    display: flex;
+    gap: var(--esp-2);
+    align-items: baseline;
+    min-width: 0;
+    padding: var(--esp-1) 0;
+  }
+
+  // CONTRATO DE MARCAÇÃO (D8): a célula com `data-rotulo` ganha etiqueta; a que não tem (nome e
+  // ações), não. Regra por atributo é mais barata que `content: none` E não perde especificidade.
+  .tabela td[data-rotulo]::before {
+    content: attr(data-rotulo);
+    flex: 0 0 5.5rem;
+    font: var(--txt-rotulo);
+    letter-spacing: var(--txt-rotulo-track);
+    text-transform: uppercase;
+    color: var(--tinta-fraca);
+  }
+
+  // Primeira coluna (nome): manda na hierarquia, dispensa rótulo.
+  .tabela__titulo {
+    font: var(--txt-valor-forte);
+  }
+
+  // Dado ausente ("—") e observação: apoio, nunca competem com o valor.
+  .tabela__vazio {
+    color: var(--tinta-fraca);
+  }
+
+  .tabela__apoio {
+    font: var(--txt-apoio);
+    color: var(--tinta-media);
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .tabela__acoes {
+    justify-content: flex-end;
+    gap: var(--esp-1);
+  }
+
+  // ---- >= $bp-sm: tabela de verdade -------------------------------------------------------------
+  @include atelie.acima(atelie.$bp-sm) {
+    .tabela {
+      display: table;
+    }
+
+    .tabela thead {
+      display: table-header-group;
+    }
+
+    .tabela tbody {
+      display: table-row-group;
+    }
+
+    .tabela tr {
+      display: table-row;
+      padding: 0;
+      margin: 0;
+      border: 0;
+      border-radius: 0;
+    }
+
+    // O cabeçalho é a MESMA etiqueta de viveiro da versão celular. O <button> entra na lista
+    // porque a folha do navegador zera `text-transform` em controles — herdar não basta.
+    .tabela th,
+    .tabela__ord {
+      font: var(--txt-rotulo);
+      letter-spacing: var(--txt-rotulo-track);
+      text-transform: uppercase;
+      color: var(--tinta-media);
+    }
+
+    .tabela th {
+      text-align: left;
+      padding: var(--esp-1) var(--esp-2);
+      border-bottom: 1px solid var(--orvalho);
+    }
+
+    // Ordenável: `aria-sort` mora no <th>, o clique mora no <button>.
+    .tabela__ord {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--esp-1);
+      padding: 0;
+      border: 0;
+      background: none;
+      cursor: pointer;
+
+      mat-icon {
+        font-size: 1rem;
+        width: 1rem;
+        height: 1rem;
+        color: var(--caule);
+      }
+    }
+
+    .tabela td {
+      display: table-cell;
+      height: var(--linha-densa);
+      padding: var(--esp-1) var(--esp-2);
+      border-bottom: 1px solid var(--orvalho);
+      vertical-align: middle;
+    }
+
+    .tabela td[data-rotulo]::before {
+      content: none;
+    }
+
+    // Zebra em verde-vidro (orvalho), não em cinza de planilha.
+    .tabela tbody tr:nth-child(2n) {
+      background: color-mix(in srgb, var(--orvalho) 40%, #fff);
+    }
+
+    .tabela__acoes {
+      white-space: nowrap;
+      text-align: right;
+    }
+  }
+}

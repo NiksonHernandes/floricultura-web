@@ -20,7 +20,7 @@
 
 .ficha__tipo {
   flex: none;
-  font: 600 0.72rem/1.6 var(--mat-sys-body-small);
+  font: 600 0.72rem/1.6 var(--corpo);
   padding: 0.1rem 0.6rem;
   border-radius: 999px;
   letter-spacing: 0.02em;
@@ -79,7 +79,7 @@
   vertical-align: middle;
   background: color-mix(in srgb, var(--estufa) 20%, transparent);
   color: color-mix(in srgb, var(--estufa) 90%, transparent);
-  font: 600 0.66rem/1.5 var(--mat-sys-body-small);
+  font: 600 0.66rem/1.5 var(--corpo);
   letter-spacing: 0.02em;
   overflow-wrap: anywhere;
 }
@@ -114,7 +114,7 @@
 
   dd {
     margin: 0.2rem 0 0;
-    font: 600 0.98rem/1.3 var(--mat-sys-body-medium);
+    font: 600 0.98rem/1.3 var(--corpo);
     color: var(--tinta);
     overflow-wrap: anywhere;
   }

@@ -131,7 +131,7 @@
 
   dd {
     margin: 0.3rem 0 0;
-    font: 600 1.06rem/1.25 var(--mat-sys-body-large);
+    font: 600 1.06rem/1.25 var(--corpo);
     color: var(--tinta);
     font-variant-numeric: tabular-nums;
     overflow-wrap: anywhere;
@@ -183,7 +183,7 @@
   border-radius: 999px;
   background: color-mix(in srgb, var(--caule) 16%, white);
   color: var(--folhagem);
-  font: 600 0.8rem/1.4 var(--mat-sys-body-small);
+  font: 600 0.8rem/1.4 var(--corpo);
   overflow-wrap: anywhere;
 }
 
@@ -266,7 +266,7 @@
 }
 
 .mov__qtd {
-  font: 600 0.96rem/1.3 var(--mat-sys-body-medium);
+  font: 600 0.96rem/1.3 var(--corpo);
   color: var(--tinta);
   font-variant-numeric: tabular-nums;
 }
