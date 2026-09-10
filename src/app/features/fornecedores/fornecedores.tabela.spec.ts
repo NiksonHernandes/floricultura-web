@@ -6,43 +6,44 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { MatDialog } from '@angular/material/dialog';
 import { of } from 'rxjs';
 
-import { Clientes } from './clientes';
-import { ClientesService } from './clientes.service';
+import { Fornecedores } from './fornecedores';
+import { FornecedoresService } from './fornecedores.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ApiResponse } from '../../core/models/api-response.model';
 import { PaginaResponse } from '../../core/models/produto.model';
-import { Cliente } from '../../core/models/cliente.model';
+import { Fornecedor } from '../../core/models/fornecedor.model';
 
 /**
- * Clientes em TABELA (T-M6-08b — ajuste 8 do dono; SPEC-M6 §3.11, CA-31/CA-37).
+ * Fornecedores em TABELA (T-M6-08c — ajuste 8 do dono; SPEC-M6 §3.11, CA-31/CA-37). Espelho fiel de
+ * `clientes.tabela.spec.ts` (T-M6-08b), mais o caso do estado-vazio SOB FILTRO (P2 do review).
  *
- * Arquivo NOVO: `clientes.spec.ts` (M5) segue intocado e continua verde — é ele que prova que os
- * hooks herdados sobreviveram ao redesenho. Aqui trava-se o que a tabela ADICIONA: as 5 colunas,
- * os dois filtros tri-estado virando params do back (§3.7), a ordenação por cabeçalho com
- * `aria-sort` e `pagina=0`, e a marcação do clamp de observações.
+ * Arquivo NOVO: `fornecedores.spec.ts` (M5) segue intocado e continua verde — é ele que prova que os
+ * hooks herdados sobreviveram ao redesenho. Aqui trava-se o que a tabela ADICIONA: as 5 colunas, os
+ * dois filtros tri-estado virando params do back (§3.7), a ordenação por cabeçalho com `aria-sort` e
+ * `pagina=0`, a marcação do clamp de observações e a mensagem honesta do vazio filtrado.
  *
- * Dados FICTÍCIOS (LGPD): "Maria Flores"/"Joana Raiz", `@exemplo.com.br`, `(11) 90000-0000`.
+ * Dados FICTÍCIOS (LGPD): "Flores do Vale"/"Sítio Raiz", `@exemplo.com.br`, `(11) 90000-0000`.
  */
-describe('Clientes em tabela (T-M6-08b, CA-31)', () => {
+describe('Fornecedores em tabela (T-M6-08c, CA-31)', () => {
   let httpMock: HttpTestingController;
   let ehAdmin: WritableSignal<boolean>;
-  const BASE = 'http://localhost:8080/api/v1/clientes';
+  const BASE = 'http://localhost:8080/api/v1/fornecedores';
 
-  const maria: Cliente = {
+  const vale: Fornecedor = {
     id: 7,
-    nome: 'Maria Flores',
+    nome: 'Flores do Vale',
     telefone: '(11) 90000-0000',
-    email: 'maria@exemplo.com.br',
-    observacoes: 'Prefere arranjos de outono.',
+    email: 'contato@exemplo.com.br',
+    observacoes: 'Entrega às terças e sextas.',
     produtoIds: null,
     criadoEm: '2026-09-04T14:05:00Z',
     atualizadoEm: '2026-09-04T14:05:00Z',
   };
 
-  const semContato: Cliente = {
-    ...maria,
+  const semContato: Fornecedor = {
+    ...vale,
     id: 9,
-    nome: 'Joana Raiz',
+    nome: 'Sítio Raiz',
     telefone: null,
     email: null,
     observacoes: null,
@@ -52,7 +53,7 @@ describe('Clientes em tabela (T-M6-08b, CA-31)', () => {
     return { success: true, data, error: null, timestamp: '', path: '' };
   }
 
-  function pagina(conteudo: Cliente[]): PaginaResponse<Cliente> {
+  function pagina(conteudo: Fornecedor[]): PaginaResponse<Fornecedor> {
     return {
       conteudo,
       pagina: 0,
@@ -70,12 +71,12 @@ describe('Clientes em tabela (T-M6-08b, CA-31)', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     dialog.open.and.returnValue({ afterClosed: () => of(undefined) } as any);
     TestBed.configureTestingModule({
-      imports: [Clientes],
+      imports: [Fornecedores],
       providers: [
         provideNoopAnimations(),
         provideHttpClient(),
         provideHttpClientTesting(),
-        ClientesService,
+        FornecedoresService,
         { provide: AuthService, useValue: { ehAdmin } },
         { provide: MatDialog, useValue: dialog },
       ],
@@ -85,8 +86,8 @@ describe('Clientes em tabela (T-M6-08b, CA-31)', () => {
 
   afterEach(() => httpMock.verify());
 
-  function iniciar(conteudo: Cliente[] = [maria]): ComponentFixture<Clientes> {
-    const fixture = TestBed.createComponent(Clientes);
+  function iniciar(conteudo: Fornecedor[] = [vale]): ComponentFixture<Fornecedores> {
+    const fixture = TestBed.createComponent(Fornecedores);
     fixture.detectChanges(); // ngOnInit → carregar()
     httpMock.expectOne((r) => r.url === BASE).flush(envelope(pagina(conteudo)));
     fixture.detectChanges();
@@ -94,15 +95,28 @@ describe('Clientes em tabela (T-M6-08b, CA-31)', () => {
   }
 
   /** O `<th>` da coluna (o texto do ordenado carrega junto a ligadura do mat-icon). */
-  function thDe(fixture: ComponentFixture<Clientes>, rotulo: string): HTMLElement {
+  function thDe(fixture: ComponentFixture<Fornecedores>, rotulo: string): HTMLElement {
     return Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('thead th')).find(
       (el) => el.textContent?.trim().startsWith(rotulo),
     ) as HTMLElement;
   }
 
   /** Clica no botão de ordenação da coluna. */
-  function ordenarPor(fixture: ComponentFixture<Clientes>, rotulo: string): void {
+  function ordenarPor(fixture: ComponentFixture<Fornecedores>, rotulo: string): void {
     (thDe(fixture, rotulo).querySelector('.tabela__ord') as HTMLButtonElement).click();
+    fixture.detectChanges();
+  }
+
+  /** Clica numa das 3 opções (`0` Todos · `1` Com · `2` Sem) do filtro `grupo` (0 telefone, 1 e-mail). */
+  function filtrar(
+    fixture: ComponentFixture<Fornecedores>,
+    grupo: number,
+    opcao: number,
+  ): void {
+    const botoes = (fixture.nativeElement as HTMLElement)
+      .querySelectorAll('.filtro')
+      [grupo].querySelectorAll('.filtro__op');
+    (botoes[opcao] as HTMLButtonElement).click();
     fixture.detectChanges();
   }
 
@@ -118,18 +132,18 @@ describe('Clientes em tabela (T-M6-08b, CA-31)', () => {
     expect(cabecalhos).toEqual(['Nome', 'Telefone', 'E-mail', 'Observações', 'Ações']);
   });
 
-  it('uma linha por cliente, com rótulo por célula para o celular (data-rotulo)', () => {
-    const el = iniciar([maria, semContato]).nativeElement as HTMLElement;
+  it('uma linha por fornecedor, com rótulo por célula para o celular (data-rotulo)', () => {
+    const el = iniciar([vale, semContato]).nativeElement as HTMLElement;
     const linhas = el.querySelectorAll('tbody tr.ficha');
     expect(linhas.length).toBe(2);
 
     const celulas = linhas[0].querySelectorAll('td');
     expect(celulas.length).toBe(5);
-    expect(celulas[0].textContent).toContain('Maria Flores');
+    expect(celulas[0].textContent).toContain('Flores do Vale');
     expect(celulas[1].getAttribute('data-rotulo')).toBe('Telefone');
     expect(celulas[1].textContent).toContain('(11) 90000-0000');
     expect(celulas[2].getAttribute('data-rotulo')).toBe('E-mail');
-    expect(celulas[2].textContent).toContain('maria@exemplo.com.br');
+    expect(celulas[2].textContent).toContain('contato@exemplo.com.br');
   });
 
   it('telefone e e-mail ausentes viram travessão (dado que não existe não é inventado)', () => {
@@ -152,25 +166,25 @@ describe('Clientes em tabela (T-M6-08b, CA-31)', () => {
     const obs = el.querySelector('td > .tabela__apoio') as HTMLElement;
     expect(obs).toBeTruthy();
     expect(obs.classList).toContain('ficha__obs');
-    expect(obs.getAttribute('title')).toBe(maria.observacoes!); // texto completo no title
+    expect(obs.getAttribute('title')).toBe(vale.observacoes!); // texto completo no title
   });
 
   // --- Filtros tri-estado → params do back (§3.7) ---
 
   it('filtro "Telefone: Com" faz UMA requisição com comTelefone=true e pagina=0', () => {
     const fixture = iniciar();
-    const el = fixture.nativeElement as HTMLElement;
-    const botoes = el.querySelectorAll('.filtro')[0].querySelectorAll('.filtro__op');
+    const botoes = (fixture.nativeElement as HTMLElement)
+      .querySelectorAll('.filtro')[0]
+      .querySelectorAll('.filtro__op');
     expect(Array.from(botoes).map((b) => b.textContent?.trim())).toEqual(['Todos', 'Com', 'Sem']);
 
-    (botoes[1] as HTMLButtonElement).click();
-    fixture.detectChanges();
+    filtrar(fixture, 0, 1);
 
     const req = httpMock.expectOne((r) => r.url === BASE);
     expect(req.request.params.get('comTelefone')).toBe('true');
     expect(req.request.params.get('pagina')).toBe('0');
     expect(req.request.params.has('comEmail')).toBeFalse();
-    req.flush(envelope(pagina([maria])));
+    req.flush(envelope(pagina([vale])));
     fixture.detectChanges();
     expect(botoes[1].getAttribute('aria-pressed')).toBe('true');
     expect(botoes[0].getAttribute('aria-pressed')).toBe('false');
@@ -178,17 +192,12 @@ describe('Clientes em tabela (T-M6-08b, CA-31)', () => {
 
   it('"E-mail: Sem" manda comEmail=false e combina com o filtro de telefone (E)', () => {
     const fixture = iniciar();
-    const el = fixture.nativeElement as HTMLElement;
 
-    (el.querySelectorAll('.filtro')[0].querySelectorAll('.filtro__op')[2] as HTMLButtonElement)
-      .click();
-    fixture.detectChanges();
+    filtrar(fixture, 0, 2);
     httpMock.expectOne((r) => r.url === BASE).flush(envelope(pagina([semContato])));
     fixture.detectChanges();
 
-    (el.querySelectorAll('.filtro')[1].querySelectorAll('.filtro__op')[2] as HTMLButtonElement)
-      .click();
-    fixture.detectChanges();
+    filtrar(fixture, 1, 2);
 
     const req = httpMock.expectOne((r) => r.url === BASE);
     expect(req.request.params.get('comTelefone')).toBe('false'); // "Sem" é filtro, não ausência
@@ -198,47 +207,43 @@ describe('Clientes em tabela (T-M6-08b, CA-31)', () => {
 
   it('voltar para "Todos" tira o param da requisição (tri-estado)', () => {
     const fixture = iniciar();
-    const opcoes = (fixture.nativeElement as HTMLElement)
-      .querySelectorAll('.filtro')[1]
-      .querySelectorAll('.filtro__op');
 
-    (opcoes[1] as HTMLButtonElement).click();
-    fixture.detectChanges();
-    httpMock.expectOne((r) => r.url === BASE).flush(envelope(pagina([maria])));
+    filtrar(fixture, 1, 1);
+    httpMock.expectOne((r) => r.url === BASE).flush(envelope(pagina([vale])));
     fixture.detectChanges();
 
-    (opcoes[0] as HTMLButtonElement).click();
-    fixture.detectChanges();
+    filtrar(fixture, 1, 0);
     const req = httpMock.expectOne((r) => r.url === BASE);
     expect(req.request.params.has('comEmail')).toBeFalse();
-    req.flush(envelope(pagina([maria])));
+    req.flush(envelope(pagina([vale])));
   });
 
-  it('vazio SOB FILTRO não mente dizendo que a agenda está vazia (P2 do review — T-M6-08c)', () => {
+  it('vazio SOB FILTRO não mente dizendo que a agenda está vazia (P2 do review)', () => {
     const fixture = iniciar();
-    const opcoes = (fixture.nativeElement as HTMLElement)
-      .querySelectorAll('.filtro')[0]
-      .querySelectorAll('.filtro__op');
 
-    (opcoes[2] as HTMLButtonElement).click(); // "Telefone: Sem"
-    fixture.detectChanges();
+    filtrar(fixture, 0, 2); // "Telefone: Sem"
     httpMock.expectOne((r) => r.url === BASE).flush(envelope(pagina([])));
     fixture.detectChanges();
 
     const vazio = (fixture.nativeElement as HTMLElement).querySelector('.estado--vazio');
-    expect(vazio?.textContent).toContain('Nenhum cliente com esses filtros.');
+    expect(vazio?.textContent).toContain('Nenhum fornecedor com esses filtros.');
     expect(vazio?.textContent).not.toContain('A agenda ainda está vazia');
+  });
+
+  it('sem filtro nenhum, a página vazia continua dizendo que a agenda está vazia', () => {
+    const el = iniciar([]).nativeElement as HTMLElement;
+    expect(el.querySelector('.estado--vazio')?.textContent).toContain('A agenda ainda está vazia');
   });
 
   // --- Ordenação pelo cabeçalho (§3.11) ---
 
   it('a lista nasce ordenada por nome asc e anuncia isso em aria-sort', () => {
-    const fixture = TestBed.createComponent(Clientes);
+    const fixture = TestBed.createComponent(Fornecedores);
     fixture.detectChanges();
     const req = httpMock.expectOne((r) => r.url === BASE);
     expect(req.request.params.get('ordenarPor')).toBe('nome');
     expect(req.request.params.get('direcao')).toBe('asc');
-    req.flush(envelope(pagina([maria])));
+    req.flush(envelope(pagina([vale])));
     fixture.detectChanges();
 
     expect(thDe(fixture, 'Nome').getAttribute('aria-sort')).toBe('ascending');
@@ -249,7 +254,7 @@ describe('Clientes em tabela (T-M6-08b, CA-31)', () => {
     const fixture = iniciar();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (fixture.componentInstance as any).aoPaginar({ pageIndex: 2, pageSize: 12 });
-    httpMock.expectOne((r) => r.url === BASE).flush(envelope(pagina([maria])));
+    httpMock.expectOne((r) => r.url === BASE).flush(envelope(pagina([vale])));
     fixture.detectChanges();
 
     ordenarPor(fixture, 'Nome');
@@ -258,7 +263,7 @@ describe('Clientes em tabela (T-M6-08b, CA-31)', () => {
     expect(req.request.params.get('ordenarPor')).toBe('nome');
     expect(req.request.params.get('direcao')).toBe('desc');
     expect(req.request.params.get('pagina')).toBe('0');
-    req.flush(envelope(pagina([maria])));
+    req.flush(envelope(pagina([vale])));
     fixture.detectChanges();
     expect(thDe(fixture, 'Nome').getAttribute('aria-sort')).toBe('descending');
   });
@@ -270,7 +275,7 @@ describe('Clientes em tabela (T-M6-08b, CA-31)', () => {
     const req = httpMock.expectOne((r) => r.url === BASE);
     expect(req.request.params.get('ordenarPor')).toBe('telefone');
     expect(req.request.params.get('direcao')).toBe('asc');
-    req.flush(envelope(pagina([maria])));
+    req.flush(envelope(pagina([vale])));
     fixture.detectChanges();
 
     expect(thDe(fixture, 'Telefone').getAttribute('aria-sort')).toBe('ascending');
@@ -290,7 +295,7 @@ describe('Clientes em tabela (T-M6-08b, CA-31)', () => {
   it('a busca herdada (.busca input) sobrevive ao redesenho, dentro de .controles', () => {
     const el = iniciar().nativeElement as HTMLElement;
     expect(el.querySelector('.controles .busca input')).toBeTruthy();
-    expect(el.querySelector('.ficha__monograma')?.textContent?.trim()).toBe('M');
+    expect(el.querySelector('.ficha__monograma')?.textContent?.trim()).toBe('F');
   });
 
   it('USER lê a tabela inteira, mas sem as ações de escrita (FC-07)', () => {

@@ -4,12 +4,21 @@
 // Eventos/Usuários): folhagem/estufa/tinta/caule/dalia/orvalho/sais + Fraunces. Assinatura desta
 // tela: cada fornecedor é uma FICHA DE AGENDA — um monograma redondo (a inicial do nome) preso à
 // ficha (o rolodex do ateliê). Ousadia gasta num lugar só: o monograma em folhagem (o resto fica
-// quieto), primo do "selo de calendário" dos Eventos. Mobile-first (FC-02, ~90% celular): 1 coluna
-// no celular, grade no desktop; alvos de toque >= 44px; sem overflow horizontal.
+// quieto), primo do "selo de calendário" dos Eventos. Mobile-first (FC-02, ~90% celular): alvos de
+// toque >= 44px; sem overflow horizontal.
+//
+// T-M6-08c (ajuste 8 do dono — SPEC-M6 §3.11, CA-31/CA-37): espelho fiel da T-M6-08b (Clientes). A
+// agenda deixou de ser grade de cards e virou LISTA/TABELA. A anatomia vem do `_tabela-densa.scss`
+// (T-M6-03) — a mesma "etiqueta de viveiro" do resto do M6 —, então este arquivo só declara o que é
+// DESTA tela: a fileira de controles (busca + filtros tri-estado), as larguras das 5 colunas e o
+// monograma encolhido, que é a assinatura da agenda preservada dentro da linha densa. O CSS do card
+// saiu junto (não convive), e com ele a animação por linha.
 @use '../../shared/styles/atelie-tokens' as atelie;
+@use '../../shared/styles/tabela-densa' as tabela;
 
 :host {
   @include atelie.base;
+  @include atelie.densa; // D3: --esp-*, --txt-*, --tinta-*, --linha-densa, --toque, --raio
 
   display: block;
   min-height: 100%;
@@ -106,10 +115,50 @@
   color: color-mix(in srgb, var(--sais) 92%, white);
 }
 
+/* ---- Fileira de controles: busca + filtros tri-estado (§3.11) ----
+   `flex-wrap` em vez de grid por breakpoint: no celular cada controle ocupa sua linha, no desktop
+   eles se acomodam lado a lado — e o seletor "Ordenar por" da T-M6-08d entra como último item sem
+   mexer em nada aqui. */
+.controles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2);
+  margin-bottom: var(--esp-3);
+}
+
+.filtro {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-1);
+}
+
+/* Rótulo do grupo — versalete de etiqueta (é RÓTULO, não dado: --txt-rotulo é legítimo aqui). */
+.filtro__rotulo {
+  margin-right: var(--esp-1);
+  font: var(--txt-rotulo);
+  letter-spacing: var(--txt-rotulo-track);
+  text-transform: uppercase;
+  color: var(--tinta-fraca);
+}
+
+.filtro__op {
+  min-height: var(--toque);
+  border-radius: var(--raio);
+
+  --mat-button-text-label-text-color: var(--tinta-media);
+}
+
+/* O estado escolhido é sólido em folhagem (a dália segue reservada à ação primária). */
+.filtro__op--ativo {
+  background: var(--folhagem);
+
+  --mat-button-text-label-text-color: var(--estufa);
+}
+
 /* ---- Busca ---- */
 .busca {
-  width: 100%;
-  margin-bottom: 1.25rem;
+  flex: 1 1 16rem;
 
   --mdc-outlined-text-field-focus-outline-color: var(--caule);
   --mdc-outlined-text-field-caret-color: var(--caule);
@@ -165,143 +214,41 @@
   min-height: 44px;
 }
 
-/* ---- Lista de fichas (grid mobile-first) ---- */
-.fichas {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1rem;
-}
+/* ---- A agenda em tabela (§3.11): anatomia herdada do partial, ajustes só desta tela ---- */
+@include tabela.tabela-densa;
 
-.ficha {
-  display: flex;
-  gap: 0.9rem;
-  padding: 0.9rem 1rem;
-  background: #fff;
-  border: 1px solid var(--orvalho);
-  border-radius: 14px;
-  box-shadow: 0 14px 34px -32px rgba(20, 36, 28, 0.55);
-}
-
-/* Assinatura: o monograma — disco com a inicial do nome, primo do selo de calendário. */
+/* Assinatura preservada: o monograma da agenda, agora do tamanho da linha densa. */
 .ficha__monograma {
-  flex: 0 0 auto;
-  align-self: flex-start;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 3.25rem;
-  height: 3.25rem;
+  flex: 0 0 auto;
+  width: 1.75rem;
+  height: 1.75rem;
   border-radius: 50%;
   color: var(--estufa);
   background: linear-gradient(180deg, #274a3a 0%, var(--folhagem) 100%);
-  box-shadow: inset 0 3px 0 color-mix(in srgb, var(--sais) 55%, transparent);
-  font: 600 1.5rem/1 var(--display);
+  font: 600 0.9rem/1 var(--display);
+  vertical-align: middle;
 }
 
-.ficha__corpo {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  min-width: 0; /* deixa o e-mail truncar sem estourar a largura no celular */
-  flex: 1;
-}
-
-.ficha__nome {
-  margin: 0;
-  font: 600 1.1rem/1.2 var(--display);
-  color: var(--tinta);
+/* E-mail longo quebra dentro da célula em vez de empurrar a tabela (CA-37: zero scroll lateral). */
+.ficha__email {
   overflow-wrap: anywhere;
 }
 
-.ficha__contato {
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.ficha__linha {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  min-width: 0;
-
-  dt {
-    flex: none;
-    display: inline-flex;
-    margin: 0;
-  }
-
-  dt mat-icon {
-    font-size: 1.05rem;
-    width: 1.05rem;
-    height: 1.05rem;
-    color: var(--caule);
-  }
-
-  dd {
-    margin: 0;
-    min-width: 0;
-    font: 600 0.92rem/1.3 var(--corpo);
-    color: var(--tinta);
-    overflow-wrap: anywhere;
-  }
-}
-
-/* E-mail pode ser longo: trunca com reticências no celular. */
-.ficha__email {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.ficha__linha--sem dd {
-  font-weight: 400;
-  color: color-mix(in srgb, var(--tinta) 55%, var(--estufa));
-}
-
-.ficha__linha--sem dt mat-icon {
-  color: color-mix(in srgb, var(--caule) 70%, var(--estufa));
-}
-
-/* Observações: truncadas em 2 linhas (§ card mobile-first). */
-.ficha__obs {
-  margin: 0.15rem 0 0;
-  font: var(--mat-sys-body-small);
-  color: color-mix(in srgb, var(--tinta) 60%, var(--estufa));
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* Ações do card: Editar/Excluir (só ADMIN); alvo de toque >= 44px. */
-.ficha__acoes {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.25rem;
-  margin-top: 0.4rem;
-}
-
 .ficha__acao {
-  min-height: 44px;
+  width: var(--toque);
+  height: var(--toque);
 }
 
 .ficha__editar {
-  --mat-button-text-label-text-color: var(--folhagem);
-  --mat-button-text-icon-color: var(--folhagem);
+  --mat-icon-button-icon-color: var(--folhagem);
 }
 
-/* Excluir sinaliza perigo na dália carmim — sem gritar (só texto/ícone). */
+/* Excluir sinaliza perigo na dália carmim — sem gritar (só o ícone). */
 .ficha__excluir {
-  margin-left: auto;
-  --mat-button-text-label-text-color: #8f2450;
-  --mat-button-text-icon-color: #8f2450;
+  --mat-icon-button-icon-color: #8f2450;
 }
 
 /* ---- Paginação ---- */
@@ -315,40 +262,55 @@
   --mat-paginator-enabled-icon-color: var(--folhagem);
 }
 
-/* ---- Grade no desktop ---- */
-@media (min-width: 640px) {
-  .fichas {
-    grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
+/* ---- Desktop: larguras das 5 colunas (§3.11) ----
+   `table-layout: fixed` é requisito, não estética: sem ele a célula de Observações se estica com o
+   conteúdo e o `-webkit-line-clamp: 1` do `.tabela__apoio` nunca chega a cortar nada. */
+@include atelie.acima(atelie.$bp-sm) {
+  .tabela {
+    table-layout: fixed;
+  }
+
+  .tabela th:nth-child(1) {
+    width: 20%;
+  }
+
+  .tabela th:nth-child(2) {
+    width: 9rem;
+  }
+
+  /* E-mail ganha a maior fatia proporcional: é o dado que mais estoura (medido em 1440px). */
+  .tabela th:nth-child(3) {
+    width: 27%;
+  }
+
+  .tabela th:nth-child(5) {
+    width: 7.5rem;
+  }
+
+  .ficha__monograma {
+    margin-right: var(--esp-1);
   }
 }
 
-/* ---- Foco de teclado visível (piso de qualidade §9) ---- */
+/* ---- Foco de teclado visível (piso de qualidade §9) ----
+   O `.tabela__ord` é `<button>` puro (não passa pelo MDC), então entra na lista explicitamente. */
 :host ::ng-deep .mdc-button:focus-visible,
-:host ::ng-deep .mat-mdc-paginator .mdc-icon-button:focus-visible {
+:host ::ng-deep .mat-mdc-paginator .mdc-icon-button:focus-visible,
+.tabela__ord:focus-visible {
   outline: 2px solid var(--caule);
   outline-offset: -2px;
   border-radius: 8px;
 }
 
-/* ---- Movimento deliberado (um só), respeitando reduced-motion ---- */
-@media (prefers-reduced-motion: no-preference) {
-  .ficha {
-    animation: ficha-assenta 320ms ease-out both;
-  }
+/* Movimento: a entrada animada saiu com o card. Animar POR LINHA de tabela é exatamente o efeito
+   caro que o §9 proíbe (leveza acima de estética) — a lista agora aparece de uma vez. */
 
-  @keyframes ficha-assenta {
-    from {
-      opacity: 0;
-      transform: translateY(8px);
-    }
-  }
-}
-
-/* ---- Véu do overlay do form (T-M5-10) — mesma cortina de Eventos/Produtos ---- */
+/* ---- Véu do overlay do form (T-M5-10) — mesma cortina de Eventos/Produtos ----
+   T-M6-08c: o `backdrop-filter: blur(2px)` SAIU aqui e em `clientes.scss` — o AD-SQ-69 (M5.1) já
+   tinha mandado remover o blur do véu por custo medido, mas só pegou produtos/eventos (§9). */
 .veu {
   position: fixed;
   inset: 0;
   z-index: 20;
   background: color-mix(in srgb, var(--tinta) 55%, transparent);
-  backdrop-filter: blur(2px);
 }

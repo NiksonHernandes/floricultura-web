@@ -304,11 +304,13 @@
 /* Movimento: a entrada animada saiu com o card. Animar POR LINHA de tabela é exatamente o efeito
    caro que o §9 proíbe (leveza acima de estética) — a lista agora aparece de uma vez. */
 
-/* ---- Véu do overlay do form (T-M5-8) — mesma cortina de Eventos/Produtos ---- */
+/* ---- Véu do overlay do form (T-M5-8) — mesma cortina de Eventos/Produtos ----
+   T-M6-08c: o `backdrop-filter: blur(2px)` SAIU. O AD-SQ-69 (M5.1) mandou remover o blur do véu por
+   custo medido de composição, mas só pegou produtos/eventos — esta tela e Fornecedores ficaram para
+   trás. A cortina continua sendo a mesma tinta translúcida; o que some é o efeito caro (§9). */
 .veu {
   position: fixed;
   inset: 0;
   z-index: 20;
   background: color-mix(in srgb, var(--tinta) 55%, transparent);
-  backdrop-filter: blur(2px);
 }

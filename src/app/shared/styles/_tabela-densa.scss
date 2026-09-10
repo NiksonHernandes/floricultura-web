@@ -130,7 +130,12 @@
       background: none;
       cursor: pointer;
 
+      // A ligadura do `mat-icon` é CASE-SENSITIVE: o `text-transform: uppercase` da etiqueta é
+      // HERDADO pelo ícone e transforma `arrow_upward` em `ARROW_UPWARD`, que a fonte Material
+      // Icons não conhece — a seta de ordenação sairia como TEXTO no cabeçalho. Achado no preview
+      // 375/1440 da T-M6-08c; o conserto mora aqui porque vale igual para Clientes (T-M6-08b).
       mat-icon {
+        text-transform: none;
         font-size: 1rem;
         width: 1rem;
         height: 1rem;

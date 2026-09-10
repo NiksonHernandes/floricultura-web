@@ -6,27 +6,19 @@ import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../../core/models/api-response.model';
 import { PaginaResponse } from '../../core/models/produto.model';
 import { Cliente, ClienteRequest } from '../../core/models/cliente.model';
-
-/** Campo de ordenação aceito pelo back em `GET /clientes` (SPEC-M6 §3.7). */
-export type OrdemContato = 'nome' | 'telefone' | 'email';
-
-/** Direção da ordenação (SPEC-M6 §3.7). */
-export type DirecaoOrdem = 'asc' | 'desc';
+import {
+  ContatoConsulta,
+  DirecaoOrdem,
+  OrdemContato,
+} from '../../core/models/contato-consulta.model';
 
 /**
- * Filtros/ordenação da lista de contatos (SPEC-M6 §3.7, T-M6-08a).
- *
- * `comTelefone`/`comEmail` são TRI-ESTADO: `null`/ausente = sem filtro · `true` = tem ·
- * `false` = **não** tem (nulo ou vazio após trim, R25). Vai como 4º argumento OPCIONAL de
- * `listar` de propósito: a assinatura posicional `(pagina, tamanho, nome?)` do M5 continua
- * válida para os chamadores que não filtram (`movimentar-estoque`, testes herdados).
+ * Os tipos de filtro/ordenação de contato (SPEC-M6 §3.7) nasceram aqui na T-M6-08b e foram
+ * promovidos a `core/models/contato-consulta.model.ts` pela T-M6-08c, porque Fornecedores usa
+ * EXATAMENTE o mesmo contrato e não podia depender da feature Clientes. O re-export mantém
+ * `import { OrdemContato } from './clientes.service'` funcionando como antes.
  */
-export interface ContatoConsulta {
-  comTelefone?: boolean | null;
-  comEmail?: boolean | null;
-  ordenarPor?: OrdemContato;
-  direcao?: DirecaoOrdem;
-}
+export type { ContatoConsulta, DirecaoOrdem, OrdemContato };
 
 /**
  * Serviço de Clientes (SPEC-M5 §3.4/§3.6, T-M5-6). Espelho fiel de `EventosService`.

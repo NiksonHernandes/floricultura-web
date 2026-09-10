@@ -92,6 +92,9 @@
       <mat-icon aria-hidden="true">people_outline</mat-icon>
       @if (filtro.value) {
         <p>Nenhum cliente encontrado para “{{ filtro.value }}”. Tente outro nome.</p>
+      } @else if (comTelefone() !== null || comEmail() !== null) {
+        <!-- Vazio SOB FILTRO: dizer "a agenda ainda está vazia" aqui seria falso (§3.11, P2). -->
+        <p>Nenhum cliente com esses filtros.</p>
       } @else {
         <p>A agenda ainda está vazia. Os clientes aparecem aqui assim que forem cadastrados.</p>
       }
