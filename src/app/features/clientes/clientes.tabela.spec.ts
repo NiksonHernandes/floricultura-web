@@ -249,6 +249,85 @@ describe('Clientes em tabela (T-M6-08b, CA-31)', () => {
     expect(expansor.querySelector('.ficha__excluir')?.textContent).toContain('Excluir');
   });
 
+  // --- O menu aberto não pode ser recortado (§10 #45 / AD-SQ-112, CA-46) ---
+
+  /**
+   * Abre o menu de UMA linha e mede se o "Excluir" recebe o clique de verdade.
+   *
+   * O defeito que este caso trava não é de marcação, é de pintura: o `.tabela-cartao` tinha
+   * `overflow: hidden` e clipava o `.ficha__mais__lista`, que é `position: absolute` dentro dele.
+   * Nenhum `querySelector` percebe isso — o botão continua no DOM, só que ninguém consegue clicar.
+   */
+  function medirMenuDe(el: HTMLElement, indice: number) {
+    const detalhes = Array.from(el.querySelectorAll('.ficha__mais')) as HTMLDetailsElement[];
+    // Um menu por vez: o `<details>` aberto de outra linha (`z-index: 5`) cobriria o alvo.
+    detalhes.forEach((d) => (d.open = false));
+    const alvo = detalhes[indice];
+    alvo.open = true;
+
+    const cartao = el.querySelector('.tabela-cartao') as HTMLElement;
+    const excluir = alvo.querySelector('.ficha__excluir') as HTMLElement;
+
+    // A janela do Karma é pequena: sem rolar a PÁGINA (o que o usuário faz) a última linha cai fora
+    // da viewport e o `elementFromPoint` devolveria `null` por motivo alheio ao recorte.
+    (alvo.querySelector('.ficha__mais__gatilho') as HTMLElement).scrollIntoView({ block: 'center' });
+    // ⚠️ Obrigatório, e DEPOIS do `scrollIntoView` (§10 #45 exige `cartao.scrollTop === 0`): com
+    // `overflow: hidden` o cartão vira contêiner de rolagem e o próprio `scrollIntoView` o rolaria
+    // por dentro, trazendo o menu de volta para o campo visível e MASCARANDO o bug.
+    cartao.scrollTop = 0;
+
+    const re = excluir.getBoundingClientRect();
+    const x = Math.round(re.left + re.width / 2);
+
+    // Alvo EFETIVO: varre o botão de cima a baixo e conta os pixels em que o clique chega NELE. Com
+    // o cartão recortando, os pixels de fora pertencem a quem está por baixo (o paginador) — é
+    // assim que "44px de altura" viram "0px clicáveis" sem que a geometria do botão mude.
+    let clicaveis = 0;
+    for (let y = Math.ceil(re.top) + 1; y < Math.floor(re.bottom); y++) {
+      const px = document.elementFromPoint(x, y);
+      if (px && excluir.contains(px)) clicaveis++;
+    }
+    const centro = document.elementFromPoint(x, Math.round(re.top + re.height / 2));
+
+    return {
+      clicaveis,
+      cliqueChegaNoBotao: !!centro && excluir.contains(centro),
+      quemRecebeOClique: centro ? `${centro.tagName}.${(centro as HTMLElement).className}` : 'null',
+    };
+  }
+
+  it('o menu da última linha não é recortado: o clique no "Excluir" chega ao próprio botão', () => {
+    // ≥3 registros porque o defeito só aparece no FIM da página, onde o menu passa do cartão.
+    const cinco: Cliente[] = [1, 2, 3, 4, 5].map((i) => ({
+      ...maria,
+      id: i,
+      nome: `Contato Fictício ${i}`,
+    }));
+    const el = iniciar(cinco).nativeElement as HTMLElement;
+
+    // Precondição: a janela do Karma tem de estar no layout de tabela (>= $bp-sm, 640px). Abaixo
+    // disso o cartão do print nem existe e o caso passaria à toa.
+    expect(getComputedStyle(el.querySelector('table.tabela')!).display).toBe('table');
+
+    const ultima = medirMenuDe(el, 4);
+    const penultima = medirMenuDe(el, 3);
+
+    // ⚠️ O critério NÃO é geométrico. Com o recorte fora, o menu transborda o cartão de propósito
+    // (~87px, medido) e fica VISÍVEL e clicável por cima do que vier abaixo — cobrar
+    // `lista.bottom <= cartao.bottom` seria reprovar a própria correção. Quem discrimina é o
+    // `elementFromPoint`: no estado reprovado (`e34b8af`) o centro do "Excluir" da última linha
+    // devolvia o `mat-mdc-paginator-navigation-previous`, ou seja, o clique virava "página anterior".
+    expect(ultima.cliqueChegaNoBotao)
+      .withContext(`última linha, clique recebido por: ${ultima.quemRecebeOClique}`)
+      .toBeTrue();
+    // Piso do FC-02 é 44px de alvo; recortado sobravam 0px na última e 32px na penúltima.
+    expect(ultima.clicaveis).toBeGreaterThanOrEqual(40);
+    expect(penultima.cliqueChegaNoBotao)
+      .withContext(`penúltima linha, clique recebido por: ${penultima.quemRecebeOClique}`)
+      .toBeTrue();
+    expect(penultima.clicaveis).toBeGreaterThanOrEqual(40);
+  });
+
   it('USER lê a tabela inteira, mas sem as ações de escrita (FC-07)', () => {
     ehAdmin.set(false);
     const el = iniciar().nativeElement as HTMLElement;
