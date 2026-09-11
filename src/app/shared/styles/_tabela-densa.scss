@@ -83,11 +83,14 @@
     flex: 0 0 5.5rem;
   }
 
-  // Primeira coluna (nome): manda na hierarquia, dispensa rótulo. Era o `.ficha__nome` da agenda
-  // pré-M6 — Fraunces 600, NUNCA 700 (AD-SQ-106; medido pelo §10 #38).
-  .tabela__titulo {
-    font: 600 1.1rem/1.2 var(--display);
-  }
+  // Primeira coluna (nome): dispensa rótulo (é o único `<td>` sem `data-rotulo`) e — desde a
+  // T-M6-A2 item 2 — NÃO declara tipografia nenhuma. O dono, olhando a tela, mandou "remova o
+  // negrito dos nomes de fornecedores e clientes… Remova o negrito e volte a fonte que era antes":
+  // pedido POSTERIOR e específico à tabela, que vence o CA-43 neste ponto (o CA-43 segue valendo em
+  // todo o resto). Sem declaração, a célula HERDA o `font: var(--mat-sys-body-medium)` do `.tabela`
+  // — mesma família e mesmo peso 400 das demais células. Nenhuma hierarquia nova, nenhuma serifa,
+  // nenhum negrito; e a regra some do CSS emitido, devolvendo bytes (§9 regra 8).
+  // Travado pelo `tipografia-pre-m6.spec.ts` (§10 #38), que agora COMPARA o nome com um `<td>` comum.
 
   // Dado ausente ("—") e observação: apoio, nunca competem com o valor (valores do `.ficha__obs`).
   .tabela__vazio {

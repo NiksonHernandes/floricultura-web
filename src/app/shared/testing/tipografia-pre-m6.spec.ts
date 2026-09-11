@@ -197,12 +197,37 @@ describe('T-M6-A1/CA-43 — tipografia pré-M6 restaurada (medição de render)'
       expect(parseFloat(td.fontSize)).toBeCloseTo(0.875 * rem(), 1);
     });
 
-    it('o nome é o .ficha__nome da agenda pré-M6: Fraunces 600, nunca 700', () => {
+    // ⚠️ CASO AJUSTADO na T-M6-A2 (item 2), NÃO apagado — edição autorizada pelo humano em
+    // `squad/.permitir-edicao-teste`. Ele nasceu na T-M6-A1 cravando "Fraunces 600" porque o CA-43
+    // manda restaurar o pré-M6. DEPOIS disso, e olhando a tela pronta, o dono pediu: "remova o
+    // negrito dos nomes de fornecedores e clientes… Remova o negrito e volte a fonte que era antes".
+    // Pedido posterior e específico à TABELA vence o CA-43 neste ponto; as demais asserções deste
+    // arquivo (a reversão da tipografia) continuam intactas e valendo.
+    // A natureza do caso não mudou: ele segue MEDINDO o render e segue pegando regressão — só que
+    // agora a regressão a pegar é a VOLTA do destaque (negrito/serifa/corpo maior) na 1ª coluna.
+    it('o nome não se destaca: mesma fonte e peso das demais células (sem negrito, sem serifa)', () => {
       const titulo = estilo(el, '.tabela__titulo');
-      expect(titulo.fontFamily).toContain('Fraunces');
-      expect(titulo.fontWeight).toBe('600');
-      expect(titulo.fontWeight).not.toBe('700');
-      expect(parseFloat(titulo.fontSize)).toBeCloseTo(1.1 * rem(), 1);
+      const td = estilo(el, 'tbody td[data-rotulo]');
+
+      expect(titulo.fontFamily)
+        .withContext('família do nome vs. família da célula comum')
+        .toBe(td.fontFamily);
+      expect(titulo.fontFamily)
+        .withContext('a serifa de display não entra na célula')
+        .not.toContain('Fraunces');
+
+      expect(titulo.fontWeight)
+        .withContext('peso do nome vs. peso da célula comum')
+        .toBe(td.fontWeight);
+      expect(titulo.fontWeight)
+        .withContext('o negrito que o dono mandou remover')
+        .toBe('400');
+
+      expect(titulo.fontSize)
+        .withContext('tamanho do nome vs. tamanho da célula comum')
+        .toBe(td.fontSize);
+      // 1.1rem era o corpo do destaque anterior: se ele voltar, este caso cai.
+      expect(parseFloat(titulo.fontSize)).not.toBeCloseTo(1.1 * rem(), 1);
     });
   });
 });
