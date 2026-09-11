@@ -1,0 +1,81 @@
+<div class="pote" role="dialog" aria-modal="true" aria-labelledby="cor-titulo">
+  <header class="pote__cabecalho">
+    <div>
+      <span class="pote__eyebrow">Ateliê · Configurações</span>
+      <h2 id="cor-titulo" class="pote__titulo">{{ editando() ? 'Editar cor' : 'Nova cor' }}</h2>
+    </div>
+    <button
+      type="button"
+      mat-icon-button
+      class="pote__fechar"
+      aria-label="Fechar sem salvar"
+      (click)="cancelar()"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
+
+  <form class="pote__form" [formGroup]="form" (ngSubmit)="salvar()" novalidate>
+    @if (erroGeral(); as msg) {
+      <p class="pote__erro" role="alert">
+        <mat-icon aria-hidden="true">error_outline</mat-icon>
+        <span>{{ msg }}</span>
+      </p>
+    }
+
+    <mat-form-field appearance="outline" class="pote__campo" subscriptSizing="dynamic">
+      <mat-label>Nome da cor</mat-label>
+      <input matInput formControlName="nome" autocomplete="off" maxlength="40" />
+      @if (form.controls.nome.hasError('required')) {
+        <mat-error>Informe o nome da cor.</mat-error>
+      } @else if (form.controls.nome.hasError('servidor')) {
+        <!-- Mensagem PRONTA do back (400 field:"nome" ou 409 de duplicata) — exibida como veio. -->
+        <mat-error>{{ form.controls.nome.getError('servidor') }}</mat-error>
+      }
+      <mat-hint>
+        O nome é padronizado: MAIÚSCULAS e espaço vira hífen (ex.: cinza escuro → CINZA-ESCURO).
+      </mat-hint>
+    </mat-form-field>
+
+    <!-- Prévia DISPLAY-ONLY do canônico (CA-40): o que vai no POST/PUT é o texto cru. -->
+    @if (previa(); as canonico) {
+      <p class="previa" aria-live="polite">
+        Será salvo como: <strong class="previa__valor">{{ canonico }}</strong>
+      </p>
+    }
+
+    <div class="pote__tinta">
+      <mat-form-field appearance="outline" class="pote__campo" subscriptSizing="dynamic">
+        <mat-label>Amostra (opcional)</mat-label>
+        <input
+          matInput
+          formControlName="hex"
+          autocomplete="off"
+          maxlength="7"
+          placeholder="#RRGGBB"
+        />
+        @if (form.controls.hex.hasError('pattern')) {
+          <mat-error>Informe a cor no formato #RRGGBB.</mat-error>
+        } @else if (form.controls.hex.hasError('servidor')) {
+          <mat-error>{{ form.controls.hex.getError('servidor') }}</mat-error>
+        }
+      </mat-form-field>
+      <!-- A pastilha da lista, ao vivo: sem hex válido ela fica VAZADA, nunca cinza cheia (R2).
+           Aqui ela é decorativa de verdade — quem anuncia o estado ao leitor de tela é o próprio
+           campo (rótulo + valor), diferente da lista, onde a pastilha é o único portador. -->
+      @if (amostra(); as hex) {
+        <span class="cor__amostra" [style.background-color]="hex" [title]="hex" aria-hidden="true"
+        ></span>
+      } @else {
+        <span class="cor__amostra cor__amostra--sem" aria-hidden="true"></span>
+      }
+    </div>
+
+    <div class="pote__acoes">
+      <button type="button" mat-button class="botao-secundario" (click)="cancelar()">Cancelar</button>
+      <button type="submit" mat-flat-button class="acao" [disabled]="enviando()">
+        {{ enviando() ? 'Salvando…' : editando() ? 'Salvar alterações' : 'Cadastrar cor' }}
+      </button>
+    </div>
+  </form>
+</div>

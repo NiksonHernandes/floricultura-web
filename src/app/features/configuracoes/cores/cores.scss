@@ -27,9 +27,13 @@
   color: var(--tinta);
 }
 
-// 52rem, e não os 68rem das outras listas: esta tabela tem DUAS colunas. Na largura cheia o número
-// de produtos vinculados ficava a meia tela do nome que ele qualifica — vão que a linha do olho não
-// vence. Coluna de leitura estreita é a forma certa para tela de sistema.
+// 52rem, e não os 68rem das outras listas: a coluna de leitura é estreita de propósito, para a
+// contagem não ficar a meia tela do nome que ela qualifica.
+// ⚠️ REMEDIDO na T-M6-06b, com a 3ª coluna no lugar (não herdado por inércia): o nome continua
+// cravado em 18rem e a contagem continua começando em 18rem — o que mudou é que o vão à direita
+// dela, que na 06a era espaço morto, agora é a coluna "Ações". Medido no preview 1424px: nome
+// 288px · contagem em x=288px (idêntico à 06a) · alvos de ação 44×44 encostados na borda direita.
+// Alargar para 68rem afastaria de novo contagem e nome; estreitar espremeria os 2 alvos de toque.
 .cartela {
   max-width: 52rem;
   margin: 0 auto;
@@ -52,6 +56,8 @@
 /* ---- Placa (cabeçalho) — ecoa a de Produtos/Fornecedores ---- */
 .placa {
   position: relative;
+  display: grid;
+  gap: 0.9rem;
   margin-bottom: 1.25rem;
   padding: 1.5rem 1.5rem 1.25rem;
   background: radial-gradient(120% 140% at 100% 0%, #274a3a 0%, var(--folhagem) 60%);
@@ -76,6 +82,19 @@
   letter-spacing: 0.3em;
   text-transform: uppercase;
   color: var(--sais);
+}
+
+/* Ação primária em dália carmim — a única ousadia da tela (mesma gramática das outras placas). */
+.placa__acao {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+
+  --mat-button-filled-container-color: var(--dalia);
+  --mat-button-filled-label-text-color: #fff;
+  --mat-button-filled-state-layer-color: #fff;
 }
 
 .placa__titulo {
@@ -193,6 +212,25 @@
   overflow-wrap: anywhere;
 }
 
+/* Ações da linha: alvo de 44px (FC-02/CA-37) sem menu intermediário — são só duas. */
+.cor__acao {
+  width: 44px;
+  height: 44px;
+  color: var(--folhagem);
+}
+
+.cor__excluir {
+  color: var(--dalia);
+}
+
+/* Véu do overlay do form: sem `blur` (leveza — AD-SQ-69/§10 #32). */
+.veu {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: color-mix(in srgb, var(--tinta) 55%, transparent);
+}
+
 /* ---- Paginação ---- */
 .paginacao {
   margin-top: 1.25rem;
@@ -206,6 +244,15 @@
 
 /* ---- Desktop (>= 640px): larguras das 2 colunas (§3.11) ---- */
 @include atelie.acima(atelie.$bp-sm) {
+  .placa:has(.placa__acao) {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+  }
+
+  .placa__acao {
+    justify-self: end;
+  }
+
   .tabela {
     table-layout: fixed;
   }

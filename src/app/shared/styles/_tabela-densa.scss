@@ -92,7 +92,10 @@
   // nenhum negrito; e a regra some do CSS emitido, devolvendo bytes (§9 regra 8).
   // Travado pelo `tipografia-pre-m6.spec.ts` (§10 #38), que agora COMPARA o nome com um `<td>` comum.
 
-  // Dado ausente ("—") e observação: apoio, nunca competem com o valor (valores do `.ficha__obs`).
+  // VOCABULÁRIO (fixado na T-M6-06b, era ambíguo entre as 3 telas): `.tabela__vazio` é TINTA DE
+  // APOIO — "este texto não é um valor a destacar" —, não um marcador de ausência. Quem distingue
+  // os dois casos é o TEXTO: `—` só quando o back não tem o dado (Clientes/Fornecedores); uma
+  // palavra quando o dado existe e vale zero ("Nenhum" em Cores). Comentário não emite byte.
   .tabela__vazio {
     color: color-mix(in srgb, var(--tinta) 55%, var(--estufa));
   }

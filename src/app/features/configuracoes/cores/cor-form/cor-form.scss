@@ -1,0 +1,158 @@
+// Form de cor — "a etiqueta do pote de tinta" (SPEC-M6 §3.15, T-M6-06b, CA-30/CA-40/CA-37).
+//
+// Mesma gramática de overlay de `fornecedor-form`/`cliente-form` (folha que sobe no celular, caixa
+// na bancada): zero hex novo, tudo de `_atelie-tokens.scss`. A assinatura da tela de Cores — a
+// PASTILHA DE TINTA — reaparece aqui AO VIVO, ao lado do campo de amostra; é o único acento além
+// da dália da ação. Sem transição, sem sombra interna, sem animação (leveza; §10 #32).
+@use '../../../../shared/styles/atelie-tokens' as atelie;
+
+:host {
+  @include atelie.base;
+
+  position: fixed;
+  z-index: 30;
+  inset: auto 0 0 0;
+  display: flex;
+  flex-direction: column;
+  max-height: 92vh;
+  background: var(--estufa);
+  color: var(--tinta);
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -18px 50px -24px rgba(20, 36, 28, 0.55);
+  overflow: hidden;
+
+  --mdc-outlined-text-field-focus-outline-color: var(--caule);
+  --mdc-outlined-text-field-caret-color: var(--caule);
+  --mdc-outlined-text-field-focus-label-text-color: var(--folhagem);
+}
+
+.pote__cabecalho {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.1rem 1.25rem 0.75rem;
+  background: radial-gradient(120% 160% at 100% 0%, #274a3a 0%, var(--folhagem) 65%);
+  color: var(--estufa);
+}
+
+.pote__eyebrow {
+  font: 600 0.68rem/1 var(--display);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--sais);
+}
+
+.pote__titulo {
+  margin: 0.3rem 0 0;
+  font: 400 clamp(1.4rem, 3.6vw, 1.8rem) / 1.1 var(--display);
+  font-optical-sizing: auto;
+}
+
+.pote__fechar {
+  color: var(--sais);
+  flex: none;
+}
+
+.pote__form {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1.1rem 1.25rem 1.25rem;
+  overflow-y: auto;
+}
+
+.pote__erro {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid color-mix(in srgb, var(--dalia) 40%, white);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--dalia) 8%, white);
+  color: #8f2450;
+  font: var(--mat-sys-body-small);
+}
+
+.pote__campo {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Prévia do canônico: informação de sistema, não enfeite — a tinta de apoio da tabela. */
+.previa {
+  margin: -0.35rem 0 0;
+  font: var(--mat-sys-body-small);
+  color: color-mix(in srgb, var(--tinta) 65%, var(--estufa));
+}
+
+.previa__valor {
+  font-family: var(--display);
+  letter-spacing: 0.04em;
+  color: var(--folhagem);
+}
+
+/* Campo da amostra + a pastilha ao vivo, lado a lado. */
+.pote__tinta {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem; // literal: este overlay não inclui a camada densa (§10 #15b: nada de fallback)
+}
+
+.cor__amostra {
+  flex: 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--tinta) 20%, var(--orvalho));
+}
+
+.cor__amostra--sem {
+  border-style: dashed;
+  border-color: var(--caule);
+  background: #fff;
+}
+
+.pote__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.pote__acoes .mat-mdc-button,
+.pote__acoes .mat-mdc-unelevated-button {
+  min-height: 44px;
+}
+
+.botao-secundario {
+  --mat-button-text-label-text-color: var(--folhagem);
+}
+
+/* A dália carmim é o único acento da ação primária (uma ousadia só). */
+.acao {
+  --mat-button-filled-container-color: var(--dalia);
+  --mat-button-filled-label-text-color: #fff;
+  --mat-button-filled-state-layer-color: #fff;
+  --mat-button-filled-disabled-container-color: color-mix(in srgb, #c4326b 35%, white);
+  --mat-button-filled-disabled-label-text-color: #fff;
+}
+
+/* Bancada: a folha vira caixa centrada (mesmo ponto de corte dos outros forms do ateliê). */
+@media (min-width: 720px) {
+  :host {
+    inset: 50% auto auto 50%;
+    transform: translate(-50%, -50%);
+    width: min(32rem, calc(100vw - 3rem));
+    border-radius: 16px;
+    box-shadow: 0 30px 70px -30px rgba(20, 36, 28, 0.6);
+  }
+}
+
+/* Foco de teclado visível (piso de qualidade §9). */
+:host ::ng-deep .mdc-button:focus-visible,
+:host ::ng-deep .mat-mdc-icon-button:focus-visible {
+  outline: 2px solid var(--sais);
+  outline-offset: -2px;
+  border-radius: 8px;
+}

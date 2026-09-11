@@ -1,6 +1,5 @@
 <section class="cartela">
-  <!-- Placa de Configurações: ecoa a placa de Produtos/Clientes/Fornecedores (mesmo produto).
-       Sem botão de ação: criar cor chega com o `cor-form` (T-M6-06b). Botão morto não entra. -->
+  <!-- Placa de Configurações: ecoa a placa de Produtos/Clientes/Fornecedores (mesmo produto). -->
   <header class="placa">
     <span class="placa__furo" aria-hidden="true"></span>
     <div class="placa__texto">
@@ -11,6 +10,12 @@
         produto.
       </p>
     </div>
+    @if (ehAdmin()) {
+      <button type="button" mat-flat-button class="acao placa__acao" (click)="novaCor()">
+        <mat-icon aria-hidden="true">add</mat-icon>
+        <span>Nova cor</span>
+      </button>
+    }
   </header>
 
   <div class="controles">
@@ -63,7 +68,8 @@
       Tabela SEMÂNTICA (§3.11/PA#2): no desktop é tabela de verdade; abaixo de 640px o
       `_tabela-densa.scss` desmonta cada <tr> numa etiqueta com rótulo por célula. O cartão branco é
       a <div> irmã do <table> (a borda arredondada não pega num <table> com `border-collapse`).
-      Duas colunas nesta task; "Ações" entra com a T-M6-06b, junto das ações que ela nomearia.
+      A coluna "Ações" só existe para ADMIN: aqui a rota inteira é ADMIN, então cabeçalho sobre
+      célula vazia seria rótulo sem dado (em Clientes/Fornecedores o USER lê a tela, e lá ela fica).
       Nenhum <th> é ordenável: o catálogo vem por nome ASC do back e o §3.2 não expõe `ordenarPor`.
     -->
     <div class="tabela-cartao">
@@ -72,6 +78,9 @@
           <tr>
             <th scope="col">Cor</th>
             <th scope="col">Produtos vinculados</th>
+            @if (ehAdmin()) {
+              <th scope="col" class="tabela__acoes">Ações</th>
+            }
           </tr>
         </thead>
         <tbody>
@@ -104,9 +113,39 @@
                 @if (c.produtosVinculados > 0) {
                   {{ c.produtosVinculados }}
                 } @else {
+                  <!-- ZERO REAL, não dado ausente: o `—` fica reservado ao "o back não tem esse
+                       dado" das outras tabelas; a palavra diz que a contagem existe e vale zero
+                       (é o que explica por que esta cor pode ser excluída sem 409). Mesma classe
+                       porque `.tabela__vazio` é TINTA DE APOIO, não semântica de ausência. -->
                   <span class="tabela__vazio">Nenhum</span>
                 }
               </td>
+              @if (ehAdmin()) {
+                <td class="tabela__acoes">
+                  <!-- Duas ações diretas (sem menu `<details>`): a linha tem 2 alvos, e menu
+                       absoluto dentro do cartão é a armadilha §12 #36. Ícone + nome acessível. -->
+                  <button
+                    type="button"
+                    mat-icon-button
+                    class="cor__acao cor__editar"
+                    [title]="'Editar ' + c.nome"
+                    [attr.aria-label]="'Editar ' + c.nome"
+                    (click)="editarCor(c)"
+                  >
+                    <mat-icon aria-hidden="true">edit</mat-icon>
+                  </button>
+                  <button
+                    type="button"
+                    mat-icon-button
+                    class="cor__acao cor__excluir"
+                    [title]="'Excluir ' + c.nome"
+                    [attr.aria-label]="'Excluir ' + c.nome"
+                    (click)="excluirCor(c)"
+                  >
+                    <mat-icon aria-hidden="true">delete_outline</mat-icon>
+                  </button>
+                </td>
+              }
             </tr>
           }
         </tbody>
@@ -123,3 +162,9 @@
     />
   }
 </section>
+
+<!-- Form de criar/editar cor (T-M6-06b — só ADMIN abre; o back é a fonte de verdade). -->
+@if (formAberto()) {
+  <div class="veu" (click)="fecharForm()"></div>
+  <app-cor-form [cor]="corEmEdicao()" (salvo)="aoSalvar($event)" (cancelado)="fecharForm()" />
+}

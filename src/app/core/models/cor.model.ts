@@ -3,8 +3,7 @@
  * descreve a flor. Trafega DENTRO do envelope §3.1 do M0 (`ApiResponse<T>` + `PaginaResponse<T>`;
  * este arquivo NÃO redefine envelope nem paginação).
  *
- * Escopo T-M6-06a: só LEITURA. O payload de escrita (`CorRequest`) nasce com o `cor-form`
- * (T-M6-06b) — tipo sem consumidor é código morto (armadilha §12 #34).
+ * T-M6-06a trouxe a leitura; a T-M6-06b traz o `CorRequest` da escrita, junto do seu consumidor.
  */
 
 /**
@@ -23,4 +22,16 @@ export interface Cor {
   produtosVinculados: number;
   criadoEm: string;
   atualizadoEm: string;
+}
+
+/**
+ * `CorRequest` (§3.2) — mesmo payload no POST e no PUT.
+ *
+ * ⚠️ `nome` vai **CRU**, exatamente como foi digitado: quem canoniza é o `Cores.canonizar` do back,
+ * fonte ÚNICA da regra (§3.2.1/armadilha §12 #22). O front tem só uma PRÉVIA display-only.
+ * `hex` em branco vira `null` (= sem amostra); o back o devolve em maiúsculas.
+ */
+export interface CorRequest {
+  nome: string;
+  hex: string | null;
 }

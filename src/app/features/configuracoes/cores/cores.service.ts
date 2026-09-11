@@ -5,14 +5,13 @@ import { Observable, map } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { ApiResponse } from '../../../core/models/api-response.model';
 import { PaginaResponse } from '../../../core/models/produto.model';
-import { Cor } from '../../../core/models/cor.model';
+import { Cor, CorRequest } from '../../../core/models/cor.model';
 
 /**
  * Serviço do catálogo de cores (SPEC-M6 §3.2, T-M6-06a) — espelho de `FornecedoresService`.
  *
- * Escopo desta task: **só `listar`**. POST/PUT/DELETE entram com o `cor-form` (T-M6-06b), junto do
- * seu chamador — método sem consumidor é código morto, e o 409 da escrita precisa do tratamento de
- * erro que só existe lá.
+ * A T-M6-06a trouxe `listar`; a T-M6-06b traz POST/PUT/DELETE junto do seu chamador (o `cor-form` e
+ * a coluna "Ações"), porque o 409 da escrita só faz sentido com quem o exibe.
  *
  * RBAC (PA#3): `GET /cores` é USER+ADMIN (alimenta o filtro de cor da lista de produtos, que o USER
  * usa); a escrita é ADMIN por matcher no back. A TELA de Configurações é ADMIN (`adminGuard`) — o
@@ -44,5 +43,24 @@ export class CoresService {
     return this.http
       .get<ApiResponse<PaginaResponse<Cor>>>(this.baseUrl, { params })
       .pipe(map((r) => r.data!));
+  }
+
+  /** POST /cores → 201 com a cor JÁ canônica (ADMIN). 400/409 são do chamador (`cor-form`). */
+  criar(req: CorRequest): Observable<Cor> {
+    return this.http.post<ApiResponse<Cor>>(this.baseUrl, req).pipe(map((r) => r.data!));
+  }
+
+  /** PUT /cores/{id} → 200 com a cor canônica (ADMIN). Renomear propaga aos produtos (R4). */
+  atualizar(id: number, req: CorRequest): Observable<Cor> {
+    return this.http.put<ApiResponse<Cor>>(`${this.baseUrl}/${id}`, req).pipe(map((r) => r.data!));
+  }
+
+  /**
+   * DELETE /cores/{id} → 204 (hard delete, FC-08). Cor **em uso** devolve **409** com a `message`
+   * pronta do back (§3.2.1) — o front não antecipa nem adivinha a contagem: chama, e exibe o que
+   * veio (R3/P3). 403/404 também sobem para o chamador.
+   */
+  excluir(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
 }

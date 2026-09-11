@@ -97,4 +97,57 @@ describe('CoresService (T-M6-06a)', () => {
     expect(recebida?.conteudo[0].hex).toBeNull();
     expect(recebida?.conteudo[0].produtosVinculados).toBe(0);
   });
+
+  // --- Escrita (T-M6-06b): o payload sai cru e o 409 sobe inteiro para o chamador ---
+
+  it('criar faz POST e devolve a cor JÁ canônica da resposta', () => {
+    let criada: Cor | undefined;
+    service.criar({ nome: 'cinza escuro', hex: null }).subscribe((c) => (criada = c));
+
+    const req = httpMock.expectOne(BASE);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ nome: 'cinza escuro', hex: null });
+    req.flush(envelope(cinza));
+
+    expect(criada?.nome).toBe('CINZA-ESCURO');
+  });
+
+  it('atualizar faz PUT no id', () => {
+    service.atualizar(7, { nome: 'cinza escuro', hex: '#c4326b' }).subscribe();
+
+    const req = httpMock.expectOne(`${BASE}/7`);
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body).toEqual({ nome: 'cinza escuro', hex: '#c4326b' });
+    req.flush(envelope(cinza));
+  });
+
+  it('excluir faz DELETE e NÃO engole o 409 — quem exibe a mensagem é a tela', () => {
+    let status = 0;
+    let mensagem = '';
+    // Tipagem local (em vez de importar `HttpErrorResponse` na 1ª linha do arquivo): o spec da 06a
+    // segue com ZERO linha alterada — só acréscimo no fim (anti-burla §10 #31).
+    type ErroDeApi = { status: number; error: { error: { message: string } } };
+    service.excluir(7).subscribe({
+      error: (e: ErroDeApi) => {
+        status = e.status;
+        mensagem = e.error.error.message;
+      },
+    });
+
+    const req = httpMock.expectOne(`${BASE}/7`);
+    expect(req.request.method).toBe('DELETE');
+    req.flush(
+      {
+        success: false,
+        data: null,
+        error: { code: 'CONFLICT', message: 'Cor em uso por 3 produto(s).', details: [] },
+        timestamp: '',
+        path: '',
+      },
+      { status: 409, statusText: 'Conflict' },
+    );
+
+    expect(status).toBe(409);
+    expect(mensagem).toBe('Cor em uso por 3 produto(s).');
+  });
 });

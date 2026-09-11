@@ -7,9 +7,19 @@ import {
   MatDialogModule,
 } from '@angular/material/dialog';
 
-/** Dados do diálogo: o NOME do produto a excluir (FC-08 — confirmação exibe o nome). */
+/**
+ * Dados do diálogo: o NOME do registro a excluir (FC-08 — confirmação exibe o nome).
+ *
+ * Extensão ADITIVA da T-M6-06b (SPEC-M6 §3.15): os 2 campos novos são opcionais e o default
+ * reproduz palavra por palavra o texto de produto — os 4 chamadores (produtos, clientes,
+ * fornecedores, eventos) e os 5 casos herdados deste spec seguem sem uma linha de mudança.
+ */
 export interface ConfirmarExclusaoDados {
   nome: string;
+  /** Rótulo da entidade no título e no botão. Default: 'produto'. */
+  entidade?: string;
+  /** Frase de contexto do aviso. Default: a atual (histórico preservado). */
+  contexto?: string;
 }
 
 /**
@@ -30,6 +40,13 @@ export interface ConfirmarExclusaoDados {
 export class ConfirmarExclusao {
   private readonly ref = inject(MatDialogRef<ConfirmarExclusao, boolean>);
   protected readonly dados = inject<ConfirmarExclusaoDados>(MAT_DIALOG_DATA);
+
+  protected readonly entidade = this.dados.entidade ?? 'produto';
+  /** "da prateleira" é vocabulário de estoque: some quando o chamador nomeia outra entidade. */
+  protected readonly onde = this.dados.entidade ? '' : ' da prateleira';
+  protected readonly contexto =
+    this.dados.contexto ??
+    'O histórico de movimentações é preservado, mas o produto não pode ser recuperado.';
 
   protected confirmar(): void {
     this.ref.close(true);
