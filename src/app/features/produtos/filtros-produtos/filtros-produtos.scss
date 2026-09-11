@@ -1,0 +1,270 @@
+// Barra de filtros da prateleira — ajustes 5 e 6 do dono (SPEC-M6 §3.14, T-M6-11).
+//
+// Passe 1 (o design system canônico do ateliê VENCE — nada de paleta nova): folhagem/estufa/tinta/
+// caule/orvalho + Fraunces, já travados em `_atelie-tokens.scss`. A assinatura reusada é a ETIQUETA
+// DE VIVEIRO — o rótulo em versalete Fraunces ("ESTOQUE", "PREÇO DE VENDA") que o card já usa —,
+// agora nomeando os grupos do filtro: a barra parece a mesma etiqueta de canteiro, em escala maior.
+// Passe 2 anti-default: recusa o "painel de filtros cinza com chips azuis" do Material genérico —
+// pastilha é `<button>` do ateliê (MatChips é módulo novo, proibido pelo §9), o atalho ativo é
+// folhagem CHEIA (não o roxo do tema) e a dália segue reservada ao alerta de estoque do card.
+// Zero sombra, zero blur, zero animação (memória `dono-leveza-acima-de-estetica`).
+//
+// SCSS PRÓPRIO por orçamento (§9 regra 2/6a): `produtos.scss` fechou a T-M6-07 em 7513 B contra um
+// teto de 7500. Todo byte da barra E do painel inferior mora aqui, que tem budget próprio.
+@use '../../../shared/styles/atelie-tokens' as atelie;
+
+:host {
+  @include atelie.base;
+  @include atelie.densa;
+
+  display: block;
+  margin-bottom: var(--esp-2);
+}
+
+/* ---- Gatilho do celular ("Filtros (N)") — some no desktop ---- */
+.cabeca__gatilho {
+  width: 100%;
+  min-height: var(--toque);
+
+  --mat-button-outlined-label-text-color: var(--folhagem);
+  --mat-button-outlined-icon-color: var(--folhagem);
+  --mat-button-outlined-outline-color: var(--orvalho);
+}
+
+/* Véu do painel — MESMO desenho do véu do form de produto (AD-SQ-69): sólido translúcido, sem
+   `backdrop-filter`. O blur foi removido daquele por custo de composição medido; não volta aqui. */
+.veu {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: color-mix(in srgb, var(--tinta) 55%, transparent);
+}
+
+/* ---- Painel/barra (DOM único) ----
+   Celular: folha que sobe de baixo. Desktop: cartão estático no fluxo (ver o bloco `acima`). */
+.painel {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 21;
+  display: none;
+  gap: var(--esp-2);
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: var(--esp-3);
+  background: #fff;
+  border-top: 1px solid var(--orvalho);
+  border-radius: var(--raio) var(--raio) 0 0;
+}
+
+.painel--aberto {
+  display: grid;
+}
+
+.painel__topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.painel__titulo {
+  margin: 0;
+  font: 400 1.25rem/1.1 var(--display);
+  color: var(--tinta);
+}
+
+.painel__fechar {
+  --mat-icon-button-icon-color: var(--folhagem);
+}
+
+.painel__pe {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--esp-2);
+}
+
+.painel__limpar {
+  min-height: var(--toque);
+
+  --mat-button-text-label-text-color: var(--folhagem);
+}
+
+.painel__ok {
+  min-height: var(--toque);
+
+  --mat-button-filled-container-color: var(--folhagem);
+  --mat-button-filled-label-text-color: #fff;
+}
+
+/* ---- Campos ---- */
+.campos {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--esp-2);
+}
+
+.faixa {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--esp-2);
+}
+
+.grupo {
+  display: grid;
+  gap: var(--esp-1);
+}
+
+/* A etiqueta de viveiro do card, agora nomeando o grupo. Versalete de 10,6px é o padrão do ateliê
+   desde o M1 e está FORA do piso de 12px do CA-37, que vale para o dado (AD-SQ-124). */
+.grupo__rotulo {
+  font: var(--txt-rotulo);
+  letter-spacing: var(--txt-rotulo-track);
+  text-transform: uppercase;
+  color: var(--caule);
+}
+
+.grupo__dica {
+  margin: 0;
+  font: var(--mat-sys-body-small);
+  color: var(--tinta-fraca);
+}
+
+/* ---- Atalhos de estoque (escolha única, `aria-pressed`) ---- */
+.atalhos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-1);
+}
+
+.atalho {
+  min-height: var(--toque);
+  border: 1px solid var(--orvalho);
+  border-radius: 999px;
+
+  --mat-button-text-label-text-color: var(--tinta);
+  --mat-button-text-state-layer-color: var(--folhagem);
+}
+
+.atalho--ativo {
+  background: var(--folhagem);
+  border-color: var(--folhagem);
+
+  --mat-button-text-label-text-color: var(--estufa);
+  --mat-button-text-state-layer-color: #fff;
+}
+
+/* Switch em caule/folhagem: no Material 20 quem pinta é a família `--mat-slide-toggle-*`; os
+   `--mdc-switch-*` são TOKEN MORTO e deixam o controle azul do tema (armadilha §12 #26). */
+.chave {
+  --mat-slide-toggle-selected-track-color: var(--caule);
+  --mat-slide-toggle-selected-focus-track-color: var(--caule);
+  --mat-slide-toggle-selected-hover-track-color: var(--caule);
+  --mat-slide-toggle-selected-pressed-track-color: var(--caule);
+  --mat-slide-toggle-selected-handle-color: var(--folhagem);
+  --mat-slide-toggle-selected-focus-handle-color: var(--folhagem);
+  --mat-slide-toggle-selected-hover-handle-color: var(--folhagem);
+  --mat-slide-toggle-selected-pressed-handle-color: var(--folhagem);
+  --mat-slide-toggle-selected-icon-color: var(--estufa);
+}
+
+/* ---- Filtros ativos: pastilha removível + limpar ---- */
+.ativos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-1);
+  margin-top: var(--esp-2);
+}
+
+.pastilha {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: var(--toque);
+  padding: 0 0.55rem 0 0.8rem;
+  border: 1px solid var(--orvalho);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--caule) 10%, #fff);
+  color: var(--tinta);
+  font: var(--mat-sys-body-small);
+  cursor: pointer;
+}
+
+.pastilha__texto {
+  max-width: 13rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pastilha__x {
+  font-size: 1.15rem;
+  line-height: 1;
+  color: var(--caule);
+}
+
+.ativos__limpar {
+  min-height: var(--toque);
+  padding: 0 var(--esp-1);
+  border: 0;
+  background: none;
+  color: var(--folhagem);
+  font: 600 0.82rem/1 var(--corpo);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Amostra de tinta da opção de cor — a mesma de Configurações → Cores e do cadastro. Sem hex ela
+   fica VAZADA: ausência de dado tem desenho próprio, nunca uma cor inventada (R2/AD-SQ-123). */
+.tinta {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  margin-right: 0.5rem;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--tinta) 20%, var(--orvalho));
+  vertical-align: middle;
+}
+
+.tinta--sem {
+  border-style: dashed;
+  border-color: var(--caule);
+  background: #fff;
+}
+
+/* ---- Foco de teclado visível (piso de qualidade §9) ---- */
+.pastilha:focus-visible,
+.ativos__limpar:focus-visible {
+  outline: 2px solid var(--caule);
+  outline-offset: 2px;
+}
+
+/* ---- Desktop: o painel vira BARRA no fluxo; gatilho, véu e cromo do painel somem ---- */
+@include atelie.acima(atelie.$bp-sm) {
+  .cabeca,
+  .veu,
+  .painel__topo,
+  .painel__pe {
+    display: none;
+  }
+
+  .painel {
+    position: static;
+    display: grid;
+    max-height: none;
+    overflow: visible;
+    padding: var(--esp-2) var(--esp-3);
+    border: 1px solid var(--orvalho);
+    border-radius: var(--raio);
+  }
+
+  // 11,5rem = 184px: abaixo disso o Material corta o rótulo mais longo ("Necessidade de luz")
+  // com reticências — medido no print de 1440px.
+  .campos {
+    grid-template-columns: repeat(auto-fit, minmax(11.5rem, 1fr));
+  }
+
+  // A faixa é um dado curto: esticá-la até a borda do cartão a faria competir com os selects.
+  .faixa {
+    grid-template-columns: repeat(2, minmax(0, 11.5rem));
+  }
+}

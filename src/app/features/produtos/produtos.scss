@@ -206,9 +206,11 @@
   // família) — o navegador a descarta e o selo herda a tipografia do card, que é o render
   // pré-M6 que o dono pediu de volta. NÃO "consertar" para o token `--corpo`: isso reintroduz
   // o 600/0.72rem que ele reprovou. Coberto pelo §10 #36/#38.
+  // T-M6-11 (§9 regra 6b): `box-shadow` removida no corte compensatório de orçamento. O selo é
+  // dália sólida sobre a foto — o contraste não dependia da sombra, só a "profundidade" dependia,
+  // e efeito caro é o primeiro a cair (memória `dono-leveza-acima-de-estetica`).
   font: 600 0.72rem/1.4 var(--mat-sys-body-small);
   letter-spacing: 0.02em;
-  box-shadow: 0 6px 16px -8px rgba(196, 50, 107, 0.7);
 
   mat-icon {
     font-size: 1rem;
@@ -231,9 +233,9 @@
   background: color-mix(in srgb, var(--folhagem) 88%, black 0%);
   color: var(--estufa);
   // ⚠️ AD-SQ-106: idem `.selo-baixo` — inválida de propósito, herda do card (render de `develop`).
+  // T-M6-11: idem `.selo-baixo` — `box-shadow` removida no corte compensatório (§9 regra 6b).
   font: 600 0.72rem/1.4 var(--mat-sys-body-small);
   letter-spacing: 0.02em;
-  box-shadow: 0 6px 16px -10px rgba(20, 36, 28, 0.8);
 
   mat-icon {
     font-size: 1rem;
@@ -274,6 +276,17 @@
    aqui só o padding encolhe, senão o `min-width: 64px` do MDC não caberia 3 alvos em ~160px. */
 .vaso__acao {
   padding: 0 0.4rem;
+}
+
+/* P2 do §12 #25 (dívida da T-M6-07, fechada aqui): a fileira precisa de `3 × 44 + 2 × gap` e a
+   área útil é `card − 24` (padding do corpo). A 360px faltavam 2,2px e o 1º alvo era CORTADO pelo
+   `overflow:hidden`. Conserto sem encolher alvo (isso violaria o CA-37): no celular o gap vai a
+   zero, `space-between` distribui, e a fileira recupera o padding lateral do corpo por margem
+   negativa (+12,8px de útil) — a 360px sobram ~10,8px. O desenho do desktop volta em `$bp-sm`. */
+.vaso__acoes {
+  gap: 0;
+  justify-content: space-between;
+  margin-inline: calc(var(--esp-1) - var(--esp-2));
 }
 
 /* Visualizar, Movimentar e Editar em folhagem (paleta); nada de azul do Material. */
@@ -361,6 +374,13 @@
   .vasos {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+
+  // A partir de 3 colunas o card tem folga de sobra: volta o desenho aprovado na T-M6-07.
+  .vaso__acoes {
+    gap: var(--esp-1);
+    justify-content: flex-end;
+    margin-inline: 0;
+  }
 }
 
 @include atelie.acima(atelie.$bp-md) {
@@ -389,16 +409,9 @@
   border-radius: 8px;
 }
 
-/* ---- Movimento deliberado (um só), respeitando reduced-motion ---- */
-@media (prefers-reduced-motion: no-preference) {
-  .vaso {
-    animation: vaso-assenta 320ms ease-out both;
-  }
-
-  @keyframes vaso-assenta {
-    from {
-      opacity: 0;
-      transform: translateY(8px);
-    }
-  }
-}
+/* ---- Movimento: NENHUM (T-M6-11, §9 regra 6b) ----
+   A animação `vaso-assenta` (+ `@keyframes` + o `prefers-reduced-motion` que a guardava) foi
+   REMOVIDA no corte compensatório de orçamento de CSS. Razão dupla: (a) este mesmo §9 proíbe
+   *acrescentar* animação por card, e manter a que existe enquanto se corta byte em outro lugar
+   seria incoerente; (b) a memória `dono-leveza-acima-de-estetica` manda remover o que pesa num
+   site de gerenciamento — 12 a 48 cards animando a cada troca de página é custo por item. */

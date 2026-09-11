@@ -10,10 +10,13 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatPaginatorModule, MatPaginatorIntl, PageEvent } from '@angular/material/paginator';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
+import { HttpErrorResponse } from '@angular/common/http';
 
 import { ProdutosService } from './produtos.service';
 import { EventosService } from '../eventos/eventos.service';
 import { FornecedoresService } from '../fornecedores/fornecedores.service';
+import { CoresService } from '../configuracoes/cores/cores.service';
+import { FiltrosProdutos } from './filtros-produtos/filtros-produtos';
 import { ProximosEventos } from '../eventos/proximos-eventos/proximos-eventos';
 import { ProdutoForm } from './produto-form/produto-form';
 import { ImagemProduto } from './imagem-produto/imagem-produto';
@@ -33,6 +36,12 @@ import { AuthService } from '../../core/services/auth.service';
 import { Movimentacao, Produto, UnidadeMedida } from '../../core/models/produto.model';
 import { Evento } from '../../core/models/evento.model';
 import { Fornecedor } from '../../core/models/fornecedor.model';
+import { Cor } from '../../core/models/cor.model';
+import {
+  FILTRO_VAZIO,
+  FiltroProdutos,
+  contarFiltros,
+} from '../../core/models/produto-filtro.model';
 
 /** MatPaginator em pt-BR — sem o "Items per page" em inglês do default (design-distintivo §texto). */
 function paginatorPtBr(): MatPaginatorIntl {
@@ -91,6 +100,7 @@ const ROTULOS_UNIDADE: Record<UnidadeMedida, string> = {
     ProdutoForm,
     ImagemProduto,
     ProximosEventos,
+    FiltrosProdutos,
   ],
   providers: [{ provide: MatPaginatorIntl, useFactory: paginatorPtBr }],
   templateUrl: './produtos.html',
@@ -113,6 +123,12 @@ export class Produtos implements OnInit {
    * da carga; o `produto-form` recebe as opções por `@Input` e fica com superfície HTTP zero.
    */
   private readonly fornecedoresService = inject(FornecedoresService, { optional: true });
+  /**
+   * Catálogo de cores para o filtro de cor (T-M6-11/§3.14) — MESMO padrão OPCIONAL (AD-SQ-72):
+   * provido no `app.config`, fica `null` nos specs herdados do M2/M3, que assim seguem sem
+   * disparar `GET /cores`. A lista-mãe é a dona da carga; a barra recebe as opções por `input`.
+   */
+  private readonly coresService = inject(CoresService, { optional: true });
 
   /** RBAC de UX (FC-07): só ADMIN vê/usa as ações de escrita. O back é a fonte de verdade. */
   protected readonly ehAdmin = this.auth.ehAdmin;
@@ -129,6 +145,25 @@ export class Produtos implements OnInit {
 
   /** Campo de busca por nome (filtro server-side com debounce — §3.3 `nome` ILIKE). */
   protected readonly filtro = new FormControl('', { nonNullable: true });
+
+  /**
+   * Estado da barra de filtros (T-M6-11/§3.6). A barra é a dona do controle; aqui ele existe para
+   * (a) entrar na próxima requisição, (b) voltar para a barra pelo `input valor` quando alguém
+   * limpa de fora (estado-vazio) e (c) decidir o texto do estado-vazio.
+   */
+  protected readonly filtros = signal<FiltroProdutos>(FILTRO_VAZIO);
+  protected readonly temFiltro = computed(() => contarFiltros(this.filtros()) > 0);
+
+  /** Catálogo de cores do filtro (`GET /cores`) — carregado 1x na abertura da tela. */
+  protected readonly cores = signal<Cor[]>([]);
+  private coresCarregadas = false;
+
+  /**
+   * Mensagens por campo de um 400 do back (`details[]`, §3.6): `precoMin > precoMax` e
+   * `semPreco` junto da faixa. Exibimos a mensagem QUE VEIO — o front não reescreve o erro do
+   * servidor nem inventa validação paralela que um dia divergiria.
+   */
+  protected readonly errosFiltro = signal<string[]>([]);
 
   /** Diálogo do form (T-M2-8): aberto? e produto em edição (null = criar). */
   protected readonly formAberto = signal(false);
@@ -174,22 +209,51 @@ export class Produtos implements OnInit {
 
   ngOnInit(): void {
     this.carregar();
+    // A barra de filtros precisa dos dois catálogos ANTES do primeiro toque (T-M6-11). Os dois
+    // serviços são opcionais: sem eles (specs herdados) nenhum GET sai e a barra fica sem opções.
+    this.carregarEventos();
+    this.carregarCores();
   }
 
   protected carregar(): void {
     this.carregando.set(true);
     this.erro.set(null);
-    this.service.listar(this.pagina(), this.tamanho(), this.filtro.value).subscribe({
+    this.errosFiltro.set([]);
+    this.service.listar(this.pagina(), this.tamanho(), this.filtro.value, this.filtros()).subscribe({
       next: (pagina) => {
         this.produtos.set(pagina.conteudo);
         this.totalElementos.set(pagina.totalElementos);
         this.carregando.set(false);
       },
-      error: () => {
-        this.erro.set('Não foi possível carregar a prateleira. Tente novamente.');
+      error: (e: HttpErrorResponse) => {
+        // 400 do §3.6 traz `details[]` com UM item por campo — exibimos cada mensagem como veio.
+        const detalhes: string[] = (e?.error?.error?.details ?? []).map(
+          (d: { message: string }) => d.message,
+        );
+        this.errosFiltro.set(detalhes);
+        this.erro.set(
+          detalhes.length > 0
+            ? 'Revise os filtros:'
+            : 'Não foi possível carregar a prateleira. Tente novamente.',
+        );
         this.carregando.set(false);
       },
     });
+  }
+
+  /**
+   * A barra emitiu um novo filtro (já com debounce de 300ms — §3.14). Zera a página e faz **uma**
+   * requisição: dois controles mexidos no mesmo gesto chegam aqui como um evento só.
+   */
+  protected aoFiltrar(f: FiltroProdutos): void {
+    this.filtros.set(f);
+    this.pagina.set(0);
+    this.carregar();
+  }
+
+  /** "Limpar filtros" do estado-vazio (CA-36). O `input valor` leva o reset de volta à barra. */
+  protected limparFiltros(): void {
+    this.aoFiltrar(FILTRO_VAZIO);
   }
 
   /** Troca de página do `MatPaginator` (0-based) → recarrega a mesma fatia do back. */
@@ -285,6 +349,24 @@ export class Produtos implements OnInit {
       },
       error: () => {
         this.fornecedoresCarregados = false;
+      },
+    });
+  }
+
+  /**
+   * Catálogo de cores do filtro (T-M6-11), 1x por abertura da tela — MESMO padrão dos eventos.
+   * Serviço ausente (specs herdados) ⇒ nenhum GET e barra sem opções de cor (vazio honesto, sem
+   * inventar cartela); falha de rede degrada em silêncio e permite nova tentativa.
+   */
+  private carregarCores(): void {
+    if (this.coresCarregadas || !this.coresService) {
+      return;
+    }
+    this.coresCarregadas = true;
+    this.coresService.listar(0, 100).subscribe({
+      next: (pagina) => this.cores.set(pagina.conteudo),
+      error: () => {
+        this.coresCarregadas = false;
       },
     });
   }
