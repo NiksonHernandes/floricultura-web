@@ -11,7 +11,7 @@ import { MatPaginatorModule, MatPaginatorIntl, PageEvent } from '@angular/materi
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 
-import { ClientesService } from './clientes.service';
+import { ClientesService, DirecaoOrdem, OrdemContato } from './clientes.service';
 import { ClienteForm } from './cliente-form/cliente-form';
 import {
   ConfirmarExclusao,
@@ -49,6 +49,14 @@ function paginatorPtBr(): MatPaginatorIntl {
  * back é a fonte de verdade). Hard delete (FC-08) reusa `ConfirmarExclusao` (mostra o nome; só ao
  * confirmar dispara o `DELETE`). O `cliente-form` (Novo/Editar) entra com a T-M5-8: os handlers já
  * armam os signals `formAberto`/`clienteEmEdicao` que o form vai consumir.
+ *
+ * **T-M6-08b (ajuste 8 do dono — SPEC-M6 §3.11, CA-31/CA-37):** os cards viraram uma `<table>`
+ * densa (`_tabela-densa.scss`), com ordenação por cabeçalho — **server-side** (§3.7), porque
+ * ordenar só a página corrente mentiria com paginação. Busca e `mat-paginator` permanecem.
+ *
+ * **T-M6-A2 (reversão do dono — CA-44/AD-SQ-107):** os dois filtros tri-estado foram REMOVIDOS
+ * ("deixe somente a busca por nome"). A tela ficou com busca + paginação + ordenação (cabeçalho no
+ * desktop, `<select>` no celular). O contrato do back segue intacto e coberto no serviço.
  */
 @Component({
   selector: 'app-clientes',
@@ -88,6 +96,34 @@ export class Clientes implements OnInit {
   /** Campo de busca por nome (filtro server-side com debounce — §3.4 `nome` ILIKE). */
   protected readonly filtro = new FormControl('', { nonNullable: true });
 
+  // --- Ajuste 8 (T-M6-08b): ordenação server-side (§3.7/§3.11) ---
+  //
+  // T-M6-A2/AD-SQ-107: os dois tri-estados de contato SAÍRAM daqui inteiros (sinais, opções e
+  // handlers). Estado sem controle que o escreva é código morto (armadilha §12 #34) — diferente
+  // da capacidade de SERVIÇO do §3.7, que fica em `ClientesService`/`ContatoConsulta` com
+  // contrato, Swagger e spec próprio (dívida DT-M6-1).
+
+  /**
+   * ESTADO DE ORDENAÇÃO — fonte única (§3.11.1/R31). `ordenarPor` + `direcao` são os **únicos**
+   * sinais; quem escreve os dois é **só** `definirOrdem`. O `<th>` delega por `alternarOrdem`, e o
+   * seletor do celular (T-M6-08d) vai delegar ao MESMO método — nunca um lado sem o outro.
+   */
+  protected readonly ordenarPor = signal<OrdemContato>('nome');
+  protected readonly direcao = signal<DirecaoOrdem>('asc');
+
+  /**
+   * Valor do `<select>` do celular (T-M6-08d): PROJEÇÃO do par (campo, direção). `computed` de
+   * propósito — um `signal`/`FormControl` aqui criaria um segundo dono da ordenação.
+   */
+  protected readonly ordemSelecionada = computed(() => `${this.ordenarPor()}:${this.direcao()}`);
+
+  /** Colunas ordenáveis, na ordem do cabeçalho (Observações e Ações não ordenam — §3.11). */
+  protected readonly colunas: ReadonlyArray<{ campo: OrdemContato; rotulo: string }> = [
+    { campo: 'nome', rotulo: 'Nome' },
+    { campo: 'telefone', rotulo: 'Telefone' },
+    { campo: 'email', rotulo: 'E-mail' },
+  ];
+
   /**
    * Estado do form (T-M5-8, CA-12): `formAberto` + `clienteEmEdicao` (null = criar). A lista hospeda
    * o overlay `<app-cliente-form>` (renderizado quando `formAberto()`), que consome estes signals e
@@ -99,10 +135,7 @@ export class Clientes implements OnInit {
   constructor() {
     this.filtro.valueChanges
       .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed())
-      .subscribe(() => {
-        this.pagina.set(0); // novo filtro reinicia na 1ª página
-        this.carregar();
-      });
+      .subscribe(() => this.reiniciar()); // novo filtro reinicia na 1ª página
   }
 
   ngOnInit(): void {
@@ -112,7 +145,8 @@ export class Clientes implements OnInit {
   protected carregar(): void {
     this.carregando.set(true);
     this.erro.set(null);
-    this.service.listar(this.pagina(), this.tamanho(), this.filtro.value).subscribe({
+    const consulta = { ordenarPor: this.ordenarPor(), direcao: this.direcao() };
+    this.service.listar(this.pagina(), this.tamanho(), this.filtro.value, consulta).subscribe({
       next: (pagina) => {
         this.clientes.set(pagina.conteudo);
         this.totalElementos.set(pagina.totalElementos);
@@ -134,6 +168,46 @@ export class Clientes implements OnInit {
 
   protected limparFiltro(): void {
     this.filtro.setValue('');
+  }
+
+  /** Toda mudança de recorte volta para a 1ª página e refaz UMA requisição (R20). */
+  private reiniciar(): void {
+    this.pagina.set(0);
+    this.carregar();
+  }
+
+  /**
+   * ÚNICO escritor do estado de ordenação (§3.11.1): seta campo **e** direção juntos, volta para a
+   * 1ª página e recarrega. Todo afordance de ordenação (o `<th>` hoje, o seletor do celular na
+   * T-M6-08d) passa por aqui — é o que impede estado divergente entre breakpoints.
+   */
+  protected definirOrdem(campo: OrdemContato, direcao: DirecaoOrdem): void {
+    this.ordenarPor.set(campo);
+    this.direcao.set(direcao);
+    this.reiniciar();
+  }
+
+  /** Cabeçalho clicado: mesma coluna inverte a direção; coluna nova começa em `asc`. */
+  protected alternarOrdem(campo: OrdemContato): void {
+    const invertida = this.ordenarPor() === campo && this.direcao() === 'asc' ? 'desc' : 'asc';
+    this.definirOrdem(campo, invertida);
+  }
+
+  /**
+   * Seletor do celular (§3.11.1): quebra `campo:direcao` e delega ao MESMO escritor do `<th>` — uma
+   * escolha, uma requisição, e meio-estado ("troquei o campo, ainda não a direção") impossível.
+   */
+  protected aoOrdenarNoCelular(valor: string): void {
+    const [campo, direcao] = valor.split(':');
+    this.definirOrdem(campo as OrdemContato, direcao as DirecaoOrdem);
+  }
+
+  /** `aria-sort` do `<th>` (a11y §9): só a coluna ativa anuncia a direção. */
+  protected ariaSort(campo: OrdemContato): 'ascending' | 'descending' | 'none' {
+    if (this.ordenarPor() !== campo) {
+      return 'none';
+    }
+    return this.direcao() === 'asc' ? 'ascending' : 'descending';
   }
 
   /** Inicial do monograma (assinatura da tela): 1ª letra do nome em maiúscula. */

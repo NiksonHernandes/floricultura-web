@@ -113,12 +113,98 @@
 .ficha__grade {
   display: grid;
   grid-template-columns: minmax(0, 1fr); // minmax(0,…) deixa o campo encolher (evita overflow)
-  gap: 0.25rem 1rem;
+  column-gap: 1rem;
+  // Ajuste 3/M6 (CA-27, §3.9): era 0.25rem. Com hint de 2 linhas a 375px a folga não separava as
+  // linhas do grid — o hint do preço encostava no campo seguinte.
+  // T-M6-10 fecha a ponte da T-M6-04 (P2 da revisão 3): este componente NÃO inclui `atelie.densa`
+  // (D3 — só quem consome a camada densa paga o byte dela), logo `var(--esp-2, …)` era token
+  // FANTASMA — sempre o fallback. Assumimos o valor literal do --esp-2 (AD-SQ-94: nada de token
+  // que não resolve). Se um dia o form adotar a camada densa, troque por `var(--esp-2)` puro.
+  row-gap: 0.75rem;
 }
 
 .ficha__campo {
   width: 100%;
   min-width: 0;
+}
+
+// --- Box "Registrar entrada inicial" (T-M6-10, §3.13/CA-35) -----------------------------------
+// Mesma linguagem do toggle do evento-form: chave + dica, sem caixa desenhada (leveza — o box já se
+// lê pela indentação do conteúdo revelado). O switch em caule; a dália segue só na ação primária.
+.caixa {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.35rem 0 0.7rem;
+}
+
+// Switch em caule/folhagem. ATENÇÃO (medido no print de 375px + CSS emitido do Material 20): os
+// tokens que pintam o switch são `--mat-slide-toggle-*`; os `--mdc-switch-*` (usados no `.toggle`
+// do evento-form) NÃO têm mais efeito — o switch ligado saía AZUL do tema, que o ateliê não usa.
+.caixa__chave {
+  --mat-slide-toggle-selected-track-color: var(--caule);
+  --mat-slide-toggle-selected-focus-track-color: var(--caule);
+  --mat-slide-toggle-selected-hover-track-color: var(--caule);
+  --mat-slide-toggle-selected-pressed-track-color: var(--caule);
+  --mat-slide-toggle-selected-handle-color: var(--folhagem);
+  --mat-slide-toggle-selected-focus-handle-color: var(--folhagem);
+  --mat-slide-toggle-selected-hover-handle-color: var(--folhagem);
+  --mat-slide-toggle-selected-pressed-handle-color: var(--folhagem);
+  --mat-slide-toggle-selected-icon-color: var(--estufa);
+}
+
+.caixa__dica {
+  margin: 0;
+  color: color-mix(in srgb, var(--tinta) 62%, white);
+  font: var(--mat-sys-body-small);
+}
+
+// [hidden] precisa vencer o `display:grid` da própria regra (o UA style tem menos peso).
+.caixa__conteudo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: 0.75rem;
+  margin-top: 0.55rem;
+  padding-left: 0.6rem;
+  border-left: 2px solid color-mix(in srgb, var(--caule) 45%, var(--orvalho));
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+// Saída para o catálogo vazio (select inerte): alvo de toque cheio, sem competir com a ação primária.
+.caixa__novo {
+  justify-self: start;
+  min-height: 44px;
+  --mat-button-text-label-text-color: var(--folhagem);
+  --mat-button-text-icon-color: var(--caule);
+}
+
+// Sub-form de fornecedor sobre a ficha (T-M6-10/AD-SQ-87) — espelho do overlay do cropper, uma
+// camada acima. O <app-fornecedor-form> é `position:fixed` no próprio :host; aqui ele é reancorado
+// como `absolute` porque na bancada o :host do produto-form tem `transform` (media 720px), que vira
+// bloco-contêiner do fixed e o recortaria pelo `overflow:hidden` da ficha.
+.ficha__subforma {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  overscroll-behavior: contain;
+  background: color-mix(in srgb, var(--folhagem) 42%, transparent);
+
+  // Reancoragem completa: além do `position`, é preciso anular o `transform`/`width` que o
+  // fornecedor-form aplica no seu próprio :host acima de 720px — senão, na bancada, ele se
+  // centraliza pela ficha e escapa dela pela esquerda/topo (medido no print de 1440px).
+  // Ancorado na BASE da ficha, com a altura do próprio conteúdo: sobra o véu em cima, onde o
+  // "Novo produto" continua visível — o operador VÊ que o cadastro dele está ali atrás, intacto.
+  app-fornecedor-form {
+    position: absolute;
+    inset: auto 0 0 0;
+    width: auto;
+    max-height: 100%;
+    transform: none;
+  }
 }
 
 // --- Foto do produto (T-M3-5, CA-12) — "a muda no vaso": moldura de herbário + ações ----------

@@ -16,4 +16,53 @@
   --sais: #a9c6ae;
 
   --display: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+
+  // Família de CORPO (M6/D1). `--mat-sys-body-*` é o shorthand INTEIRO do tema
+  // ("400 .875rem/1.25rem Roboto") — usá-lo na posição de família dentro de `font:` produz
+  // declaração INVÁLIDA, que o navegador descarta inteira. `--corpo` deriva só a família e
+  // repete o fallback que o `body` já usa. Fica no `base` porque o conserto é do app inteiro.
+  --corpo: var(--mat-sys-body-medium-font), 'Helvetica Neue', sans-serif;
+}
+
+// -----------------------------------------------------------------------------------------------
+// M6 / T-M6-03 (SPEC-M6 §3.8, CA-26) — camada DENSA do ateliê.
+//
+// Breakpoints como variáveis SCSS: custom property NÃO funciona dentro de `@media`.
+// A escala vem da contagem de colunas que o dono travou (D6/§3.10): 2 · 3 · 4 · 5.
+$bp-sm: 640px; // celular grande / tablet retrato  -> 3 colunas
+$bp-md: 1024px; // tablet paisagem / notebook       -> 4 colunas
+$bp-lg: 1280px; // desktop                          -> 5 colunas
+
+@mixin acima($bp) {
+  @media (min-width: $bp) {
+    @content;
+  }
+}
+
+// Tokens de densidade. Ficam FORA do `base` de propósito (D3): só quem consome paga o byte —
+// os 12 componentes fora do M6 não são taxados no orçamento `anyComponentStyle`.
+// Pressupõe `base` no mesmo escopo (usa `--tinta`, `--estufa`, `--display`, `--corpo`).
+@mixin densa {
+  // --- Tipografia por PAPEL (não por tela) ------------------------------------------------------
+  --txt-rotulo: 600 0.66rem/1 var(--display); // "ESTOQUE", "PREÇO DE VENDA" (etiqueta de viveiro)
+  --txt-rotulo-track: 0.18em; // letter-spacing do rótulo
+  --txt-valor: 600 0.95rem/1.2 var(--corpo); // o dado em si
+  --txt-valor-forte: 700 1.05rem/1.15 var(--corpo); // dado em DESTAQUE (card / 1ª coluna)
+  --txt-dado: 500 0.85rem/1.35 var(--corpo); // célula de tabela densa
+  --txt-apoio: 400 0.78rem/1.3 var(--corpo); // observação/secundário
+
+  // --- Hierarquia de tinta (rótulo pesa MENOS que o valor — ajuste 4) ---------------------------
+  // Percentuais escolhidos por CONTRASTE medido sobre #fff e sobre --estufa (AA 4.5:1):
+  // 70% = 6.28:1 · 65% = 5.33:1 · (os 55% do §3.8 dariam 3.94:1 — reprovam; D2 travou 65%).
+  --tinta-forte: var(--tinta);
+  --tinta-media: color-mix(in srgb, var(--tinta) 70%, var(--estufa));
+  --tinta-fraca: color-mix(in srgb, var(--tinta) 65%, var(--estufa));
+
+  // --- Densidade e espaço -----------------------------------------------------------------------
+  --esp-1: 0.35rem;
+  --esp-2: 0.75rem;
+  --esp-3: 1.25rem;
+  --linha-densa: 2.25rem; // altura mínima da linha de tabela densa (desktop)
+  --toque: 44px; // alvo de toque mínimo (FC-02) — já é regra de facto, vira token
+  --raio: 12px; // D9: raio único do ateliê
 }

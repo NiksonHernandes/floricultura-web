@@ -6,6 +6,19 @@ import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../../core/models/api-response.model';
 import { PaginaResponse } from '../../core/models/produto.model';
 import { Cliente, ClienteRequest } from '../../core/models/cliente.model';
+import {
+  ContatoConsulta,
+  DirecaoOrdem,
+  OrdemContato,
+} from '../../core/models/contato-consulta.model';
+
+/**
+ * Os tipos de filtro/ordenação de contato (SPEC-M6 §3.7) nasceram aqui na T-M6-08b e foram
+ * promovidos a `core/models/contato-consulta.model.ts` pela T-M6-08c, porque Fornecedores usa
+ * EXATAMENTE o mesmo contrato e não podia depender da feature Clientes. O re-export mantém
+ * `import { OrdemContato } from './clientes.service'` funcionando como antes.
+ */
+export type { ContatoConsulta, DirecaoOrdem, OrdemContato };
 
 /**
  * Serviço de Clientes (SPEC-M5 §3.4/§3.6, T-M5-6). Espelho fiel de `EventosService`.
@@ -25,15 +38,31 @@ export class ClientesService {
   private readonly baseUrl = `${environment.apiBaseUrl}/clientes`;
 
   /**
-   * GET /clientes?pagina&tamanho&nome → página de clientes (§3.4, 0-based; ordem `nome ASC` no back;
-   * itens da lista com `produtoIds=null`). `nome` só entra no request quando há filtro (evita
-   * `nome=` vazio na URL).
+   * GET /clientes?pagina&tamanho&nome[&comTelefone&comEmail&ordenarPor&direcao] → página de clientes
+   * (§3.4, 0-based; itens da lista com `produtoIds=null`). `nome` só entra no request quando há
+   * filtro (evita `nome=` vazio na URL); os tri-estados só entram quando o operador escolheu
+   * "Com"/"Sem" (SPEC-M6 §3.7 — ausente é "sem filtro", e `comTelefone=false` é filtro LEGÍTIMO,
+   * por isso o teste é contra `null`/`undefined`, nunca falsy).
    */
-  listar(pagina: number, tamanho: number, nome?: string): Observable<PaginaResponse<Cliente>> {
+  listar(
+    pagina: number,
+    tamanho: number,
+    nome?: string,
+    consulta?: ContatoConsulta,
+  ): Observable<PaginaResponse<Cliente>> {
     let params = new HttpParams().set('pagina', pagina).set('tamanho', tamanho);
     const termo = nome?.trim();
     if (termo) {
       params = params.set('nome', termo);
+    }
+    if (consulta?.comTelefone !== null && consulta?.comTelefone !== undefined) {
+      params = params.set('comTelefone', consulta.comTelefone);
+    }
+    if (consulta?.comEmail !== null && consulta?.comEmail !== undefined) {
+      params = params.set('comEmail', consulta.comEmail);
+    }
+    if (consulta?.ordenarPor) {
+      params = params.set('ordenarPor', consulta.ordenarPor).set('direcao', consulta.direcao ?? 'asc');
     }
     return this.http
       .get<ApiResponse<PaginaResponse<Cliente>>>(this.baseUrl, { params })

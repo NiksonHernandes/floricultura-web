@@ -9,10 +9,16 @@
 //   superfície verde-vidro (não creme), placeholder botânico (local_florist) no lugar de "sem
 //   imagem", tipografia Fraunces nos nomes. Mobile-first (FC-02, ~90% celular): 1 coluna no
 //   celular, prateleira de colunas no desktop; alvos de toque >= 44px; sem overflow horizontal.
+//
+// T-M6-07 (ajuste 4 do dono — SPEC-M6 §3.10, CA-28/CA-29/CA-37): o vaso encolheu para caber 5 por
+// linha no desktop e 2 no celular, e a anatomia do card passou a vir do `_card-compacto.scss`
+// (T-M6-03) — o que muda "rótulo fraco / valor forte" de gosto para token.
 @use '../../shared/styles/atelie-tokens' as atelie;
+@use '../../shared/styles/card-compacto' as card;
 
 :host {
   @include atelie.base;
+  @include atelie.densa; // D3: --esp-*, --txt-*, --tinta-*, --toque, --raio (§10 #15b)
 
   // Filha do shell (AD-SQ-33): preenche a área de conteúdo, sem `position:fixed`.
   display: block;
@@ -161,44 +167,23 @@
   min-height: 44px;
 }
 
-/* ---- Prateleira de vasos (grid mobile-first) ---- */
+/* ---- Prateleira: contagem EXATA de colunas — 2 · 3 · 4 · 5 (D6/§3.10, CA-28) ----
+   O `auto-fill` saiu porque dava contagem VARIÁVEL e o dono pediu exata; `minmax(0,1fr)`
+   impede o nome longo de estourar a coluna. */
 .vasos {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--esp-2);
 }
 
-.vaso {
-  display: flex;
-  flex-direction: column;
-  background: #fff;
-  border: 1px solid var(--orvalho);
-  border-radius: 14px;
-  overflow: hidden;
-  box-shadow: 0 14px 34px -32px rgba(20, 36, 28, 0.55);
-}
+// Anatomia do card (foto 16/10, corpo, etiqueta rótulo/valor, fileira de ações) — T-M6-03.
+@include card.card-compacto('vaso');
 
 .vaso--alerta {
   border-color: color-mix(in srgb, var(--dalia) 40%, var(--orvalho));
-}
-
-/* Planta (imagem / placeholder) + selo.
-   Faixa da foto com altura UNIFORME em todos os cards (bug RUN-LOCAL do dono):
-   como filha de flex-column, o `aspect-ratio` sozinho não trava a altura — o
-   `min-height:auto` do item flex deixa a altura intrínseca da imagem vazar e
-   empurrar o card. Fix determinístico: item flex que não estica nem encolhe
-   (`flex:0 0 auto` + `min-height:0`) e a imagem/placeholder posicionados em
-   absoluto preenchendo a faixa — a dimensão da foto nunca influencia a altura. */
-.vaso__planta {
-  position: relative;
-  flex: 0 0 auto;
-  min-height: 0;
-  aspect-ratio: 16 / 10;
-  overflow: hidden;
-  background: color-mix(in srgb, var(--caule) 12%, white);
 }
 
 // A imagem/placeholder da foto vivem no <app-imagem-produto> (T-M3-4): ele preenche
@@ -216,6 +201,11 @@
   border-radius: 999px;
   background: var(--dalia);
   color: #fff;
+  // ⚠️ AD-SQ-106 (revisão 9): declaração RESTAURADA como estava em `develop` e, portanto,
+  // INVÁLIDA de propósito (`var(--mat-sys-body-small)` é o shorthand inteiro na posição de
+  // família) — o navegador a descarta e o selo herda a tipografia do card, que é o render
+  // pré-M6 que o dono pediu de volta. NÃO "consertar" para o token `--corpo`: isso reintroduz
+  // o 600/0.72rem que ele reprovou. Coberto pelo §10 #36/#38.
   font: 600 0.72rem/1.4 var(--mat-sys-body-small);
   letter-spacing: 0.02em;
   box-shadow: 0 6px 16px -8px rgba(196, 50, 107, 0.7);
@@ -240,6 +230,7 @@
   border-radius: 999px;
   background: color-mix(in srgb, var(--folhagem) 88%, black 0%);
   color: var(--estufa);
+  // ⚠️ AD-SQ-106: idem `.selo-baixo` — inválida de propósito, herda do card (render de `develop`).
   font: 600 0.72rem/1.4 var(--mat-sys-body-small);
   letter-spacing: 0.02em;
   box-shadow: 0 6px 16px -10px rgba(20, 36, 28, 0.8);
@@ -252,64 +243,25 @@
   }
 }
 
-/* Corpo (etiqueta de cerâmica) */
-.vaso__corpo {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.9rem 1rem 1.1rem;
-  flex: 1;
+/* Com o card em 2 colunas (~161px a 375px) os dois selos não cabem lado a lado — medido: o
+   "Sazonal" cobria o "Estoque baixo" (FC-13). Com alerta, o sazonal desce uma linha. */
+.vaso--alerta .selo-sazonal {
+  top: 2.6rem;
+  right: auto;
+  left: 0.6rem;
 }
 
-.vaso__nome {
-  margin: 0;
-  font: 600 1.15rem/1.2 var(--display);
-  color: var(--tinta);
-}
-
-.vaso__descricao {
-  margin: 0;
-  font: var(--mat-sys-body-small);
-  color: color-mix(in srgb, var(--tinta) 60%, var(--estufa));
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.vaso__meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 1.5rem;
-  margin: auto 0 0;
-  padding-top: 0.5rem;
-  border-top: 1px solid var(--orvalho);
-}
-
-.meta {
-  dt {
-    font: 600 0.66rem/1 var(--display);
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--caule);
-  }
-
-  dd {
-    margin: 0.2rem 0 0;
-    font: 600 0.95rem/1.2 var(--mat-sys-body-medium);
-    color: var(--tinta);
-  }
-}
-
+// Corpo, nome (clamp p/ 2 colunas), descrição e a etiqueta (`.meta dt`/`.meta dd`) vêm do mixin.
+/* ⚠️ AD-SQ-106 (revisão 9): tipografia/tinta RESTAURADAS ao valor de `develop`. O piso de 12px
+   do D6/AD-SQ-95 fica revogado para texto que já existia antes do M6 — vale só para texto que o
+   M6 cria (CA-37). Sem `--txt-*`/`--tinta-*` aqui: os tokens seguem declarados e inertes. */
 .meta__vazio {
   font-weight: 400;
   font-style: italic;
   color: color-mix(in srgb, var(--tinta) 50%, var(--estufa));
 }
 
-/* Estoque mínimo no card (AD-SQ-55/T-M4.2-1): secundário — não compete com o estoque atual.
-   Fica na mesma linha do valor; sem overflow no celular (o `.vaso__meta` já quebra por `flex-wrap`). */
+/* Estoque mínimo no card (AD-SQ-55/T-M4.2-1): secundário — não compete com o estoque atual. */
 .meta__minimo {
   font-weight: 500;
   font-size: 0.82rem;
@@ -317,17 +269,11 @@
   color: color-mix(in srgb, var(--tinta) 55%, var(--estufa));
 }
 
-/* Ações do card (Movimentar/Editar/Excluir — só ADMIN); alvo de toque >= 44px */
-.vaso__acoes {
-  display: flex;
-  flex-wrap: wrap; /* no mobile as 3 ações quebram sem espremer/estourar */
-  justify-content: flex-end;
-  gap: 0.25rem;
-  margin-top: 0.75rem;
-}
-
+/* Ações em UMA linha (D6): o `flex-wrap: wrap` de antes saiu (o default do flex já é `nowrap`)
+   e as duas visíveis são ícone + `aria-label`/`title`. O alvo de 44px vem do mixin (--toque);
+   aqui só o padding encolhe, senão o `min-width: 64px` do MDC não caberia 3 alvos em ~160px. */
 .vaso__acao {
-  min-height: 44px;
+  padding: 0 0.4rem;
 }
 
 /* Visualizar, Movimentar e Editar em folhagem (paleta); nada de azul do Material. */
@@ -342,6 +288,49 @@
 .vaso__excluir {
   --mat-button-text-label-text-color: #8f2450;
   --mat-button-text-icon-color: #8f2450;
+}
+
+/* ---- Expansor "mais ações" — <details> NATIVO (AD-SQ-85) ----
+   Não é MatMenu de propósito: o conteúdo dele só entra no DOM ao abrir, e asserções herdadas
+   clicam direto em `.vaso__editar`/`.vaso__excluir` sem abrir nada. O `<details>` fechado
+   CONTINUA no DOM (§12 #10), com teclado/foco de graça e zero JS/módulo. */
+.vaso__mais {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.vaso__mais__gatilho {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--toque);
+  min-height: var(--toque);
+  border-radius: 8px;
+  color: var(--folhagem);
+  cursor: pointer;
+  // `display: inline-flex` já remove o marcador no WebKit; `list-style` cobre o Firefox.
+  list-style: none;
+}
+
+/* Abre para CIMA e em absoluto: o card não muda de altura (o grid ficaria irregular) e a
+   lista não é cortada pelo `overflow:hidden` do vaso. */
+.vaso__mais__lista {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + var(--esp-1));
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 8.5rem;
+  padding: var(--esp-1);
+  border: 1px solid var(--orvalho);
+  border-radius: var(--raio);
+  background: #fff;
+
+  .vaso__acao {
+    justify-content: flex-start;
+  }
 }
 
 /* ---- Véu do diálogo do form (T-M2-8) ----
@@ -367,14 +356,32 @@
   --mat-paginator-enabled-icon-color: var(--folhagem);
 }
 
-/* ---- Prateleira em colunas no desktop ---- */
-@media (min-width: 640px) {
+/* ---- Prateleira: 3 · 4 · 5 colunas (D6/CA-28) ---- */
+@include atelie.acima(atelie.$bp-sm) {
   .vasos {
-    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@include atelie.acima(atelie.$bp-md) {
+  .vasos {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@include atelie.acima(atelie.$bp-lg) {
+  // 5 colunas em 68rem dariam ~205px de card — abaixo dos "~240px+" do §3.10. A prateleira abre.
+  .prateleira {
+    max-width: 88rem;
+  }
+
+  .vasos {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 }
 
 /* ---- Foco de teclado visível (piso de qualidade §9) ---- */
+.vaso__mais__gatilho:focus-visible,
 :host ::ng-deep .mdc-button:focus-visible,
 :host ::ng-deep .mat-mdc-paginator .mdc-icon-button:focus-visible {
   outline: 2px solid var(--caule);

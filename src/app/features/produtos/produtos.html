@@ -97,7 +97,7 @@
                 </dd>
               </div>
               <div class="meta">
-                <dt>Preço</dt>
+                <dt>Preço de venda</dt>
                 <dd>
                   @if (precoFormatado(p); as preco) {
                     {{ preco }}
@@ -108,17 +108,21 @@
               </div>
             </dl>
 
+            <!-- Ações em UMA linha (T-M6-07/§3.10/CA-28): Editar/Excluir num <details> NATIVO
+                 (AD-SQ-85) — fechado, eles seguem no DOM e clicáveis (armadilha §12 #10). -->
             <div class="vaso__acoes">
-              <!-- Visualizar: ficha completa (RF-4) — disponível para USER+ADMIN. -->
+              <!-- Visualizar: ficha completa (RF-4), USER+ADMIN. Ícone + `aria-label`/`title`:
+                   com 5 colunas o card útil tem ~215–246px e o par de rótulos pediria 239–256px
+                   (medido) — estouraria a linha única. -->
               <button
                 type="button"
                 mat-button
                 class="vaso__acao vaso__visualizar"
                 (click)="visualizarProduto(p)"
                 [attr.aria-label]="'Visualizar ' + p.nome"
+                [title]="'Visualizar ' + p.nome"
               >
                 <mat-icon aria-hidden="true">visibility</mat-icon>
-                <span>Visualizar</span>
               </button>
               @if (ehAdmin()) {
                 <button
@@ -127,30 +131,38 @@
                   class="vaso__acao vaso__movimentar"
                   (click)="movimentarProduto(p)"
                   [attr.aria-label]="'Movimentar estoque de ' + p.nome"
+                  [title]="'Movimentar estoque de ' + p.nome"
                 >
                   <mat-icon aria-hidden="true">swap_vert</mat-icon>
-                  <span>Movimentar</span>
                 </button>
-                <button
-                  type="button"
-                  mat-button
-                  class="vaso__acao vaso__editar"
-                  (click)="editarProduto(p)"
-                  [attr.aria-label]="'Editar ' + p.nome"
-                >
-                  <mat-icon aria-hidden="true">edit</mat-icon>
-                  <span>Editar</span>
-                </button>
-                <button
-                  type="button"
-                  mat-button
-                  class="vaso__acao vaso__excluir"
-                  (click)="excluirProduto(p)"
-                  [attr.aria-label]="'Excluir ' + p.nome"
-                >
-                  <mat-icon aria-hidden="true">delete_outline</mat-icon>
-                  <span>Excluir</span>
-                </button>
+                <details class="vaso__mais" #mais>
+                  <summary class="vaso__mais__gatilho" [attr.aria-label]="'Mais ações de ' + p.nome">
+                    <mat-icon aria-hidden="true">more_vert</mat-icon>
+                  </summary>
+                  <!-- Fecha o expansor depois da ação (o diálogo assume a tela). -->
+                  <div class="vaso__mais__lista" (click)="mais.open = false">
+                    <button
+                      type="button"
+                      mat-button
+                      class="vaso__acao vaso__editar"
+                      (click)="editarProduto(p)"
+                      [attr.aria-label]="'Editar ' + p.nome"
+                    >
+                      <mat-icon aria-hidden="true">edit</mat-icon>
+                      <span>Editar</span>
+                    </button>
+                    <button
+                      type="button"
+                      mat-button
+                      class="vaso__acao vaso__excluir"
+                      (click)="excluirProduto(p)"
+                      [attr.aria-label]="'Excluir ' + p.nome"
+                    >
+                      <mat-icon aria-hidden="true">delete_outline</mat-icon>
+                      <span>Excluir</span>
+                    </button>
+                  </div>
+                </details>
               }
             </div>
           </div>

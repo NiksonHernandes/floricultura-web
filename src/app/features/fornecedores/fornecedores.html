@@ -15,28 +15,57 @@
     }
   </header>
 
-  <mat-form-field appearance="outline" class="busca">
-    <mat-icon matPrefix aria-hidden="true">search</mat-icon>
-    <mat-label>Buscar por nome</mat-label>
-    <input
-      matInput
-      type="text"
-      [formControl]="filtro"
-      autocomplete="off"
-      aria-label="Buscar fornecedores por nome"
-    />
-    @if (filtro.value) {
-      <button
-        matSuffix
-        mat-icon-button
-        type="button"
-        aria-label="Limpar busca"
-        (click)="limparFiltro()"
+  <!--
+    Fileira de controles: busca por nome + o seletor "Ordenar por" do celular (§3.11.1).
+    T-M6-A2 (AD-SQ-107): os 2 filtros tri-estado SAÍRAM daqui — o dono os revogou por escrito
+    ("deixe somente a busca por nome"). A ordenação FICA (cabeçalho no desktop, <select> aqui).
+  -->
+  <div class="controles">
+    <mat-form-field appearance="outline" class="busca">
+      <mat-icon matPrefix aria-hidden="true">search</mat-icon>
+      <mat-label>Buscar por nome</mat-label>
+      <input
+        matInput
+        type="text"
+        [formControl]="filtro"
+        autocomplete="off"
+        aria-label="Buscar fornecedores por nome"
+      />
+      @if (filtro.value) {
+        <button
+          matSuffix
+          mat-icon-button
+          type="button"
+          aria-label="Limpar busca"
+          (click)="limparFiltro()"
+        >
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+    </mat-form-field>
+
+    <!--
+      Ordenar no CELULAR (T-M6-08d, §3.11.1 — espelho de Clientes): abaixo de 640px o `<thead>` é
+      `display:none`, então sem este seletor a ordenação existiria só no desktop (FC-02). O valor é
+      DERIVADO e o `change` delega ao MESMO `definirOrdem` do `<th>`; esconder é papel do CSS.
+    -->
+    <div class="tabela-ordenar">
+      <label class="tabela-ordenar__rotulo" for="ordenar-fornecedores">Ordenar por</label>
+      <select
+        id="ordenar-fornecedores"
+        class="tabela-ordenar__campo"
+        [value]="ordemSelecionada()"
+        (change)="aoOrdenarNoCelular($any($event.target).value)"
       >
-        <mat-icon>close</mat-icon>
-      </button>
-    }
-  </mat-form-field>
+        <option value="nome:asc">Nome (A–Z)</option>
+        <option value="nome:desc">Nome (Z–A)</option>
+        <option value="telefone:asc">Telefone (crescente)</option>
+        <option value="telefone:desc">Telefone (decrescente)</option>
+        <option value="email:asc">E-mail (A–Z)</option>
+        <option value="email:desc">E-mail (Z–A)</option>
+      </select>
+    </div>
+  </div>
 
   @if (carregando()) {
     <p class="estado" aria-live="polite">
@@ -52,6 +81,7 @@
   } @else if (vazia()) {
     <div class="estado estado--vazio">
       <mat-icon aria-hidden="true">local_shipping</mat-icon>
+      <!-- T-M6-A2: com os filtros fora, sobram DOIS ramos — busca sem resultado × agenda vazia. -->
       @if (filtro.value) {
         <p>Nenhum fornecedor encontrado para “{{ filtro.value }}”. Tente outro nome.</p>
       } @else {
@@ -59,68 +89,123 @@
       }
     </div>
   } @else {
-    <ul class="fichas" aria-label="Fornecedores cadastrados">
-      @for (f of fornecedores(); track f.id) {
-        <li class="ficha">
-          <!-- Assinatura: monograma do parceiro (inicial do nome) — motivo de agenda/rolodex. -->
-          <div class="ficha__monograma" aria-hidden="true">{{ inicial(f.nome) }}</div>
+    <!--
+      Tabela SEMÂNTICA (§3.11): no desktop é tabela de verdade (ordenação no <th>); abaixo de
+      640px o `_tabela-densa.scss` desmonta cada <tr> numa etiqueta com rótulo por célula.
+      A coluna "Ações" existe sempre (CA-31); o conteúdo é que é RBAC de UX (FC-07).
 
-          <div class="ficha__corpo">
-            <h2 class="ficha__nome">{{ f.nome }}</h2>
-
-            <dl class="ficha__contato">
-              @if (f.telefone) {
-                <div class="ficha__linha">
-                  <dt><mat-icon aria-hidden="true">call</mat-icon><span class="sr">Telefone</span></dt>
-                  <dd>{{ f.telefone }}</dd>
-                </div>
-              }
-              @if (f.email) {
-                <div class="ficha__linha">
-                  <dt><mat-icon aria-hidden="true">mail_outline</mat-icon><span class="sr">E-mail</span></dt>
-                  <dd class="ficha__email">{{ f.email }}</dd>
-                </div>
-              }
+      T-M6-A2/§3.11.2: o cartão branco do print do dono é esta `<div>` — irmã do `<table>` porque
+      a borda arredondada não pega num `<table>` com `border-collapse: collapse`. Ela NÃO recorta o
+      conteúdo (AD-SQ-112): quem arredonda o topo é o `<th>` de canto, para que o menu de ações da
+      última linha não seja cortado. Só ganha estilo a partir de 640px: no celular cada `<tr>` JÁ é
+      o seu próprio cartão.
+    -->
+    <div class="tabela-cartao">
+    <table class="tabela" aria-label="Fornecedores cadastrados">
+      <thead>
+        <tr>
+          @for (col of colunas; track col.campo) {
+            <th scope="col" [attr.aria-sort]="ariaSort(col.campo)">
+              <button
+                type="button"
+                class="tabela__ord"
+                (click)="alternarOrdem(col.campo)"
+                [attr.aria-label]="'Ordenar por ' + col.rotulo"
+              >
+                <span>{{ col.rotulo }}</span>
+                @if (ordenarPor() === col.campo) {
+                  <mat-icon aria-hidden="true">{{
+                    direcao() === 'asc' ? 'arrow_upward' : 'arrow_downward'
+                  }}</mat-icon>
+                }
+              </button>
+            </th>
+          }
+          <th scope="col">Observações</th>
+          <th scope="col" class="tabela__acoes">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (f of fornecedores(); track f.id) {
+          <tr class="ficha">
+            <td class="tabela__titulo">
+              <!-- Assinatura preservada: o monograma do parceiro, no tamanho do avatar do print. -->
+              <span class="ficha__monograma" aria-hidden="true">{{ inicial(f.nome) }}</span>
+              <span class="ficha__nome">{{ f.nome }}</span>
               @if (!f.telefone && !f.email) {
-                <div class="ficha__linha ficha__linha--sem">
-                  <dt><mat-icon aria-hidden="true">contact_page</mat-icon></dt>
-                  <dd>Sem telefone ou e-mail cadastrado.</dd>
-                </div>
+                <span class="ficha__linha--sem sr">Sem telefone ou e-mail cadastrado.</span>
               }
-            </dl>
-
-            @if (f.observacoes) {
-              <p class="ficha__obs">{{ f.observacoes }}</p>
-            }
-
-            @if (ehAdmin()) {
-              <div class="ficha__acoes">
-                <button
-                  type="button"
-                  mat-button
-                  class="ficha__acao ficha__editar"
-                  (click)="editarFornecedor(f)"
-                  [attr.aria-label]="'Editar ' + f.nome"
-                >
-                  <mat-icon aria-hidden="true">edit</mat-icon>
-                  <span>Editar</span>
-                </button>
-                <button
-                  type="button"
-                  mat-button
-                  class="ficha__acao ficha__excluir"
-                  (click)="excluirFornecedor(f)"
-                  [attr.aria-label]="'Excluir ' + f.nome"
-                >
-                  <mat-icon aria-hidden="true">delete_outline</mat-icon>
-                  <span>Excluir</span>
-                </button>
-              </div>
-            }
-          </div>
-        </li>
-      }
-    </ul>
+            </td>
+            <td data-rotulo="Telefone">
+              @if (f.telefone) {
+                {{ f.telefone }}
+              } @else {
+                <span class="tabela__vazio">—</span>
+              }
+            </td>
+            <td data-rotulo="E-mail" class="ficha__email">
+              @if (f.email) {
+                {{ f.email }}
+              } @else {
+                <span class="tabela__vazio">—</span>
+              }
+            </td>
+            <!--
+              O clamp de 1 linha mora no <span>, NUNCA no <td>: `.tabela td` declara `display`
+              (flex/table-cell) com especificidade maior e engoliria o `-webkit-box` em silêncio.
+            -->
+            <td [attr.data-rotulo]="f.observacoes ? 'Observações' : null">
+              @if (f.observacoes) {
+                <span class="tabela__apoio ficha__obs" [title]="f.observacoes">{{
+                  f.observacoes
+                }}</span>
+              }
+            </td>
+            <td class="tabela__acoes">
+              <!-- Ação ÚNICA por linha (§3.11.2/CA-46), mesmo padrão do card de produto
+                   (AD-SQ-85): `<details>` NATIVO — zero JS, zero módulo Material novo. Fechado,
+                   `.ficha__editar`/`.ficha__excluir` CONTINUAM no DOM e clicáveis, que é o que os
+                   4 casos herdados de `fornecedores.spec.ts` exercitam (armadilha §12 #10). -->
+              @if (ehAdmin()) {
+                <details class="ficha__mais" #mais>
+                  <summary
+                    class="ficha__mais__gatilho"
+                    [attr.aria-label]="'Ações de ' + f.nome"
+                    [title]="'Ações de ' + f.nome"
+                  >
+                    <mat-icon aria-hidden="true">menu</mat-icon>
+                  </summary>
+                  <!-- Fecha o expansor depois da ação (o overlay/diálogo assume a tela). -->
+                  <div class="ficha__mais__lista" (click)="mais.open = false">
+                    <button
+                      type="button"
+                      mat-button
+                      class="ficha__acao ficha__editar"
+                      (click)="editarFornecedor(f)"
+                      [attr.aria-label]="'Editar ' + f.nome"
+                    >
+                      <mat-icon aria-hidden="true">edit</mat-icon>
+                      <span>Editar</span>
+                    </button>
+                    <button
+                      type="button"
+                      mat-button
+                      class="ficha__acao ficha__excluir"
+                      (click)="excluirFornecedor(f)"
+                      [attr.aria-label]="'Excluir ' + f.nome"
+                    >
+                      <mat-icon aria-hidden="true">delete_outline</mat-icon>
+                      <span>Excluir</span>
+                    </button>
+                  </div>
+                </details>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+    </div>
 
     <mat-paginator
       class="paginacao"

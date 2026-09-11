@@ -1,0 +1,34 @@
+// Folha da SONDA de tokens (atelie-tokens.spec.ts). Não entra em nenhuma tela: existe só para
+// que o Karma consiga medir, com `getComputedStyle`, o que os mixins do ateliê realmente emitem.
+@use 'atelie-tokens' as atelie;
+@use 'tabela-densa' as t;
+@use 'card-compacto' as c;
+
+:host {
+  display: block;
+  @include atelie.base;
+  @include atelie.densa;
+  @include t.tabela-densa;
+  @include c.card-compacto('vaso');
+}
+
+.sonda__dado {
+  font: var(--txt-dado);
+}
+
+.sonda__forte {
+  font: var(--txt-valor-forte);
+}
+
+.sonda__rotulo {
+  font: var(--txt-rotulo);
+  letter-spacing: var(--txt-rotulo-track);
+  color: var(--tinta-fraca);
+}
+
+// O DEFEITO do D1, isolado: `--mat-sys-body-medium` é o shorthand INTEIRO do tema, então usá-lo
+// na posição de família torna a declaração inválida e o navegador a DESCARTA. Esta regra existe
+// para o teste provar o descarte — nunca copie este padrão para uma tela.
+.sonda__defeito {
+  font: 500 0.85rem/1.35 var(--mat-sys-body-medium);
+}

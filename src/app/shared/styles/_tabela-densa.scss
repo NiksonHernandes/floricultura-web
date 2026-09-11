@@ -1,0 +1,258 @@
+// Tabela densa do ateliê (SPEC-M6 §3.8b, PA#2/AD-SQ-84) — `<table>` SEMÂNTICA, sem MatTable.
+//
+// Assinatura: a ETIQUETA DE VIVEIRO. No celular a linha não vira "mini-tabela com scroll": ela
+// vira uma etiqueta — rótulo em versalete Fraunces à esquerda, dado à direita — o mesmo gesto do
+// par <dt>/<dd> do card de produto. No desktop a MESMA marcação vira tabela de verdade
+// (`display: table`), com hairline de orvalho e zebra verde-vidro; nada de cinza de planilha.
+//
+// Leveza (memória do dono): zero sombra, zero blur, zero animação por linha.
+// Pressupõe `@include atelie.base` + `@include atelie.densa` no `:host` do consumidor.
+@use 'atelie-tokens' as atelie;
+
+@mixin tabela-densa {
+  // ⚠️ AD-SQ-106 (revisão 9): superfície NOVA não tem "estado anterior" para restaurar, então
+  // ela herda a tipografia da FICHA pré-M6 desta mesma tela, valor por valor (§3.8d tabela C).
+  // A base da célula é o corpo de texto do app — peso 400 —, não os 500/0.85rem do `--txt-dado`.
+  .tabela {
+    width: 100%;
+    border-collapse: collapse;
+    font: var(--mat-sys-body-medium);
+    color: var(--tinta);
+  }
+
+  // ---- Celular (< $bp-sm): a tabela desmonta em etiquetas ---------------------------------------
+  .tabela,
+  .tabela tbody,
+  .tabela tr,
+  .tabela td {
+    display: block;
+  }
+
+  // O cabeçalho sai do layout E da árvore de a11y: no celular o rótulo vive em cada célula.
+  .tabela thead {
+    display: none;
+  }
+
+  .tabela tr {
+    padding: var(--esp-2);
+    margin-bottom: var(--esp-2);
+    border: 1px solid var(--orvalho);
+    border-radius: var(--raio);
+    background: #fff;
+  }
+
+  .tabela td {
+    display: flex;
+    gap: var(--esp-2);
+    align-items: baseline;
+    min-width: 0;
+    padding: var(--esp-1) 0;
+  }
+
+  // Eyebrow do app desde o M1 (AD-SQ-106): mesmos literais do `.meta dt` do card. A etiqueta do
+  // celular e o cabeçalho do desktop são a MESMA tipografia — declará-la uma vez só, aqui fora do
+  // `@media`, devolve ~100 B por tela (§9 regra 8). No celular `thead` é `display:none`, então
+  // aplicar isto ao `<th>`/`.tabela__ord` abaixo de 640px não muda nada no render.
+  // O `<button>` entra na lista porque a folha do navegador zera `text-transform` em controles.
+  .tabela td[data-rotulo]::before,
+  .tabela th,
+  .tabela__ord {
+    font: 600 0.66rem/1 var(--display);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--caule);
+  }
+
+  // A ligadura do `mat-icon` é CASE-SENSITIVE: o `text-transform: uppercase` da etiqueta acima é
+  // HERDADO pelo ícone e transforma `arrow_upward` em `ARROW_UPWARD`, que a fonte Material Icons
+  // não conhece — a seta de ordenação sairia como TEXTO no cabeçalho (AD-SQ-105, achado no preview
+  // 375/1440 da T-M6-08c). Este reset anda COLADO na regra que o causa: desde a T-M6-A2 o
+  // `uppercase` vale nos dois breakpoints, então o antídoto também sai do `@media`.
+  .tabela__ord mat-icon {
+    text-transform: none;
+    font-size: 1rem;
+    width: 1rem;
+    height: 1rem;
+    color: var(--caule);
+  }
+
+  // CONTRATO DE MARCAÇÃO (D8): a célula com `data-rotulo` ganha etiqueta; a que não tem (nome e
+  // ações), não. Regra por atributo é mais barata que `content: none` E não perde especificidade.
+  .tabela td[data-rotulo]::before {
+    content: attr(data-rotulo);
+    flex: 0 0 5.5rem;
+  }
+
+  // Primeira coluna (nome): dispensa rótulo (é o único `<td>` sem `data-rotulo`) e — desde a
+  // T-M6-A2 item 2 — NÃO declara tipografia nenhuma. O dono, olhando a tela, mandou "remova o
+  // negrito dos nomes de fornecedores e clientes… Remova o negrito e volte a fonte que era antes":
+  // pedido POSTERIOR e específico à tabela, que vence o CA-43 neste ponto (o CA-43 segue valendo em
+  // todo o resto). Sem declaração, a célula HERDA o `font: var(--mat-sys-body-medium)` do `.tabela`
+  // — mesma família e mesmo peso 400 das demais células. Nenhuma hierarquia nova, nenhuma serifa,
+  // nenhum negrito; e a regra some do CSS emitido, devolvendo bytes (§9 regra 8).
+  // Travado pelo `tipografia-pre-m6.spec.ts` (§10 #38), que agora COMPARA o nome com um `<td>` comum.
+
+  // Dado ausente ("—") e observação: apoio, nunca competem com o valor (valores do `.ficha__obs`).
+  .tabela__vazio {
+    color: color-mix(in srgb, var(--tinta) 55%, var(--estufa));
+  }
+
+  .tabela__apoio {
+    font: var(--mat-sys-body-small);
+    color: color-mix(in srgb, var(--tinta) 60%, var(--estufa));
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  // Um único gatilho por linha (§3.11.2): o `gap` da fileira de 2 botões deixou de ter função.
+  .tabela__acoes {
+    justify-content: flex-end;
+  }
+
+  // Célula sem conteúdo não gera vão fantasma: como `<td>` é `flex` aqui, a linha vazia ainda
+  // pagaria ~11px de padding por registro na etiqueta do celular.
+  .tabela td:empty {
+    display: none;
+  }
+
+  // ---- >= $bp-sm: tabela de verdade -------------------------------------------------------------
+  @include atelie.acima(atelie.$bp-sm) {
+    // Cartão branco do print do dono (§3.11.2/CA-45). Só existe daqui para cima: no celular a
+    // etiqueta de cada `<tr>` já é o cartão. Sem sombra e sem blur — leveza (AD-SQ-69).
+    //
+    // ⚠️ SEM `overflow: hidden` (AD-SQ-112, revisão 11 do §3.11.2). Ele recortava o
+    // `.ficha__mais__lista`, que é `position: absolute` DENTRO do cartão: na última linha de cada
+    // página o "Excluir" ficava 100% fora (87px de transbordo, medido) e o clique naquele ponto
+    // caía no "página anterior" do paginador; na penúltima sobravam 32px de alvo (piso do FC-02 é
+    // 44px). É a mesma ressalva que o card de produto já carregava (`produtos.scss`: "a lista não
+    // é cortada pelo `overflow:hidden` do vaso") e que não tinha sido transportada para cá.
+    // Inverter o sentido (`bottom: 100%`) NÃO resolve: só troca a última linha pela primeira.
+    // Com o recorte fora, quem arredonda o topo é o próprio cabeçalho (regra do `<th>` abaixo).
+    .tabela-cartao {
+      border: 1px solid var(--orvalho);
+      border-radius: var(--raio);
+      background: #fff;
+    }
+
+    .tabela {
+      display: table;
+    }
+
+    .tabela thead {
+      display: table-header-group;
+    }
+
+    .tabela tbody {
+      display: table-row-group;
+    }
+
+    .tabela tr {
+      display: table-row;
+      padding: 0;
+      margin: 0;
+      border: 0;
+      border-radius: 0;
+    }
+
+    // Cabeçalho em fundo claro (§3.11.2 item 3): o lilás do print NÃO entra — seria o 8º hex do
+    // ateliê; usa-se o verde-vidro que já é a cor de apoio do app.
+    .tabela th {
+      text-align: left;
+      padding: var(--esp-1) var(--esp-2);
+      border-bottom: 1px solid var(--orvalho);
+      background: color-mix(in srgb, var(--orvalho) 55%, #fff);
+    }
+
+    // O canto arredondado do cartão migrou para cá (AD-SQ-112): sem `overflow: hidden` no
+    // ancestral, é o fundo do cabeçalho que precisa acompanhar o raio nas duas pontas do topo.
+    // O rodapé não precisa: a última linha é branca, igual ao fundo do cartão.
+    .tabela thead th:first-child {
+      border-radius: var(--raio) 0 0 0;
+    }
+
+    .tabela thead th:last-child {
+      border-radius: 0 var(--raio) 0 0;
+    }
+
+    // Ordenável: `aria-sort` mora no <th>, o clique mora no <button>.
+    .tabela__ord {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--esp-1);
+      padding: 0;
+      border: 0;
+      background: none;
+      cursor: pointer;
+    }
+
+    // `:empty` volta à lista porque `.tabela td:empty` (0,2,1) venceria `.tabela td` (0,1,1) e
+    // apagaria a célula vazia na tabela de verdade — aqui todo `<td>` desenha a sua coluna.
+    // O respiro do print (≈60px de linha) vem do PADDING, nunca do token `--linha-densa`: ele é
+    // cravado em 2.25rem pela sonda `atelie-tokens.spec.ts` (armadilha §12 #33).
+    .tabela td,
+    .tabela td:empty {
+      display: table-cell;
+      height: var(--linha-densa);
+      padding: var(--esp-2);
+      border-bottom: 1px solid var(--orvalho);
+      vertical-align: middle;
+    }
+
+    .tabela td[data-rotulo]::before {
+      content: none;
+    }
+
+    // §3.11.2 item 7: a zebra SAIU — o print é de linhas brancas separadas pela hairline de
+    // orvalho que o `<td>` já desenha. (E a remoção devolve bytes ao orçamento do §9 regra 8.)
+
+    // UMA regra para o `<th>` e o `<td>`: `.tabela .tabela__acoes` é (0,2,0) e vence o
+    // `.tabela th { text-align: left }` (0,1,1) — sem ela o cabeçalho "Ações" fica à ESQUERDA,
+    // desalinhado do gatilho que ele nomeia. O `white-space: nowrap` saiu junto com o par de
+    // botões: com um gatilho único não há fileira que possa quebrar.
+    .tabela .tabela__acoes {
+      text-align: right;
+    }
+  }
+}
+
+// Ordenação no CELULAR (SPEC-M6 §3.11.1 / AD-SQ-98) — mixin SEPARADO de propósito: quem consome
+// `tabela-densa` sem ter ordenação (o `cores.scss` da T-M6-06a) não pode pagar estes bytes (D3).
+// Abaixo de $bp-sm o `<thead>` (onde vivem os botões de ordenar) é `display:none`; este é o
+// afordance equivalente para o celular. Visibilidade por CSS, nunca `@if`, espelhando o `<thead>`:
+// exatamente um afordance de ordenação por breakpoint, no layout e na árvore de a11y.
+@mixin tabela-ordenar {
+  .tabela-ordenar {
+    display: grid;
+    gap: var(--esp-1);
+    flex: 1 1 100%; // linha própria na fileira `.controles` (que é flex-wrap)
+  }
+
+  // É rótulo, não dado: o versalete de etiqueta é legítimo aqui (D6/AD-SQ-95).
+  .tabela-ordenar__rotulo {
+    // Eyebrow pré-M6, literal (AD-SQ-106).
+    font: 600 0.66rem/1 var(--display);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--caule);
+  }
+
+  // MÍNIMO de propósito: sem `appearance: none`, o chevron e o picker do sistema vêm de graça
+  // (AD-SQ-69). Os 16px evitam o zoom automático do Safari iOS no foco — requisito, não estética.
+  .tabela-ordenar__campo {
+    min-height: var(--toque);
+    border: 1px solid var(--orvalho);
+    border-radius: var(--raio);
+    background: #fff;
+    font-family: inherit;
+    font-size: 1rem;
+  }
+
+  @include atelie.acima(atelie.$bp-sm) {
+    .tabela-ordenar {
+      display: none;
+    }
+  }
+}

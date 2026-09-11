@@ -6,6 +6,7 @@ import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../../core/models/api-response.model';
 import { PaginaResponse } from '../../core/models/produto.model';
 import { Fornecedor, FornecedorRequest } from '../../core/models/fornecedor.model';
+import { ContatoConsulta } from '../../core/models/contato-consulta.model';
 
 /**
  * Serviço de Fornecedores (SPEC-M5 §3.4/§3.6, T-M5-6) — espelho fiel de `ClientesService`/
@@ -29,14 +30,33 @@ export class FornecedoresService {
   private readonly baseUrl = `${environment.apiBaseUrl}/fornecedores`;
 
   /**
-   * GET /fornecedores?pagina&tamanho&nome → página de fornecedores (§3.4, 0-based; ordem `nome ASC`
-   * no back; itens da lista com `produtoIds=null`). `nome` só entra no request quando há filtro.
+   * GET /fornecedores?pagina&tamanho&nome[&comTelefone&comEmail&ordenarPor&direcao] → página de
+   * fornecedores (§3.4, 0-based; itens da lista com `produtoIds=null`). `nome` só entra no request
+   * quando há filtro (evita `nome=` vazio na URL); os tri-estados só entram quando o operador
+   * escolheu "Com"/"Sem" (SPEC-M6 §3.7 — ausente é "sem filtro", e `comTelefone=false` é filtro
+   * LEGÍTIMO, por isso o teste é contra `null`/`undefined`, nunca falsy).
    */
-  listar(pagina: number, tamanho: number, nome?: string): Observable<PaginaResponse<Fornecedor>> {
+  listar(
+    pagina: number,
+    tamanho: number,
+    nome?: string,
+    consulta?: ContatoConsulta,
+  ): Observable<PaginaResponse<Fornecedor>> {
     let params = new HttpParams().set('pagina', pagina).set('tamanho', tamanho);
     const termo = nome?.trim();
     if (termo) {
       params = params.set('nome', termo);
+    }
+    if (consulta?.comTelefone !== null && consulta?.comTelefone !== undefined) {
+      params = params.set('comTelefone', consulta.comTelefone);
+    }
+    if (consulta?.comEmail !== null && consulta?.comEmail !== undefined) {
+      params = params.set('comEmail', consulta.comEmail);
+    }
+    if (consulta?.ordenarPor) {
+      params = params
+        .set('ordenarPor', consulta.ordenarPor)
+        .set('direcao', consulta.direcao ?? 'asc');
     }
     return this.http
       .get<ApiResponse<PaginaResponse<Fornecedor>>>(this.baseUrl, { params })
