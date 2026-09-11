@@ -1,7 +1,7 @@
 import { Component, computed, effect, inject, input, output, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { debounceTime, distinctUntilChanged, map } from 'rxjs';
+import { debounceTime, filter, map } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -82,8 +82,13 @@ function moeda(v: number): string {
  *
  * Uma requisição por mudança (§3.14): TUDO passa por um único `valueChanges` com `debounceTime(300)`
  * — o mesmo número do campo de busca. Mexer em dois controles no mesmo gesto emite **uma** vez, e
- * o `distinctUntilChanged` estrutural mata a emissão que não mudaria a URL (reescolher o mesmo
- * valor no `mat-select`, por exemplo). Quem zera `pagina` e chama o back é a lista-mãe.
+ * o `filter` estrutural mata a emissão que não mudaria a URL (reescolher o mesmo valor no
+ * `mat-select`, por exemplo). Quem zera `pagina` e chama o back é a lista-mãe.
+ *
+ * O filtro compara contra o `estado` VIGENTE, nunca contra a última emissão (armadilha §12 #39 /
+ * AD-SQ-139): este form também é escrito POR FORA (`valor` → `aplicar(f, false)`, o "Limpar filtros"
+ * do estado-vazio), e `distinctUntilChanged` — cuja baseline é a última emissão — silenciaria a
+ * reaplicação do MESMO valor depois do limpar: controle marcado, zero requisição, tela inerte.
  *
  * Celular (~90% do uso): a barra colapsa no botão "Filtros (N)" e os mesmos controles viram painel
  * deslizante de baixo, com véu — reusando o PADRÃO do `.veu` da lista, sem `MatBottomSheet`
@@ -191,7 +196,7 @@ export class FiltrosProdutos {
       .pipe(
         debounceTime(300),
         map(() => this.montar()),
-        distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b)),
+        filter((f) => JSON.stringify(f) !== JSON.stringify(this.estado())),
         takeUntilDestroyed(),
       )
       .subscribe((f) => {

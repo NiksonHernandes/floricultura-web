@@ -282,7 +282,9 @@
    área útil é `card − 24` (padding do corpo). A 360px faltavam 2,2px e o 1º alvo era CORTADO pelo
    `overflow:hidden`. Conserto sem encolher alvo (isso violaria o CA-37): no celular o gap vai a
    zero, `space-between` distribui, e a fileira recupera o padding lateral do corpo por margem
-   negativa (+12,8px de útil) — a 360px sobram ~10,8px. O desenho do desktop volta em `$bp-sm`. */
+   negativa (+12,8px de útil) — a 360px sobram 8,8px (a conta de ~10,8px esquecia a borda de 1px
+   do card, nos dois lados). Desses 8,8px, folga LIVRE = 0,0px: são compressão de padding do botão,
+   não espaço que sobra — a fronteira do conserto fica em ~342px. O desktop volta em `$bp-sm`. */
 .vaso__acoes {
   gap: 0;
   justify-content: space-between;

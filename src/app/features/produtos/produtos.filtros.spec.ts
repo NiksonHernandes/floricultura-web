@@ -252,6 +252,55 @@ describe('Produtos — barra de filtros → GET /produtos (T-M6-11, CA-36)', () 
     tick(300); // a barra sincroniza pelo `valor` e NÃO reemite (nenhum request pendente no verify)
   }));
 
+  /**
+   * §10 #29 / armadilha §12 #39 (AD-SQ-139). O "Limpar filtros" do estado-vazio escreve a barra POR
+   * FORA (`valor` → `setValue(..., { emitEvent: false })`). Se o filtro de reemissão comparasse
+   * contra a ÚLTIMA EMISSÃO, reescolher o MESMO valor depois disso não emitiria nada: atalho com
+   * `aria-pressed="true"`, zero requisição, zero pastilha e nenhum erro — a tela inerte do §12 #19.
+   * Medido no estado reprovado de `7753360`: `requisicoes=0 pastilhas=0`. Tudo por componente real e
+   * clique de verdade — o caso do `input valor` prova AUSÊNCIA de emissão e nunca pegaria isto.
+   */
+  it('reaplicar o MESMO filtro depois do "Limpar filtros" do estado-vazio volta a chamar o back', fakeAsync(() => {
+    const el = fixture.nativeElement as HTMLElement;
+    const atalhoBaixo = () =>
+      Array.from(el.querySelectorAll('.atalho')).find((b) =>
+        (b.textContent ?? '').includes('Estoque baixo'),
+      ) as HTMLButtonElement;
+    const pastilhas = () => el.querySelectorAll('.pastilha').length;
+
+    // 1) estoque=BAIXO pelo atalho de verdade → página vazia.
+    atalhoBaixo().click();
+    tick(300);
+    const comFiltro = httpMock.expectOne((r) => r.url === BASE);
+    expect(comFiltro.request.params.get('estoque')).toBe('BAIXO');
+    comFiltro.flush(envelope(pagina<Produto>([])));
+    fixture.detectChanges();
+    expect(pastilhas()).toBe(1);
+
+    // 2) "Limpar filtros" do estado-vazio: a barra é reescrita POR FORA, sem emitir.
+    (Array.from(el.querySelectorAll('.estado--vazio button')).find((b) =>
+      (b.textContent ?? '').includes('Limpar filtros'),
+    ) as HTMLButtonElement).click();
+    httpMock.expectOne((r) => r.url === BASE && !r.params.has('estoque')).flush(
+      envelope(pagina([rosa])),
+    );
+    fixture.detectChanges();
+    tick(300);
+    expect(pastilhas()).toBe(0);
+
+    // 3) o operador escolhe BAIXO DE NOVO — tem de sair 1 GET e a pastilha reaparecer.
+    atalhoBaixo().click();
+    tick(300);
+    fixture.detectChanges();
+    const reaplicado = httpMock.match((r) => r.url === BASE);
+    expect(reaplicado.length).toBe(1);
+    expect(reaplicado[0].request.params.get('estoque')).toBe('BAIXO');
+    expect(reaplicado[0].request.params.get('pagina')).toBe('0');
+    expect(pastilhas()).toBe(1);
+    expect(atalhoBaixo().getAttribute('aria-pressed')).toBe('true');
+    reaplicado[0].flush(envelope(pagina([rosa])));
+  }));
+
   it('400 do §3.6 exibe a mensagem que veio no details[], uma por campo', fakeAsync(() => {
     barra().form.controls.precoMin.setValue(90);
     barra().form.controls.precoMax.setValue(10);
