@@ -1,0 +1,124 @@
+// Atributos botânicos — os 4 boxes do ajuste 2 (SPEC-M6 §3.12, T-M6-09a).
+//
+// Linguagem do ateliê já vigente (o design system canônico vence): a MESMA chave + dica + conteúdo
+// indentado por hairline do box "Registrar entrada inicial" (T-M6-10) — quatro boxes seguidos só
+// funcionam se forem irmãos idênticos. Zero hex novo, zero módulo Material novo, zero animação.
+// A única assinatura emprestada é a PASTILHA DE TINTA de Configurações → Cores, que traz o
+// vocabulário da floricultura para dentro do cadastro. Mobile-first (FC-02): tudo empilha a 375px;
+// só o par altura+unidade fica lado a lado, porque eles são UM dado só.
+//
+// SCSS próprio (não em `produto-form.scss`) por orçamento: §9 regra 2/7a — o form-mãe estava em
+// 7,00 kB de CSS emitido, com 0,50 kB até o teto auto-imposto de 7,5 kB.
+@use '../../../../shared/styles/atelie-tokens' as atelie;
+
+:host {
+  @include atelie.base;
+
+  display: grid;
+  row-gap: 0.1rem;
+}
+
+// Box: chave + dica, sem caixa desenhada (leveza — a indentação do conteúdo já o delimita).
+.caixa {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.35rem 0 0.6rem;
+}
+
+// Switch em caule/folhagem. Os tokens que pintam o `mat-slide-toggle` no Material 20 são os
+// `--mat-slide-toggle-*`; os `--mdc-switch-*` são token MORTO e deixam o switch AZUL (AD-SQ-102).
+.caixa__chave {
+  --mat-slide-toggle-selected-track-color: var(--caule);
+  --mat-slide-toggle-selected-focus-track-color: var(--caule);
+  --mat-slide-toggle-selected-hover-track-color: var(--caule);
+  --mat-slide-toggle-selected-pressed-track-color: var(--caule);
+  --mat-slide-toggle-selected-handle-color: var(--folhagem);
+  --mat-slide-toggle-selected-focus-handle-color: var(--folhagem);
+  --mat-slide-toggle-selected-hover-handle-color: var(--folhagem);
+  --mat-slide-toggle-selected-pressed-handle-color: var(--folhagem);
+  --mat-slide-toggle-selected-icon-color: var(--estufa);
+}
+
+.caixa__dica {
+  margin: 0;
+  color: color-mix(in srgb, var(--tinta) 62%, white);
+  font: var(--mat-sys-body-small);
+}
+
+// O par é obrigatório: [hidden] é folha do NAVEGADOR e perde para o `display` do autor (armadilha #27).
+.caixa__conteudo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: 0.7rem;
+  margin-top: 0.55rem;
+  padding-left: 0.6rem;
+  border-left: 2px solid color-mix(in srgb, var(--caule) 45%, var(--orvalho));
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.caixa__erro {
+  margin: 0;
+  color: #8f2450;
+  font: var(--mat-sys-body-small);
+}
+
+.caixa__aviso {
+  margin: 0;
+  color: var(--folhagem);
+  font: var(--mat-sys-body-small);
+}
+
+// Cores escolhidas, com a amostra ao lado do nome canônico.
+.selecao {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  margin: 0;
+  font: var(--mat-sys-body-small);
+}
+
+.selecao__item {
+  display: inline-flex;
+  align-items: center;
+}
+
+// Altura + unidade são UM dado: ficam lado a lado mesmo a 375px (a unidade cabe em 6rem e o campo
+// numérico encolhe com `min-width:0`, sem estourar a linha).
+.altura {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.altura__valor {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+// 7,5rem = 120px: menos que isso e o Material corta o rótulo com reticências (medido no print de
+// 375px — o campo desconta ~56px de padding + seta antes de sobrar espaço para o texto).
+.altura__unidade {
+  flex: 0 0 7.5rem;
+}
+
+// Pastilha de tinta da opção — mesma da cartela de cores. Sem hex ela fica VAZADA: ausência de dado
+// tem desenho próprio, nunca uma cor inventada (R2/AD-SQ-123).
+.tinta {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  margin-right: 0.5rem;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--tinta) 20%, var(--orvalho));
+  vertical-align: middle;
+}
+
+.tinta--sem {
+  border-style: dashed;
+  border-color: var(--caule);
+  background: #fff;
+}

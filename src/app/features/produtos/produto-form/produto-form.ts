@@ -22,6 +22,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 
 import { ProdutosService } from '../produtos.service';
+import { AtributosBotanicos } from './atributos-botanicos/atributos-botanicos';
 import { ImagemProduto } from '../imagem-produto/imagem-produto';
 import { RecorteFoto } from '../recorte-foto/recorte-foto';
 import { FornecedorForm } from '../../fornecedores/fornecedor-form/fornecedor-form';
@@ -109,6 +110,11 @@ export const OPCOES_UNIDADE: ReadonlyArray<{ valor: UnidadeMedida; rotulo: strin
  * "+ Cadastrar novo fornecedor", que abre o `<app-fornecedor-form>` JÁ EXISTENTE sobreposto à ficha
  * (`@defer`, padrão do overlay do cropper — AD-SQ-87). Ao salvar, o novo fornecedor entra nas opções
  * locais e é selecionado; **nenhum controle do produto é tocado** — o operador não perde o que digitou.
+ *
+ * T-M6-09a (SPEC-M6 §3.12/CA-32/CA-33 — ajuste 2 do dono): a ficha ganha os 4 boxes botânicos
+ * (`<app-atributos-botanicos>`), que guardam o próprio estado. O form só (a) coleta os 5 campos do
+ * §3.3 no submit — box ligado e vazio ABORTA o submit sem requisição — e (b) roteia para o filho os
+ * `details` de 400 cujos `field` são botânicos (`alturaCm`, `corIds`, …), que não existem no `form`.
  */
 @Component({
   selector: 'app-produto-form',
@@ -121,6 +127,7 @@ export const OPCOES_UNIDADE: ReadonlyArray<{ valor: UnidadeMedida; rotulo: strin
     MatIconModule,
     MatProgressSpinnerModule,
     MatSlideToggleModule,
+    AtributosBotanicos,
     ImagemProduto,
     RecorteFoto,
     FornecedorForm,
@@ -201,6 +208,12 @@ export class ProdutoForm implements OnInit, OnDestroy {
   private fornecedorAnterior: number | null = null;
   /** Gatilho do select, para devolver o foco ao fechar o sub-form (§3.13). */
   private readonly fornecedorSelect = viewChild<MatSelect>('fornecedorSelect');
+
+  /**
+   * Os 4 boxes botânicos (T-M6-09a, §3.12) — componente filho que guarda o próprio estado. O form
+   * só o consulta no submit (`coletar()`) e roteia para ele os `details` de campo botânico do 400.
+   */
+  private readonly atributos = viewChild(AtributosBotanicos);
 
   // --- Estado da imagem (T-M3-5, CA-12) ---
   /** Produto vivo no diálogo (edição): mutado após enviar/remover imagem para refletir `temImagem`. */
@@ -319,9 +332,16 @@ export class ProdutoForm implements OnInit, OnDestroy {
       return;
     }
 
+    // Box botânico LIGADO E VAZIO bloqueia o submit (CA-32): nenhuma requisição sai e o erro fica
+    // no próprio box. `null` é bloqueio; `undefined` só acontece antes do 1º render do filho.
+    const botanicos = this.atributos()?.coletar();
+    if (botanicos === null) {
+      return;
+    }
+
     this.enviando.set(true);
     this.erroGeral.set(null);
-    const req = this.montarPayload();
+    const req = this.montarPayload(botanicos);
     const alvo = this.produto();
 
     if (alvo) {
@@ -615,7 +635,7 @@ export class ProdutoForm implements OnInit, OnDestroy {
    * anteriores, o campo é OMITIDO — mantém intactos os payloads exatos de 6 campos dos specs do
    * M2/M3 (anti-burla) e o back interpreta ausência como "não altera".
    */
-  private montarPayload(): ProdutoRequest {
+  private montarPayload(botanicos?: Partial<ProdutoRequest>): ProdutoRequest {
     const v = this.form.getRawValue();
     const req: ProdutoRequest = {
       nome: v.nome.trim(),
@@ -629,7 +649,9 @@ export class ProdutoForm implements OnInit, OnDestroy {
     if (ids.length > 0 || this.eventosOriginais.length > 0) {
       req.eventoIds = ids;
     }
-    return req;
+    // Os 5 campos botânicos (§3.3) chegam prontos do filho, que aplica a MESMA regra de omissão do
+    // `eventoIds`: sem valor e sem nada a limpar, o campo não entra — o payload segue com 6 campos.
+    return { ...req, ...botanicos };
   }
 
   /** `400 VALIDATION_ERROR` → `details` por campo; sem details/erro genérico → banner geral. */
@@ -637,6 +659,11 @@ export class ProdutoForm implements OnInit, OnDestroy {
     if (erro.status === 400) {
       const detalhes = (erro.error as ApiResponse<unknown> | null)?.error?.details ?? [];
       for (const item of detalhes) {
+        // Campo botânico (ex.: `alturaCm` fora da faixa ou cor inexistente) não existe no
+        // FormGroup: ele é exibido pelo box dono do campo. O resto segue por campo, como sempre.
+        if (this.atributos()?.aplicarErro(item.field, item.message)) {
+          continue;
+        }
         this.form.get(item.field)?.setErrors({ servidor: item.message });
       }
       if (detalhes.length === 0) {

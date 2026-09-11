@@ -35,6 +35,22 @@ export type UnidadeMedida = 'un' | 'kg' | 'saco' | 'm3' | 'l' | 'g';
  */
 export type VarianteImagem = 'thumb' | 'medio' | 'original';
 
+/** Porte da planta (SPEC-M6 §3.3). Só `JOVEM`/`ADULTA` aceitam altura — R13/§4.3. */
+export type Caracteristica = 'MUDA' | 'JOVEM' | 'ADULTA';
+
+/** Toxicidade TRI-ESTADO por ausência (R8): `null` = não informado — nunca `false` (armadilha #14). */
+export type Toxicidade = 'TOXICA' | 'NAO_TOXICA';
+
+/** Necessidade de luz (§3.3) — conjunto: a planta pode aceitar mais de uma condição. */
+export type NecessidadeLuz = 'SOL_PLENO' | 'MEIA_SOMBRA' | 'SOMBRA';
+
+/** Cor vinculada ao produto (§3.4): `ReferenciaSimples` + `hex` (`null` = sem amostra cadastrada). */
+export interface CorReferencia {
+  id: number;
+  nome: string;
+  hex: string | null;
+}
+
 export interface Produto {
   id: number;
   nome: string;
@@ -61,6 +77,16 @@ export interface Produto {
    * vem `null`/ausente (evita N+1). Alimenta a pré-seleção do multiselect no `produto-form`.
    */
   eventoIds?: number[] | null;
+  /**
+   * Atributos botânicos (SPEC-M6 §3.4, aditivos). Os 3 escalares vêm na lista E no detalhe; as
+   * duas COLEÇÕES vêm `null` na lista (nenhuma coleção é materializada ali — R11/AD-SQ-38) e só
+   * são preenchidas no detalhe `GET /{id}`. `alturaCm` é SEMPRE inteiro em centímetros (R12).
+   */
+  caracteristica?: Caracteristica | null;
+  alturaCm?: number | null;
+  toxicidade?: Toxicidade | null;
+  necessidadeLuz?: NecessidadeLuz[] | null;
+  cores?: CorReferencia[] | null;
 }
 
 /**
@@ -83,6 +109,17 @@ export interface ProdutoRequest {
    * limpar), preservando os payloads exatos de 6 campos dos specs do M2/M3 (anti-burla).
    */
   eventoIds?: number[];
+  /**
+   * Atributos botânicos (SPEC-M6 §3.3). Escalares: valor grava, `null` LIMPA. Coleções: replace-set
+   * igual a `eventoIds` (AD-SQ-44/48) — presente (inclusive `[]`) substitui; ausente/`null` não
+   * altera. O `atributos-botanicos` só inclui o campo quando há valor OU quando o produto já tinha
+   * aquele atributo (permite limpar), preservando o payload exato de 6 campos dos specs M2/M3.
+   */
+  caracteristica?: Caracteristica | null;
+  alturaCm?: number | null;
+  toxicidade?: Toxicidade | null;
+  necessidadeLuz?: NecessidadeLuz[];
+  corIds?: number[];
 }
 
 /** Alias semântico do payload de criação (`POST /produtos`) — mesma forma de `ProdutoRequest`. */
