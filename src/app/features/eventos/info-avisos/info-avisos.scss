@@ -72,11 +72,16 @@
   padding-top: 1rem;
   border-top: 1px solid var(--orvalho);
 
-  --mdc-switch-selected-track-color: var(--caule);
-  --mdc-switch-selected-handle-color: var(--folhagem);
-  --mdc-switch-selected-focus-track-color: var(--caule);
-  --mdc-switch-selected-hover-track-color: var(--caule);
-  --mdc-switch-selected-pressed-track-color: var(--caule);
+  /* AD-SQ-102: `--mdc-switch-*` é token MORTO no Material 20 — quem pinta o switch é a família
+     `--mat-slide-toggle-*`. Sem a troca este interruptor continua AZUL do tema. */
+  --mat-slide-toggle-selected-track-color: var(--caule);
+  --mat-slide-toggle-selected-handle-color: var(--folhagem);
+  --mat-slide-toggle-selected-focus-track-color: var(--caule);
+  --mat-slide-toggle-selected-hover-track-color: var(--caule);
+  --mat-slide-toggle-selected-pressed-track-color: var(--caule);
+  --mat-slide-toggle-selected-focus-handle-color: var(--folhagem);
+  --mat-slide-toggle-selected-hover-handle-color: var(--folhagem);
+  --mat-slide-toggle-selected-pressed-handle-color: var(--folhagem);
 }
 
 .avisos__dica {
