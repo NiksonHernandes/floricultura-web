@@ -1,0 +1,61 @@
+<!-- CA-34: a seção só existe quando há atributo; cada linha só existe quando AQUELE atributo veio.
+     Ausência não vira "—" nem default — e o box desligado da toxicidade (R8) é "não informado",
+     que não é "Não tóxica". -->
+@if (temFicha()) {
+  <section class="botanica" aria-label="Ficha botânica">
+    <h3 class="botanica__titulo">
+      <mat-icon aria-hidden="true">local_florist</mat-icon> Ficha botânica
+    </h3>
+
+    <dl class="botanica__lista">
+      @if (cores().length > 0) {
+        <div class="botanica__item botanica__item--largo">
+          <dt>Cores</dt>
+          <dd class="botanica__cores">
+            <!-- Pastilha de tinta: a mesma assinatura de Configurações → Cores e do cadastro
+                 (T-M6-09a). Sem hex ela fica VAZADA — o ateliê não pinta cor que ninguém informou. -->
+            @for (c of cores(); track c.id) {
+              <span class="botanica__cor">
+                <span
+                  class="tinta"
+                  [class.tinta--sem]="!c.hex"
+                  [style.background-color]="c.hex"
+                  aria-hidden="true"
+                ></span>
+                {{ c.nome }}
+              </span>
+            }
+          </dd>
+        </div>
+      }
+
+      @if (caracteristica(); as valor) {
+        <div class="botanica__item">
+          <dt>Característica</dt>
+          <dd>{{ valor }}</dd>
+        </div>
+      }
+
+      @if (altura(); as valor) {
+        <div class="botanica__item">
+          <dt>Altura</dt>
+          <dd>{{ valor }}</dd>
+        </div>
+      }
+
+      @if (toxicidade(); as valor) {
+        <div class="botanica__item">
+          <dt>Toxicidade</dt>
+          <dd>{{ valor }}</dd>
+        </div>
+      }
+
+      @if (luz(); as valor) {
+        <div class="botanica__item botanica__item--largo">
+          <dt>Necessidade de luz</dt>
+          <dd>{{ valor }}</dd>
+        </div>
+      }
+    </dl>
+  </section>
+}

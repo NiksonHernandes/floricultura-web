@@ -1,0 +1,102 @@
+// Ficha botânica do "Visualizar produto" (SPEC-M6 §3.12/CA-34, T-M6-09b).
+//
+// Zero gramática nova: a seção é irmã de "Movimentações recentes" e "Relacionamentos" da mesma ficha
+// — hairline de topo, título em versalete com ícone, e o par dt/dd do bloco `.dado`. A única
+// assinatura é a PASTILHA DE TINTA que já vem de Configurações → Cores e do cadastro (T-M6-09a);
+// vazada quando não há hex, porque ausência de dado tem desenho próprio, nunca cor inventada.
+//
+// SCSS próprio (não em `visualizar-produto.scss`): aquele arquivo é um dos 7 que o §10 #35 exige
+// IDÊNTICOS a `develop` (CA-43), e o orçamento de CSS é por arquivo (§9 regra 2).
+// Leveza (memória do dono): zero sombra, zero blur, zero animação. Mobile-first (FC-02).
+@use '../../../../shared/styles/atelie-tokens' as atelie;
+
+// `contents`: sem ficha, o host não ocupa uma célula vazia no flex-column do `.ficha__corpo`; com
+// ficha, a `<section>` entra no fluxo do pai e herda o `gap` das demais seções.
+:host {
+  @include atelie.base;
+
+  display: contents;
+}
+
+.botanica {
+  padding-top: 1rem;
+  border-top: 1px solid var(--orvalho);
+}
+
+// Mesmo versalete de `.movs__titulo`/`.relacao__titulo` — é a terceira seção da mesma ficha.
+.botanica__titulo {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0 0 0.6rem;
+  font: 600 0.72rem/1 var(--display);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--caule);
+
+  mat-icon {
+    font-size: 1rem;
+    width: 1rem;
+    height: 1rem;
+  }
+}
+
+// Duas colunas já a 375px (como o bloco de dados acima): os 3 escalares são curtos. Cores e luz
+// atravessam a linha inteira porque são listas e quebrariam feio em meia coluna.
+.botanica__lista {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem 1.25rem;
+  margin: 0;
+}
+
+.botanica__item {
+  min-width: 0;
+
+  dt {
+    font: 600 0.64rem/1 var(--display);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--caule);
+  }
+
+  dd {
+    margin: 0.3rem 0 0;
+    font: var(--mat-sys-body-medium);
+    color: var(--tinta);
+    overflow-wrap: anywhere;
+  }
+}
+
+.botanica__item--largo {
+  grid-column: 1 / -1;
+}
+
+.botanica__cores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.9rem;
+}
+
+.botanica__cor {
+  display: inline-flex;
+  align-items: center;
+}
+
+// Pastilha de tinta — mesma medida do cadastro (T-M6-09a).
+.tinta {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  margin-right: 0.4rem;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--tinta) 20%, var(--orvalho));
+  vertical-align: middle;
+}
+
+// Sem hex cadastrado: pastilha VAZADA (traço pontilhado), nunca uma cor falsa.
+.tinta--sem {
+  border-style: dashed;
+  border-color: var(--caule);
+  background: #fff;
+}
