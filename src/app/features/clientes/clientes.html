@@ -96,8 +96,10 @@
       A coluna "Ações" existe sempre (CA-31); o conteúdo é que é RBAC de UX (FC-07).
 
       T-M6-A2/§3.11.2: o cartão branco do print do dono é esta `<div>` — irmã do `<table>` porque
-      `border-radius` + `overflow:hidden` não recortam um `<table>` com `border-collapse:collapse`.
-      Ela só ganha estilo a partir de 640px: no celular cada `<tr>` JÁ é o seu próprio cartão.
+      a borda arredondada não pega num `<table>` com `border-collapse: collapse`. Ela NÃO recorta o
+      conteúdo (AD-SQ-112): quem arredonda o topo é o `<th>` de canto, para que o menu de ações da
+      última linha não seja cortado. Só ganha estilo a partir de 640px: no celular cada `<tr>` JÁ é
+      o seu próprio cartão.
     -->
     <div class="tabela-cartao">
     <table class="tabela" aria-label="Clientes cadastrados">

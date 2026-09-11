@@ -206,28 +206,53 @@ describe('T-M6-A1/CA-43 — tipografia pré-M6 restaurada (medição de render)'
     // A natureza do caso não mudou: ele segue MEDINDO o render e segue pegando regressão — só que
     // agora a regressão a pegar é a VOLTA do destaque (negrito/serifa/corpo maior) na 1ª coluna.
     it('o nome não se destaca: mesma fonte e peso das demais células (sem negrito, sem serifa)', () => {
-      const titulo = estilo(el, '.tabela__titulo');
       const td = estilo(el, 'tbody td[data-rotulo]');
 
-      expect(titulo.fontFamily)
-        .withContext('família do nome vs. família da célula comum')
-        .toBe(td.fontFamily);
-      expect(titulo.fontFamily)
-        .withContext('a serifa de display não entra na célula')
-        .not.toContain('Fraunces');
+      // ⚠️ DOIS elementos, não um (§10 #38(c), revisão 11). Medir só o `<td>` deixa passar o
+      // destaque reintroduzido no `<span>` que PINTA o texto: mutando
+      // `.ficha__nome { font: 600 1.1rem/1.2 var(--display) }` o caso passava. Quem renderiza o
+      // nome é o `.ficha__nome`; o `.tabela__titulo` é a célula que o contém.
+      for (const seletor of ['.tabela__titulo', '.ficha__nome']) {
+        const nome = estilo(el, seletor);
 
-      expect(titulo.fontWeight)
-        .withContext('peso do nome vs. peso da célula comum')
-        .toBe(td.fontWeight);
-      expect(titulo.fontWeight)
-        .withContext('o negrito que o dono mandou remover')
-        .toBe('400');
+        expect(nome.fontFamily)
+          .withContext(`família de ${seletor} vs. família da célula comum`)
+          .toBe(td.fontFamily);
+        expect(nome.fontFamily)
+          .withContext(`a serifa de display não entra em ${seletor}`)
+          .not.toContain('Fraunces');
 
-      expect(titulo.fontSize)
-        .withContext('tamanho do nome vs. tamanho da célula comum')
-        .toBe(td.fontSize);
-      // 1.1rem era o corpo do destaque anterior: se ele voltar, este caso cai.
-      expect(parseFloat(titulo.fontSize)).not.toBeCloseTo(1.1 * rem(), 1);
+        expect(nome.fontWeight)
+          .withContext(`peso de ${seletor} vs. peso da célula comum`)
+          .toBe(td.fontWeight);
+        expect(nome.fontWeight)
+          .withContext(`o negrito que o dono mandou remover (${seletor})`)
+          .toBe('400');
+
+        expect(nome.fontSize)
+          .withContext(`tamanho de ${seletor} vs. tamanho da célula comum`)
+          .toBe(td.fontSize);
+        // 1.1rem era o corpo do destaque anterior: se ele voltar, este caso cai.
+        expect(parseFloat(nome.fontSize)).not.toBeCloseTo(1.1 * rem(), 1);
+      }
+    });
+
+    // §10 #46 (AD-SQ-105) — guarda do reset que faz a SETA ser um ícone, e não a palavra.
+    // A ligadura do Material Icons é case-sensitive: o `text-transform: uppercase` do eyebrow de
+    // cabeçalho é herdado pelo `<mat-icon>` e transformaria `arrow_upward` em `ARROW_UPWARD`,
+    // que a fonte não conhece — a seta renderizaria como TEXTO. Isso já foi P1 uma vez, e até
+    // aqui a única prova viva era o glifo no print desktop (§10 #39), que depende do smoke.
+    it('a seta de ordenação não herda o versalete do cabeçalho (senão vira a palavra "ARROW_UPWARD")', () => {
+      const th = el.querySelector('thead th') as HTMLElement;
+      const icone = el.querySelector('.tabela__ord mat-icon') as HTMLElement;
+
+      expect(icone).withContext('a seta da coluna ordenada está no DOM').toBeTruthy();
+      expect(getComputedStyle(icone).textTransform)
+        .withContext('text-transform do mat-icon dentro do .tabela__ord')
+        .toBe('none');
+      expect(getComputedStyle(th).textTransform)
+        .withContext('o rótulo da coluna continua em versalete')
+        .toBe('uppercase');
     });
   });
 });

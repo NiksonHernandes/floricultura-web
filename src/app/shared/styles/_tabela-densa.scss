@@ -122,11 +122,19 @@
   @include atelie.acima(atelie.$bp-sm) {
     // Cartão branco do print do dono (§3.11.2/CA-45). Só existe daqui para cima: no celular a
     // etiqueta de cada `<tr>` já é o cartão. Sem sombra e sem blur — leveza (AD-SQ-69).
+    //
+    // ⚠️ SEM `overflow: hidden` (AD-SQ-112, revisão 11 do §3.11.2). Ele recortava o
+    // `.ficha__mais__lista`, que é `position: absolute` DENTRO do cartão: na última linha de cada
+    // página o "Excluir" ficava 100% fora (87px de transbordo, medido) e o clique naquele ponto
+    // caía no "página anterior" do paginador; na penúltima sobravam 32px de alvo (piso do FC-02 é
+    // 44px). É a mesma ressalva que o card de produto já carregava (`produtos.scss`: "a lista não
+    // é cortada pelo `overflow:hidden` do vaso") e que não tinha sido transportada para cá.
+    // Inverter o sentido (`bottom: 100%`) NÃO resolve: só troca a última linha pela primeira.
+    // Com o recorte fora, quem arredonda o topo é o próprio cabeçalho (regra do `<th>` abaixo).
     .tabela-cartao {
       border: 1px solid var(--orvalho);
       border-radius: var(--raio);
       background: #fff;
-      overflow: hidden;
     }
 
     .tabela {
@@ -156,6 +164,17 @@
       padding: var(--esp-1) var(--esp-2);
       border-bottom: 1px solid var(--orvalho);
       background: color-mix(in srgb, var(--orvalho) 55%, #fff);
+    }
+
+    // O canto arredondado do cartão migrou para cá (AD-SQ-112): sem `overflow: hidden` no
+    // ancestral, é o fundo do cabeçalho que precisa acompanhar o raio nas duas pontas do topo.
+    // O rodapé não precisa: a última linha é branca, igual ao fundo do cartão.
+    .tabela thead th:first-child {
+      border-radius: var(--raio) 0 0 0;
+    }
+
+    .tabela thead th:last-child {
+      border-radius: 0 var(--raio) 0 0;
     }
 
     // Ordenável: `aria-sort` mora no <th>, o clique mora no <button>.

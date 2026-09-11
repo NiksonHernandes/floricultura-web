@@ -10,8 +10,10 @@
 // T-M6-08b (ajuste 8 do dono — SPEC-M6 §3.11, CA-31/CA-37): a agenda deixou de ser grade de cards
 // e virou LISTA/TABELA. A anatomia vem do `_tabela-densa.scss` (T-M6-03) — a mesma "etiqueta de
 // viveiro" do resto do M6 —, então este arquivo só declara o que é DESTA tela: a fileira de
-// controles (busca + filtros tri-estado), as larguras das 5 colunas e o monograma encolhido, que é
-// a assinatura da agenda preservada dentro da linha densa. O CSS do card saiu junto (não convive).
+// controles (só a BUSCA por nome — os filtros tri-estado foram revogados na T-M6-A2/AD-SQ-107), as
+// larguras das 5 colunas, a ação única da linha e o monograma, que é a assinatura da agenda
+// preservada dentro da linha densa — e que CRESCEU para 2.25rem, o avatar do print (§3.11.2 item
+// 5). O CSS do card saiu junto (não convive).
 @use '../../shared/styles/atelie-tokens' as atelie;
 @use '../../shared/styles/tabela-densa' as tabela;
 
