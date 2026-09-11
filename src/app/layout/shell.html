@@ -41,6 +41,25 @@
     </mat-nav-list>
 
     <div class="rodape">
+      <!--
+        Configurações (SPEC-M6 §3.15, PA#1/AD-SQ-86): área de SISTEMA, separada das áreas de
+        domínio — por isso vive no RODAPÉ, acima de "Sair", e NÃO no array `itens` do `shell.ts`.
+        Além de ser o padrão de navegação correto, mantém `shell.ts`/`shell.spec.ts` intocados: o
+        spec herdado assere o array de rotas com `toEqual` e qualquer item novo o quebraria.
+      -->
+      @if (ehAdmin()) {
+        <a
+          class="rodape__config"
+          routerLink="/configuracoes/cores"
+          routerLinkActive="rodape__config--ativo"
+          #rlaConfig="routerLinkActive"
+          [attr.aria-current]="rlaConfig.isActive ? 'page' : null"
+          (click)="aoNavegar()"
+        >
+          <mat-icon aria-hidden="true">settings</mat-icon>
+          <span>Configurações</span>
+        </a>
+      }
       @if (usuario(); as u) {
         <div class="rodape__usuario">
           <span class="rodape__nome">{{ u.nome }}</span>

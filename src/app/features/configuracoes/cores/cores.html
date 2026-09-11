@@ -1,0 +1,125 @@
+<section class="cartela">
+  <!-- Placa de Configurações: ecoa a placa de Produtos/Clientes/Fornecedores (mesmo produto).
+       Sem botão de ação: criar cor chega com o `cor-form` (T-M6-06b). Botão morto não entra. -->
+  <header class="placa">
+    <span class="placa__furo" aria-hidden="true"></span>
+    <div class="placa__texto">
+      <span class="placa__eyebrow">Ateliê · Configurações</span>
+      <h1 class="placa__titulo">Cores</h1>
+      <p class="placa__sub">
+        A cartela de tintas do ateliê: as cores que descrevem as flores no cadastro e nos filtros de
+        produto.
+      </p>
+    </div>
+  </header>
+
+  <div class="controles">
+    <mat-form-field appearance="outline" class="busca">
+      <mat-icon matPrefix aria-hidden="true">search</mat-icon>
+      <mat-label>Buscar por nome</mat-label>
+      <input
+        matInput
+        type="text"
+        [formControl]="filtro"
+        autocomplete="off"
+        aria-label="Buscar cores por nome"
+      />
+      @if (filtro.value) {
+        <button
+          matSuffix
+          mat-icon-button
+          type="button"
+          aria-label="Limpar busca"
+          (click)="limparFiltro()"
+        >
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+    </mat-form-field>
+  </div>
+
+  @if (carregando()) {
+    <p class="estado" aria-live="polite">
+      <mat-progress-spinner diameter="22" mode="indeterminate" aria-hidden="true" />
+      <span>Carregando o catálogo de cores…</span>
+    </p>
+  } @else if (erro(); as msg) {
+    <p class="estado estado--erro" role="alert">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span>{{ msg }}</span>
+      <button mat-button (click)="carregar()">Tentar de novo</button>
+    </p>
+  } @else if (vazia()) {
+    <div class="estado estado--vazio">
+      <mat-icon aria-hidden="true">palette</mat-icon>
+      @if (filtro.value) {
+        <p>Nenhuma cor encontrada para “{{ filtro.value }}”. Tente outro nome.</p>
+      } @else {
+        <p>O catálogo ainda está vazio. As cores cadastradas aparecem aqui.</p>
+      }
+    </div>
+  } @else {
+    <!--
+      Tabela SEMÂNTICA (§3.11/PA#2): no desktop é tabela de verdade; abaixo de 640px o
+      `_tabela-densa.scss` desmonta cada <tr> numa etiqueta com rótulo por célula. O cartão branco é
+      a <div> irmã do <table> (a borda arredondada não pega num <table> com `border-collapse`).
+      Duas colunas nesta task; "Ações" entra com a T-M6-06b, junto das ações que ela nomearia.
+      Nenhum <th> é ordenável: o catálogo vem por nome ASC do back e o §3.2 não expõe `ordenarPor`.
+    -->
+    <div class="tabela-cartao">
+      <table class="tabela" aria-label="Cores do catálogo">
+        <thead>
+          <tr>
+            <th scope="col">Cor</th>
+            <th scope="col">Produtos vinculados</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (c of cores(); track c.id) {
+            <tr class="cor">
+              <td class="tabela__titulo">
+                <!-- Assinatura da tela: a PASTILHA DE TINTA. Ela pinta o hex que o back devolveu;
+                     sem hex, fica vazada — o ateliê não inventa a cor que ninguém cadastrou. -->
+                @if (c.hex) {
+                  <span
+                    class="cor__amostra"
+                    [style.background-color]="c.hex"
+                    [title]="c.hex"
+                    aria-hidden="true"
+                  ></span>
+                } @else {
+                  <span
+                    class="cor__amostra cor__amostra--sem"
+                    title="Sem amostra cadastrada"
+                    aria-hidden="true"
+                  ></span>
+                }
+                <!-- O nome vem CANÔNICO do back (§3.2.1) e é exibido como veio — R1d/CA-40. -->
+                <span class="cor__nome">{{ c.nome }}</span>
+                @if (!c.hex) {
+                  <span class="sr">Sem amostra de cor cadastrada.</span>
+                }
+              </td>
+              <td data-rotulo="Produtos vinculados">
+                @if (c.produtosVinculados > 0) {
+                  {{ c.produtosVinculados }}
+                } @else {
+                  <span class="tabela__vazio">Nenhum</span>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <mat-paginator
+      class="paginacao"
+      [length]="totalElementos()"
+      [pageIndex]="pagina()"
+      [pageSize]="tamanho()"
+      [pageSizeOptions]="[12, 24, 48]"
+      (page)="aoPaginar($event)"
+    />
+  }
+</section>

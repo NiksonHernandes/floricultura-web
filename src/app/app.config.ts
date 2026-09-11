@@ -23,6 +23,7 @@ import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { AuthService } from './core/services/auth.service';
 import { EventosService } from './features/eventos/eventos.service';
 import { FornecedoresService } from './features/fornecedores/fornecedores.service';
+import { CoresService } from './features/configuracoes/cores/cores.service';
 import { PT_BR_DATE_FORMATS, PtBrDateAdapter } from './core/date/pt-br-date-adapter';
 
 // Locale pt-BR precisa ser registrado antes de qualquer DatePipe/DecimalPipe com locale 'pt-BR'
@@ -58,5 +59,10 @@ export const appConfig: ApplicationConfig = {
     // Fornecedores: MESMO padrão (SPEC-M5.1 HISTÓRIA #5/AD-SQ-72) — provido aqui (não `root`) para que
     // a lista-mãe `produtos` o injete opcional (null nos specs herdados → nenhum GET; anti-burla).
     FornecedoresService,
+    // Cores: MESMO padrão (SPEC-M6 §3.15/T-M6-06a) — provido aqui, não `providedIn:'root'`. Quando
+    // o `produto-form` passar a consumir o catálogo (T-M6-09a), os specs herdados do M2/M3 que não
+    // registram o serviço recebem `null` no inject opcional e seguem sem disparar `GET /cores`
+    // (anti-burla: nenhum teste herdado precisa mudar).
+    CoresService,
   ],
 };
