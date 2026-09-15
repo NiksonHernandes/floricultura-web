@@ -11,6 +11,7 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
+import { A11yModule } from '@angular/cdk/a11y';
 import { HttpErrorResponse } from '@angular/common/http';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -48,8 +49,8 @@ export const MOTIVO_ENTRADA_INICIAL = 'Estoque inicial (cadastro)';
  */
 export const TIPOS_IMAGEM_ACEITOS = ['image/jpeg', 'image/png', 'image/webp'] as const;
 
-/** Limite de 5 MB espelhado do back (`APP_UPLOAD_IMAGEM_MAX_BYTES` default — §3.3). Só orientação. */
-export const TAMANHO_MAX_IMAGEM_BYTES = 5 * 1024 * 1024;
+/** Limite de 2 MB espelhado do back (`APP_UPLOAD_IMAGEM_MAX_BYTES` default — §3.3). Só orientação. */
+export const TAMANHO_MAX_IMAGEM_BYTES = 2 * 1024 * 1024;
 
 /**
  * Sentinela da opção fixa "+ Cadastrar novo fornecedor" (T-M6-10/§3.13/AD-SQ-87). Valor impossível
@@ -91,7 +92,7 @@ export const OPCOES_UNIDADE: ReadonlyArray<{ valor: UnidadeMedida; rotulo: strin
  * (T-M2-9) permanece intacto.
  *
  * T-M3-5 (CA-12, SPEC-M3 §3.6): seletor de imagem (JPG/PNG/WEBP) com **preview local**
- * (`URL.createObjectURL`, funciona SEM backend) e validação client-side ESPELHO (tipo/≤5 MB — a
+ * (`URL.createObjectURL`, funciona SEM backend) e validação client-side ESPELHO (tipo/≤2 MB — a
  * validação forte é do back). **Criação:** o arquivo fica "staged" e sobe DEPOIS do `POST /produtos`
  * (`enviarImagem`), no mesmo padrão de falha parcial da entrada inicial (deriva AD-SQ-35): upload
  * falho ⇒ produto EXISTE, emite `salvo` + sinaliza `imagemFalhou` (warning na lista-mãe), sem
@@ -101,7 +102,7 @@ export const OPCOES_UNIDADE: ReadonlyArray<{ valor: UnidadeMedida; rotulo: strin
  * T-M3.1-3 (SPEC-M3.1 §3.3, AD-SQ-41): a seleção deixa de stagear/enviar a fonte crua — ela abre um
  * cropper (`<app-recorte-foto>`, moldura 16/10, pan+zoom) via `arquivoParaRecorte`; SÓ o recorte
  * confirmado (`aoRecortar`, File JPEG) segue o fluxo acima (staged na criação / envio direto na
- * edição), com a guarda de 5 MB no recorte final. Cancelar o cropper preserva o estado. As
+ * edição), com a guarda de 2 MB no recorte final. Cancelar o cropper preserva o estado. As
  * assinaturas de `enviarImagem`/`removerImagem` NÃO mudam (o recorte já vem como File).
  *
  * T-M6-10 (SPEC-M6 §3.13/CA-35 — ajuste 1 do dono): a entrada inicial + o fornecedor deixam de ficar
@@ -119,6 +120,7 @@ export const OPCOES_UNIDADE: ReadonlyArray<{ valor: UnidadeMedida; rotulo: strin
 @Component({
   selector: 'app-produto-form',
   imports: [
+    A11yModule,
     ReactiveFormsModule,
     MatFormFieldModule,
     MatInputModule,
@@ -440,7 +442,7 @@ export class ProdutoForm implements OnInit, OnDestroy {
 
   /**
    * Arquivo escolhido no seletor (T-M3.1-3, §3.3): valida SÓ o TIPO (whitelist espelho) e ABRE o
-   * cropper com a fonte — NÃO stagea/envia a fonte crua. O enquadramento e a guarda de 5 MB ficam
+   * cropper com a fonte — NÃO stagea/envia a fonte crua. O enquadramento e a guarda de 2 MB ficam
    * no recorte final (`aoRecortar`). Limpa o `value` do input para permitir reescolher o mesmo arquivo.
    * "Trocar foto" reusa este handler (nova sessão de cropper).
    */
@@ -461,7 +463,7 @@ export class ProdutoForm implements OnInit, OnDestroy {
   }
 
   /**
-   * Recorte confirmado no cropper (File JPEG — §3.3). Fecha o overlay, valida `≤ 5 MB` (senão erro
+   * Recorte confirmado no cropper (File JPEG — §3.3). Fecha o overlay, valida `≤ 2 MB` (senão erro
    * local, não segue), gera o preview local (objectURL do recorte) e — na EDIÇÃO — envia DIRETO;
    * na CRIAÇÃO fica "staged" para subir após o POST (mesma semântica de falha parcial, AD-SQ-35).
    * Confirmar substitui o recorte/preview anteriores (destrutivo — AD-SQ-41).
@@ -469,7 +471,7 @@ export class ProdutoForm implements OnInit, OnDestroy {
   protected aoRecortar(recorte: File): void {
     this.arquivoParaRecorte.set(null);
     if (recorte.size > TAMANHO_MAX_IMAGEM_BYTES) {
-      this.erroImagem.set('Imagem acima de 5 MB. Reduza o zoom ou escolha um arquivo menor.');
+      this.erroImagem.set('Imagem acima de 2 MB. Reduza o zoom ou escolha um arquivo menor.');
       return;
     }
     this.erroImagem.set(null);

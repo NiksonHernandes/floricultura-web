@@ -61,6 +61,7 @@ describe('Shell (T-M2-6)', () => {
     // Menu ampliado no M4 (SPEC-M4 §12): +Eventos +Movimentações; no M5 (SPEC-M5 §3.6/CA-10):
     // +Clientes +Fornecedores (todos soAdmin:false). "Usuários" continua só ADMIN (RBAC intacto).
     expect(rotas).toEqual([
+      '/painel',
       '/produtos',
       '/eventos',
       '/movimentacoes',
@@ -75,6 +76,7 @@ describe('Shell (T-M2-6)', () => {
     const { probe } = montar();
     const rotas = probe.itensVisiveis().map((i) => i.rota);
     expect(rotas).toEqual([
+      '/painel',
       '/produtos',
       '/eventos',
       '/movimentacoes',

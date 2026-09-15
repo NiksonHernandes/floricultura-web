@@ -1,7 +1,8 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ReactiveFormsModule, FormControl } from '@angular/forms';
-import { debounceTime, distinctUntilChanged } from 'rxjs';
+import { debounceTime, distinctUntilChanged, Subscription } from 'rxjs';
+import { ActivatedRoute } from '@angular/router';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -108,6 +109,9 @@ const ROTULOS_UNIDADE: Record<UnidadeMedida, string> = {
 })
 export class Produtos implements OnInit {
   private readonly service = inject(ProdutosService);
+  private readonly route = inject(ActivatedRoute, { optional: true });
+  private readonly destroyRef = inject(DestroyRef);
+  private listagem?: Subscription;
   private readonly auth = inject(AuthService);
   private readonly snack = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
@@ -208,7 +212,18 @@ export class Produtos implements OnInit {
   }
 
   ngOnInit(): void {
-    this.carregar();
+    if (this.route?.queryParamMap) {
+      this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(params => {
+        const estoque = params.get('estoque');
+        this.filtros.set({ ...FILTRO_VAZIO, estoque:
+          estoque === 'BAIXO' || estoque === 'SEM_ESTOQUE' || estoque === 'COM_ESTOQUE' ? estoque : null });
+        this.filtro.setValue(params.get('nome') ?? '', { emitEvent: false });
+        this.pagina.set(0);
+        this.carregar();
+      });
+    } else {
+      this.carregar();
+    }
     // A barra de filtros precisa dos dois catálogos ANTES do primeiro toque (T-M6-11). Os dois
     // serviços são opcionais: sem eles (specs herdados) nenhum GET sai e a barra fica sem opções.
     this.carregarEventos();
@@ -216,10 +231,12 @@ export class Produtos implements OnInit {
   }
 
   protected carregar(): void {
+    this.listagem?.unsubscribe();
     this.carregando.set(true);
     this.erro.set(null);
     this.errosFiltro.set([]);
-    this.service.listar(this.pagina(), this.tamanho(), this.filtro.value, this.filtros()).subscribe({
+    this.listagem = this.service.listar(this.pagina(), this.tamanho(), this.filtro.value, this.filtros())
+      .pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (pagina) => {
         this.produtos.set(pagina.conteudo);
         this.totalElementos.set(pagina.totalElementos);

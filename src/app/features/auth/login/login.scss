@@ -1,310 +1,177 @@
-/*
- * Tela de login — "etiqueta de viveiro sobre a bancada do ateliê" (SPEC-M1 §9, CA-14).
- *
- * Passe 1 (tokens nomeados no mundo da floricultura):
- *   folhagem #1F3A2E  chão de folhagem (painel-marca)   estufa   #F3F6F0  vidro de estufa (superfície)
- *   tinta    #14241C  tinta botânica (títulos)          caule    #6B8F71  caule/sálvia (traços, foco)
- *   dalia    #C4326B  dália carmim (ÚNICO acento/ação)   orvalho  #E4ECE2  orvalho (hairlines/preenches)
- *   Display: Fraunces (serifa botânica, com contenção)  ·  Corpo: sans do sistema (Roboto/Material).
- *   Assinatura: a etiqueta de viveiro com furo real no topo, atravessada pelo caule vindo do painel.
- * Passe 2 anti-default: rejeitado o clichê creme+terracota+serifão do "florista de IA"; superfície
- *   puxada ao verde-vidro (não creme kraft); acento dália (não terracota); ousadia gasta só na ação.
- */
-
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&display=swap');
-
+@use "../../../shared/styles/atelie-tokens" as atelie;
 :host {
-  // Login mora FORA do shell (AD-SQ-33): é a página inteira, sem `position:fixed` sobre um
-  // shell montado — resolve a DT-M1-1 (um único `<h1>` no DOM, CA-18). Flex-column p/ o
-  // grid `.login` esticar até a viewport toda (evita faixa vazia em telas altas).
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  overflow-x: hidden;
-
-  // Paleta nomeada (Passe 1).
-  --folhagem: #1f3a2e;
-  --estufa: #f3f6f0;
-  --tinta: #14241c;
-  --caule: #6b8f71;
-  --dalia: #c4326b;
-  --orvalho: #e4ece2;
-  --sais: #a9c6ae; // tinta clara p/ contraste sobre a folhagem (eyebrow/lema)
-
-  --display: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
-}
-
-.login {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 1fr;
-  grid-template-rows: auto 1fr;
-  min-height: 100%;
-  background: var(--estufa);
+  @include atelie.base;
+  display: block;
+  min-height: 100dvh;
   color: var(--tinta);
 }
-
-/* ---- Painel ateliê (folhagem) ---- */
+.login {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: #fbfcf8;
+}
 .login__atelier {
   position: relative;
   overflow: hidden;
-  padding: 1.75rem 1.5rem 2rem;
+  margin: 16px;
+  padding: 42px;
+  border-radius: 20px;
   background:
-    radial-gradient(120% 90% at 100% 0%, #274a3a 0%, var(--folhagem) 55%);
-  color: var(--estufa);
+    linear-gradient(90deg, #163e2ce8 0%, #163e2c90 45%, #163e2c00 100%),
+    url("/brand/atelie-floral.png") center / cover;
+  color: #f5f2df;
+  min-height: 620px;
 }
-
-.login__caule {
-  position: absolute;
-  top: 0;
-  left: 1.9rem;
-  width: 2px;
-  height: 100%;
-  background: linear-gradient(var(--caule), transparent);
-  transform-origin: top;
+.login__symbol {
+  float: left;
+  margin-right: 14px;
 }
-
-.login__caule::after {
-  // Nó floral (dália) no caule — pequeno acento vivo.
-  content: '';
-  position: absolute;
-  top: 3.25rem;
-  left: -3px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--dalia);
-  box-shadow: 0 0 0 4px rgba(196, 50, 107, 0.18);
-}
-
 .login__marca {
-  position: relative;
-  margin-left: 1.25rem;
   display: flex;
   flex-direction: column;
-  line-height: 1;
-}
-
-.login__eyebrow {
-  font: 600 0.8rem/1 var(--display);
-  letter-spacing: 0.32em;
-  text-transform: uppercase;
-  color: var(--sais);
-}
-
-.login__wordmark {
-  margin-top: 0.35rem;
-  font: 400 clamp(2.4rem, 6vw, 3.6rem) / 0.95 var(--display);
-  font-optical-sizing: auto;
-  letter-spacing: -0.01em;
-}
-
-.login__lema {
   position: relative;
-  margin: 1rem 0 0 1.25rem;
-  max-width: 22rem;
-  font: var(--mat-sys-body-medium);
-  color: color-mix(in srgb, var(--sais) 92%, white);
+  z-index: 1;
 }
-
-/* ---- Painel estufa + etiqueta ---- */
+.login__eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+}
+.login__wordmark {
+  font: 400 26px/1.4 var(--display);
+}
+.login__story {
+  position: relative;
+  z-index: 1;
+  margin-top: 105px;
+}
+.login__caption,
+.login__signature {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: #c5d3b8;
+}
+.login__story h2 {
+  font: 400 clamp(38px, 4vw, 60px) / 1.15 var(--display);
+  letter-spacing: -0.035em;
+  margin: 22px 0;
+}
+.login__lema {
+  font-size: 15px;
+  line-height: 1.8;
+  color: #dae0ce;
+}
+.login__botanica {
+  position: absolute;
+  width: 78%;
+  right: -12%;
+  bottom: -8%;
+  opacity: 0.85;
+  pointer-events: none;
+}
+.login__signature {
+  position: absolute;
+  bottom: 36px;
+  left: 42px;
+}
 .login__estufa {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
-  padding: 2.5rem 1.25rem 3rem;
+  padding: 48px;
 }
-
 .tag {
-  position: relative;
   width: 100%;
-  max-width: 26rem;
-  box-sizing: border-box;
-  margin-top: 0.5rem;
-  padding: 2.5rem 1.75rem 1.75rem;
-  background: #fff;
-  border: 1px solid var(--orvalho);
-  border-radius: 14px;
-  box-shadow: 0 18px 40px -28px rgba(20, 36, 28, 0.55);
+  max-width: 390px;
 }
-
-.tag__furo {
-  // Furo "real" da etiqueta: círculo com a cor da estufa e anel de sálvia.
-  position: absolute;
-  top: -11px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--estufa);
-  border: 1.5px solid var(--caule);
+.tag__welcome {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: #677561;
+  font-weight: 600;
 }
-
 .tag__cabecalho {
-  margin-bottom: 1.5rem;
-  text-align: center;
+  margin: 20px 0 34px;
 }
-
 .tag__titulo {
+  font: 400 36px/1.2 var(--display);
   margin: 0;
-  font: 600 clamp(1.5rem, 4.5vw, 1.9rem) / 1.1 var(--display);
-  color: var(--tinta);
+  letter-spacing: -0.035em;
 }
-
 .tag__sub {
-  margin: 0.5rem 0 0;
-  font: var(--mat-sys-body-medium);
-  color: color-mix(in srgb, var(--tinta) 62%, var(--estufa));
+  color: #697266;
+  margin-top: 12px;
+  line-height: 1.7;
 }
-
 .tag__form {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-
-  // Foco/traço dos campos em caule (verde) — acento dália fica reservado só à ação.
-  --mdc-outlined-text-field-focus-outline-color: var(--caule);
-  --mdc-outlined-text-field-caret-color: var(--caule);
-  --mdc-outlined-text-field-focus-label-text-color: var(--folhagem);
+  gap: 10px;
 }
-
 .tag__campo {
   width: 100%;
 }
-
+.tag__enviar {
+  height: 52px;
+  --mat-button-filled-container-color: #294a38;
+  --mat-button-filled-label-text-color: #fff;
+  border-radius: 8px;
+  margin-top: 8px;
+}
 .tag__alerta {
   display: flex;
+  gap: 8px;
   align-items: center;
-  gap: 0.5rem;
-  margin: 0 0 1rem;
-  padding: 0.6rem 0.75rem;
-  border-radius: 10px;
-  border: 1px solid color-mix(in srgb, var(--dalia) 45%, white);
-  background: color-mix(in srgb, var(--dalia) 10%, white);
-  color: #8f2450;
-  font: var(--mat-sys-body-small);
-
-  mat-icon {
-    flex: none;
-  }
+  padding: 14px;
+  border-radius: 8px;
+  background: #fae8ec;
+  color: #872845;
 }
-
-.tag__enviar {
-  margin-top: 0.75rem;
-  height: 3rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-
-  // A ação em dália carmim — a ÚNICA ousadia da tela (design-distintivo §gaste a ousadia).
-  // Tokens do Material v20 (`--mat-button-filled-*`; os `--mdc-*` foram renomeados).
-  --mat-button-filled-container-color: var(--dalia);
-  --mat-button-filled-label-text-color: #fff;
-  --mat-button-filled-state-layer-color: #fff;
-  --mat-button-filled-ripple-color: color-mix(in srgb, white 30%, transparent);
-  --mat-button-filled-disabled-container-color: color-mix(in srgb, #c4326b 35%, white);
-  --mat-button-filled-disabled-label-text-color: #fff;
-
-  mat-icon {
-    // Seta anda um passo no hover: um movimento deliberado, só um.
-    transition: transform 160ms ease;
-  }
-
-  &:hover:not([disabled]) mat-icon {
-    transform: translateX(3px);
-  }
-
-  .tag__spin {
-    margin-left: 0.4rem;
-    // Spinner claro sobre o carmim da ação.
-    --mdc-circular-progress-active-indicator-color: #fff;
-  }
-}
-
 .tag__rodape {
   display: flex;
+  gap: 10px;
   align-items: center;
-  gap: 0.5rem;
-  margin-top: 1.5rem;
-  padding-top: 1rem;
-  border-top: 1px dashed var(--orvalho);
-  font: var(--mat-sys-body-small);
-  color: color-mix(in srgb, var(--tinta) 55%, var(--estufa));
-
-  mat-icon {
-    flex: none;
-    color: var(--caule);
-    font-size: 1.1rem;
-    width: 1.1rem;
-    height: 1.1rem;
-  }
+  border-top: 1px solid #e2e6da;
+  margin-top: 34px;
+  padding-top: 22px;
+  font-size: 12px;
+  color: #64705e;
 }
-
-/* ---- Desktop: bancada em duas colunas ---- */
-@media (min-width: 880px) {
+.tag__rodape mat-icon {
+  flex-shrink: 0;
+  color: #788a6e;
+}
+@media (max-width: 879px) {
   .login {
-    grid-template-columns: 1.05fr 1fr;
-    grid-template-rows: 1fr;
+    grid-template-columns: 1fr;
   }
-
   .login__atelier {
-    padding: 3.5rem 3rem;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
+    min-height: 190px;
+    padding: 24px;
+    margin: 10px;
   }
-
-  .login__caule {
-    left: 3.4rem;
+  .login__story {
+    margin-top: 30px;
   }
-
-  .login__marca {
-    margin-left: 1.5rem;
+  .login__story h2 {
+    font-size: 32px;
+    margin: 12px 0;
   }
-
-  .login__lema {
-    margin-left: 1.5rem;
+  .login__lema,
+  .login__signature,
+  .login__caption {
+    display: none;
   }
-
+  .login__botanica {
+    width: 220px;
+    right: 0;
+    bottom: -90px;
+  }
   .login__estufa {
-    align-items: center;
-    padding: 3rem;
+    padding: 28px 24px 48px;
   }
-
-  .tag {
-    margin-top: 0;
-  }
-}
-
-/* ---- Movimento deliberado (um só), respeitando reduced-motion ---- */
-@media (prefers-reduced-motion: no-preference) {
-  .login__caule {
-    animation: caule-cresce 700ms ease-out both;
-  }
-
-  .tag {
-    animation: etiqueta-assenta 520ms 120ms ease-out both;
-  }
-
-  @keyframes caule-cresce {
-    from {
-      transform: scaleY(0);
-    }
-    to {
-      transform: scaleY(1);
-    }
-  }
-
-  @keyframes etiqueta-assenta {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+  .tag__titulo {
+    font-size: 30px;
   }
 }

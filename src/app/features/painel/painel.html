@@ -1,0 +1,179 @@
+<section class="painel">
+  <header class="heading">
+    <div>
+      <span class="eyebrow">SEU ATELIÊ, EM UM OLHAR</span>
+      <h1>Visão geral</h1>
+    </div>
+    <span class="date"
+      ><mat-icon>calendar_today</mat-icon>{{ hoje | date:'d MMMM, yyyy' }}</span
+    >
+  </header>
+  <section class="welcome">
+    <div>
+      <span class="eyebrow">UM NOVO DIA PARA CULTIVAR</span>
+      <h2>
+        Olá, {{ usuario()?.nome?.split(' ')?.[0] || 'equipe' }}.<br />Vamos
+        fazer florescer?
+      </h2>
+      <p>Acompanhe os detalhes que fazem seu negócio crescer.</p>
+      <a mat-flat-button routerLink="/produtos"
+        >Explorar catálogo <mat-icon iconPositionEnd>arrow_forward</mat-icon></a
+      >
+    </div>
+    <img src="brand/botanica.svg" alt="" aria-hidden="true" /><span
+      class="welcome__note"
+      >CUIDADO EM CADA DETALHE</span
+    >
+  </section>
+  @if (carregando()) {
+  <div class="notice" role="status">Buscando os dados do seu ateliê…</div>
+  } @else if (erro()) {
+  <div class="notice" role="alert">
+    Não foi possível carregar a visão geral.<button
+      mat-button
+      (click)="carregar()"
+    >
+      Tentar novamente
+    </button>
+  </div>
+  } @else if (dados(); as d) {
+  <div class="metrics">
+    <a routerLink="/produtos" class="metric"
+      ><span class="metric__icon"><mat-icon>local_florist</mat-icon></span
+      ><span
+        >Produtos no catálogo<strong>{{ d.produtos | number }}</strong
+        ><small>Conheça sua coleção <span>↗</span></small></span
+      ></a
+    >
+    <a
+      routerLink="/produtos"
+      [queryParams]="{estoque:'BAIXO'}"
+      class="metric metric--alert"
+      ><span class="metric__icon"><mat-icon>inventory_2</mat-icon></span
+      ><span
+        >Precisam de reposição<strong>{{ d.baixo | number }}</strong
+        ><small>Estoque no mínimo ou abaixo <span>↗</span></small></span
+      ></a
+    >
+    <a routerLink="/clientes" class="metric"
+      ><span class="metric__icon"><mat-icon>people_outline</mat-icon></span
+      ><span
+        >Clientes cadastrados<strong>{{ d.clientes | number }}</strong
+        ><small>Conexões que florescem <span>↗</span></small></span
+      ></a
+    >
+    <a routerLink="/eventos" class="metric"
+      ><span class="metric__icon"><mat-icon>event</mat-icon></span
+      ><span
+        >Próximos eventos<strong>{{ d.eventos.length | number }}</strong
+        ><small>Na janela de 60 dias <span>↗</span></small></span
+      ></a
+    >
+  </div>
+  <div class="panels">
+    <section class="panel">
+      <header>
+        <div>
+          <span class="eyebrow">CUIDADO COM O ESTOQUE</span>
+          <h2>Hora de repor</h2>
+        </div>
+        <a routerLink="/produtos" [queryParams]="{estoque:'BAIXO'}"
+          >Ver produtos <span>↗</span></a
+        >
+      </header>
+      @for (p of d.reposicao; track p.id) {
+      <a class="stock-row" routerLink="/produtos" [queryParams]="{nome:p.nome}"
+        ><span class="plant-icon"><mat-icon>local_florist</mat-icon></span
+        ><span class="row-name"
+          >{{ p.nome }}<small
+            >Mínimo: {{ p.estoqueMinimo }} {{ p.unidadeMedida }}</small
+          ></span
+        ><span class="stock-count"
+          >{{ p.estoqueAtual }} {{ p.unidadeMedida }}</span
+        ></a
+      >
+      } @empty {
+      <div class="empty">
+        <mat-icon>spa</mat-icon>
+        <h3>Tudo em equilíbrio</h3>
+        <p>
+          {{ d.produtos ? 'Nenhum produto precisa de reposição agora.' :
+          'Cadastre seus produtos para acompanhar o estoque.' }}
+        </p>
+        <a mat-button routerLink="/produtos">Ir para produtos</a>
+      </div>
+      }
+    </section>
+    <section class="panel">
+      <header>
+        <div>
+          <span class="eyebrow">O ATELIÊ EM MOVIMENTO</span>
+          <h2>Últimas atividades</h2>
+        </div>
+        <a routerLink="/movimentacoes">Ver histórico <span>↗</span></a>
+      </header>
+      @for (m of d.atividade; track m.id) {
+      <div class="activity-row">
+        <span
+          class="activity-icon"
+          [class.activity-icon--out]="m.tipo === 'SAIDA'"
+          ><mat-icon
+            >{{ m.tipo === 'ENTRADA' ? 'south_west' : m.tipo === 'SAIDA' ?
+            'north_east' : 'sync' }}</mat-icon
+          ></span
+        ><span class="row-name"
+          >{{ m.produtoNome }}<small
+            >{{ m.tipo === 'ENTRADA' ? 'Entrada' : m.tipo === 'SAIDA' ? 'Saída'
+            : 'Ajuste' }} · {{ m.usuarioNome || 'Equipe' }}</small
+          ></span
+        ><span class="activity-date"
+          >{{ m.quantidade | number }}<small
+            >{{ m.criadoEm | date:'dd/MM, HH:mm':'America/Sao_Paulo' }}</small
+          ></span
+        >
+      </div>
+      } @empty {
+      <div class="empty">
+        <mat-icon>swap_vert</mat-icon>
+        <h3>Uma nova história começa aqui</h3>
+        <p>Entradas, saídas e ajustes aparecerão neste espaço.</p>
+      </div>
+      }
+    </section>
+  </div>
+  <section class="panel events">
+    <header>
+      <div>
+        <span class="eyebrow">PREPARE OS PRÓXIMOS CAPÍTULOS</span>
+        <h2>No calendário</h2>
+      </div>
+      <a routerLink="/eventos">Abrir agenda <span>↗</span></a>
+    </header>
+    <div class="event-list">
+      @for (e of d.eventos.slice(0, 4); track e.id) {
+      <a class="event" routerLink="/eventos"
+        ><span class="event-date"
+          >{{ e.proximaOcorrencia | date:'dd' }}<small
+            >{{ e.proximaOcorrencia | date:'MMM' }}</small
+          ></span
+        ><span
+          >{{ e.nome }}<small
+            >{{ e.emAndamento ? 'Em andamento' : e.diasAte === 0 ? 'Hoje' : 'Em
+            ' + e.diasAte + ' dias' }}</small
+          ></span
+        ><mat-icon>arrow_forward</mat-icon></a
+      >
+      } @empty {
+      <p class="empty-line">
+        Uma agenda aberta a novas possibilidades.
+        <a routerLink="/eventos">Organizar eventos →</a>
+      </p>
+      }
+    </div>
+  </section>
+  }
+  <footer class="footnote">
+    <img src="brand/mark.svg" width="22" height="22" alt="" /> Ateliê
+    Floricultura <span>Organização para florescer.</span>
+  </footer>
+</section>

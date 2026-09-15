@@ -68,13 +68,14 @@ describe('Shell — Configurações no rodapé do menu (T-M6-06a, CA-30)', () =>
     expect(el.querySelector('.rodape__sair')).toBeTruthy();
   });
 
-  it('o menu de domínio segue com os MESMOS 6 itens — Configurações não entrou no array', () => {
+  it('o menu inclui a visão geral e mantém Configurações separadas', () => {
     const el = montar();
     const rotas = Array.from(el.querySelectorAll('.menu .menu__item')).map((a) =>
       a.getAttribute('href'),
     );
 
     expect(rotas).toEqual([
+      '/painel',
       '/produtos',
       '/eventos',
       '/movimentacoes',

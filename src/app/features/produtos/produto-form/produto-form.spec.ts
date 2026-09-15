@@ -388,13 +388,13 @@ describe('ProdutoForm (T-M2-8, CA-20 — parte form)', () => {
     expect(serviceSpy.enviarImagem).not.toHaveBeenCalled();
   });
 
-  it('criação: RECORTE acima de 5 MB é barrado no cliente (guarda no recorte final) — erro, sem envio (CA-5/CA-8)', () => {
+  it('criação: RECORTE acima de 2 MB é barrado no cliente (guarda no recorte final) — erro, sem envio (CA-5/CA-8)', () => {
     const probe = montar();
     const grande = new File(['x'], 'grande.jpg', { type: 'image/jpeg' });
     Object.defineProperty(grande, 'size', { value: TAMANHO_MAX_IMAGEM_BYTES + 1 });
     probe.aoSelecionarArquivo(eventoArquivo(jpg)); // abre o cropper
-    probe.aoRecortar(grande); // recorte final estoura 5 MB
-    expect(probe.erroImagem()).toContain('5 MB');
+    probe.aoRecortar(grande); // recorte final estoura 2 MB
+    expect(probe.erroImagem()).toContain('2 MB');
     expect(probe.previewUrl()).toBeNull(); // recorte inválido não vira preview
     // ÂNCORA preservada: arquivo grande NÃO é enviado.
     expect(serviceSpy.enviarImagem).not.toHaveBeenCalled();

@@ -66,7 +66,7 @@ describe('Login (T-M1-8)', () => {
     expect(authSpy.login).not.toHaveBeenCalled();
   });
 
-  it('submete o payload correto e redireciona ADMIN para a Home /produtos (CA-16)', () => {
+  it('submete o payload correto e redireciona ADMIN para a Home /painel (CA-16)', () => {
     authSpy.login.and.returnValue(of(admin));
     const { probe } = montar();
 
@@ -75,18 +75,18 @@ describe('Login (T-M1-8)', () => {
 
     const enviado = authSpy.login.calls.mostRecent().args[0] as LoginRequest;
     expect(enviado).toEqual({ email: admin.email, senha: 'segredo123' });
-    expect(routerSpy.navigate).toHaveBeenCalledWith(['/produtos']);
+    expect(routerSpy.navigate).toHaveBeenCalledWith(['/painel']);
     expect(probe.carregando()).toBeFalse();
   });
 
-  it('USER também vai para a Home /produtos (AD-SQ-33, CA-16)', () => {
+  it('USER também vai para a Home /painel (AD-SQ-33, CA-16)', () => {
     authSpy.login.and.returnValue(of({ ...admin, role: 'USER' as const }));
     const { probe } = montar();
 
     probe.form.setValue({ email: 'user@floricultura.local', senha: 'segredo123' });
     probe.entrar();
 
-    expect(routerSpy.navigate).toHaveBeenCalledWith(['/produtos']);
+    expect(routerSpy.navigate).toHaveBeenCalledWith(['/painel']);
   });
 
   it('401 mostra a mensagem genérica do contrato e não redireciona (§3.2)', () => {

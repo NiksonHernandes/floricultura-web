@@ -8,7 +8,7 @@
 // Passe 2 anti-default: recusa o "app-bar azul + drawer branco genérico" do Material de IA. A
 //   navegação é uma estante de folhagem; o item ativo NÃO é um retângulo azul cheio, e sim caule
 //   à esquerda + nó de dália; o hambúrguer/toolbar mobile herda a mesma folhagem. Mobile-first (FC-02).
-@use '../shared/styles/atelie-tokens' as atelie;
+@use "../shared/styles/atelie-tokens" as atelie;
 
 :host {
   @include atelie.base;
@@ -29,7 +29,11 @@
   flex-direction: column;
   padding: 1.25rem 0.75rem 1rem;
   border: none;
-  background: radial-gradient(130% 60% at 0% 0%, #274a3a 0%, var(--folhagem) 60%);
+  background: radial-gradient(
+    130% 60% at 0% 0%,
+    #274a3a 0%,
+    var(--folhagem) 60%
+  );
   color: var(--estufa);
 }
 
@@ -94,7 +98,7 @@
   --mat-list-list-item-leading-icon-color: #fff;
 
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     left: 4px;
     top: 50%;
@@ -197,4 +201,115 @@
   outline: 2px solid var(--caule);
   outline-offset: -2px;
   border-radius: 10px;
+}
+
+/* Navegação editorial: marca, operação e conta em áreas estáveis. */
+.shell__nav {
+  width: 244px;
+  border-radius: 0;
+  background: #294a38;
+  padding: 28px 14px 16px;
+}
+:host ::ng-deep .mat-drawer-inner-container {
+  display: flex;
+  flex-direction: column;
+}
+.marca {
+  padding: 0 8px 28px;
+  margin-bottom: 26px;
+}
+.marca__simbolo {
+  float: left;
+  margin-right: 10px;
+}
+.marca__caule {
+  display: none;
+}
+.marca__eyebrow {
+  font: 500 10px/1.2 var(--corpo);
+  letter-spacing: 0.2em;
+}
+.marca__wordmark {
+  font-size: 23px;
+}
+.menu__label {
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  color: #b5c7aa;
+  padding: 0 16px;
+}
+.menu {
+  padding-top: 14px;
+}
+.menu__item {
+  margin: 4px 0;
+  border-radius: 8px;
+  --mat-list-list-item-label-text-size: 13px;
+}
+.menu__item--ativo {
+  background: #e8eedc;
+  --mat-list-list-item-label-text-color: #294a38;
+  --mat-list-list-item-leading-icon-color: #294a38;
+  --mat-list-list-item-hover-label-text-color: #294a38;
+}
+.menu__item--ativo::before {
+  display: none;
+}
+.rodape {
+  margin-top: auto;
+}
+.rodape__usuario {
+  display: block;
+  padding: 16px 12px;
+  margin-top: 12px;
+  background: #ffffff08;
+  border-radius: 8px;
+  text-decoration: none;
+}
+.rodape__nome {
+  font: 500 13px/1.6 var(--corpo);
+}
+.rodape__papel {
+  font-size: 11px;
+}
+.rodape__config {
+  font-size: 13px;
+}
+.desktop-bar {
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 36px;
+  border-bottom: 1px solid #e2e6da;
+  background: #fdfefb;
+  font-size: 12px;
+  color: #6b7566;
+}
+.desktop-bar__divider {
+  margin: 0 14px;
+  color: #bec6b7;
+}
+.desktop-bar a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #294a38;
+  text-decoration: none;
+}
+.shell__outlet {
+  min-height: calc(100% - 71px);
+  outline: none;
+}
+.skip-link {
+  position: fixed;
+  top: -60px;
+  left: 16px;
+  z-index: 1000;
+  padding: 12px;
+  background: white;
+  color: #294a38;
+}
+.skip-link:focus {
+  top: 12px;
 }

@@ -1,4 +1,4 @@
-<div class="ficha" role="dialog" aria-modal="true" aria-labelledby="ficha-titulo">
+<div class="ficha" cdkTrapFocus [cdkTrapFocusAutoCapture]="true" role="dialog" aria-modal="true" aria-labelledby="ficha-titulo">
   <header class="ficha__cabecalho">
     <div>
       <span class="ficha__eyebrow">Ateliê · Estoque</span>
@@ -28,7 +28,7 @@
     <div class="ficha__grade">
       <mat-form-field appearance="outline" class="ficha__campo ficha__campo--largo">
         <mat-label>Nome</mat-label>
-        <input matInput formControlName="nome" autocomplete="off" maxlength="150" />
+        <input matInput cdkFocusInitial formControlName="nome" autocomplete="off" maxlength="150" />
         @if (form.controls.nome.hasError('required')) {
           <mat-error>Informe o nome do produto.</mat-error>
         } @else if (form.controls.nome.hasError('minlength')) {

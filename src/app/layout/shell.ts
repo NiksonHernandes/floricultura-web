@@ -77,6 +77,7 @@ export class Shell {
    * para USER+ADMIN (`soAdmin:false`, CA-10); a escrita é barrada por RBAC no back (FC-07).
    */
   private readonly itens: readonly ItemMenu[] = [
+    { rota: '/painel', rotulo: 'Visão geral', icone: 'space_dashboard', soAdmin: false },
     { rota: '/produtos', rotulo: 'Produtos', icone: 'local_florist', soAdmin: false },
     { rota: '/eventos', rotulo: 'Eventos', icone: 'event', soAdmin: false },
     { rota: '/movimentacoes', rotulo: 'Movimentações', icone: 'swap_vert', soAdmin: false },

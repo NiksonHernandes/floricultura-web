@@ -22,7 +22,7 @@ import { UsuarioSessao } from '../../../core/models/auth.model';
  * Form reativo e-mail+senha → `AuthService.login`. Trata `401` (mensagem genérica
  * "Credenciais inválidas.", §3.2) e `400 VALIDATION_ERROR` (erro por campo via `details`).
  *
- * Redireciono pós-login (SPEC-M2 §4, AD-SQ-33): ADMIN e USER vão para a Home `/produtos`
+ * Redireciono pós-login (SPEC-M2 §4, AD-SQ-33): ADMIN e USER vão para a Home `/painel`
  * dentro do shell. Substitui o destino do M1 (ADMIN→/usuarios, USER→/trocar-senha), agora
  * que existe home. `senhaProvisoria` segue apenas informativo (AD-SQ-24, sem troca forçada).
  *
@@ -90,9 +90,9 @@ export class Login {
     });
   }
 
-  /** Home pós-login (AD-SQ-33): ADMIN e USER vão a `/produtos` dentro do shell. */
+  /** Home pós-login (AD-SQ-33): ADMIN e USER vão a `/painel` dentro do shell. */
   private redirecionar(_usuario: UsuarioSessao): void {
-    this.router.navigate(['/produtos']);
+    this.router.navigate(['/painel']);
   }
 
   /**

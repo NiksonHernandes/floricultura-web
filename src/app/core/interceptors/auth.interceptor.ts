@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { catchError, throwError } from 'rxjs';
 
+import { environment } from '../../../environments/environment';
 import { AuthService } from '../services/auth.service';
 
 /** Rota pública de login: não recebe header nem tratamento de 401 (evita loop). */
@@ -17,11 +18,18 @@ const ROTA_LOGIN = '/auth/login';
  * - a rota pública de login passa intacta (o erro volta ao componente de login).
  */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
+  // Restrinja credenciais e tratamento de sessão à origem e ao caminho da nossa API.
+  const api = new URL(environment.apiBaseUrl, window.location.origin);
+  const destino = new URL(req.url, window.location.origin);
+  const pertenceApi = destino.origin === api.origin &&
+    (destino.pathname === api.pathname || destino.pathname.startsWith(api.pathname + '/'));
+  if (!pertenceApi) return next(req);
+
   const auth = inject(AuthService);
   const router = inject(Router);
   const snackBar = inject(MatSnackBar);
 
-  const ehLogin = req.url.includes(ROTA_LOGIN);
+  const ehLogin = destino.pathname === api.pathname + ROTA_LOGIN;
   const token = auth.token();
 
   const requisicao =

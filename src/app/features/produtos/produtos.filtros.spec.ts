@@ -325,4 +325,16 @@ describe('Produtos — barra de filtros → GET /produtos (T-M6-11, CA-36)', () 
     const el = fixture.nativeElement as HTMLElement;
     expect(el.textContent).toContain('precoMin não pode ser maior que precoMax.');
   }));
+  it('cancela a busca anterior quando os filtros mudam durante a resposta', fakeAsync(() => {
+    barra().form.controls.estoque.setValue('BAIXO');
+    tick(300);
+    const antiga = httpMock.expectOne(r => r.url === BASE);
+    barra().form.controls.estoque.setValue('COM_ESTOQUE');
+    tick(300);
+    expect(antiga.cancelled).toBeTrue();
+    const atual = httpMock.expectOne(r => r.url === BASE);
+    expect(atual.request.params.get('estoque')).toBe('COM_ESTOQUE');
+    atual.flush(envelope(pagina([rosa])));
+  }));
+
 });

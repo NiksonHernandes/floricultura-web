@@ -1,6 +1,5 @@
 <section class="prateleira">
   <!-- Bloco "Próximos eventos" (T-M4-8, CA-18): alerta on-read no topo da Home; some se vazio. -->
-  <app-proximos-eventos />
 
   <!-- Placa da prateleira: ecoa a etiqueta de viveiro do login/canteiro (design-distintivo §hero). -->
   <header class="placa">
@@ -17,6 +16,8 @@
       </button>
     }
   </header>
+
+  <app-proximos-eventos />
 
   <mat-form-field appearance="outline" class="busca">
     <mat-icon matPrefix aria-hidden="true">search</mat-icon>
@@ -40,6 +41,8 @@
       </button>
     }
   </mat-form-field>
+
+  <div class="catalogo-resumo"><span>COLEÇÃO DO ATELIÊ</span><span>{{ carregando() ? 'Carregando…' : totalElementos() + ' produtos encontrados' }}</span></div>
 
   <!-- Barra de filtros (T-M6-11/§3.14, CA-36): componente próprio por orçamento de CSS (§9). -->
   <app-filtros-produtos

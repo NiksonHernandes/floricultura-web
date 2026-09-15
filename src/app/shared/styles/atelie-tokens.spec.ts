@@ -42,14 +42,14 @@ describe('T-M6-03/CA-26 — tokens do ateliê (sonda de getComputedStyle)', () =
     raiz = getComputedStyle(host);
   });
 
-  it('preserva os 7 hex do M1 e o --display (adições são ADITIVAS)', () => {
+  it('publica a paleta botânica e a família de títulos', () => {
     const cores: Record<string, string> = {
-      '--folhagem': '#1f3a2e',
-      '--estufa': '#f3f6f0',
+      '--folhagem': '#294a38',
+      '--estufa': '#f7f8f2',
       '--tinta': '#14241c',
       '--caule': '#6b8f71',
-      '--dalia': '#c4326b',
-      '--orvalho': '#e4ece2',
+      '--dalia': '#a74460',
+      '--orvalho': '#e2e6da',
       '--sais': '#a9c6ae',
     };
     for (const [token, hex] of Object.entries(cores)) {

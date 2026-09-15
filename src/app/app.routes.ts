@@ -21,44 +21,68 @@ import { adminGuard } from './core/guards/admin.guard';
 export const routes: Routes = [
   {
     path: 'login',
-    loadComponent: () => import('./features/auth/login/login').then((m) => m.Login),
+    title: 'Entrar • Ateliê',
+    loadComponent: () =>
+      import('./features/auth/login/login').then((m) => m.Login),
   },
   {
     path: 'health',
-    loadComponent: () => import('./features/health/health').then((m) => m.Health),
+    title: 'Conexão • Ateliê',
+    loadComponent: () =>
+      import('./features/health/health').then((m) => m.Health),
   },
   {
     path: '',
     canActivate: [authGuard],
     loadComponent: () => import('./layout/shell').then((m) => m.Shell),
     children: [
-      { path: '', pathMatch: 'full', redirectTo: 'produtos' },
+      {
+        path: 'painel',
+        title: 'Visão geral • Ateliê',
+        loadComponent: () =>
+          import('./features/painel/painel').then((m) => m.Painel),
+      },
+      { path: '', pathMatch: 'full', redirectTo: 'painel' },
       {
         path: 'produtos',
-        loadComponent: () => import('./features/produtos/produtos').then((m) => m.Produtos),
+        title: 'Produtos • Ateliê',
+        loadComponent: () =>
+          import('./features/produtos/produtos').then((m) => m.Produtos),
       },
       {
         path: 'eventos',
-        loadComponent: () => import('./features/eventos/eventos').then((m) => m.Eventos),
+        title: 'Eventos • Ateliê',
+        loadComponent: () =>
+          import('./features/eventos/eventos').then((m) => m.Eventos),
       },
       {
         path: 'movimentacoes',
+        title: 'Movimentações • Ateliê',
         loadComponent: () =>
-          import('./features/movimentacoes/movimentacoes').then((m) => m.Movimentacoes),
+          import('./features/movimentacoes/movimentacoes').then(
+            (m) => m.Movimentacoes,
+          ),
       },
       {
         path: 'clientes',
-        loadComponent: () => import('./features/clientes/clientes').then((m) => m.Clientes),
+        title: 'Clientes • Ateliê',
+        loadComponent: () =>
+          import('./features/clientes/clientes').then((m) => m.Clientes),
       },
       {
         path: 'fornecedores',
+        title: 'Fornecedores • Ateliê',
         loadComponent: () =>
-          import('./features/fornecedores/fornecedores').then((m) => m.Fornecedores),
+          import('./features/fornecedores/fornecedores').then(
+            (m) => m.Fornecedores,
+          ),
       },
       {
         path: 'usuarios',
+        title: 'Usuários • Ateliê',
         canActivate: [adminGuard],
-        loadComponent: () => import('./features/usuarios/usuarios').then((m) => m.Usuarios),
+        loadComponent: () =>
+          import('./features/usuarios/usuarios').then((m) => m.Usuarios),
       },
       {
         // Configurações (SPEC-M6 §3.15, CA-30): área de SISTEMA, exclusiva de ADMIN. Rota FILHA de
@@ -70,15 +94,21 @@ export const routes: Routes = [
           { path: '', pathMatch: 'full', redirectTo: 'cores' },
           {
             path: 'cores',
+            title: 'Cores • Ateliê',
             loadComponent: () =>
-              import('./features/configuracoes/cores/cores').then((m) => m.Cores),
+              import('./features/configuracoes/cores/cores').then(
+                (m) => m.Cores,
+              ),
           },
         ],
       },
       {
         path: 'trocar-senha',
+        title: 'Minha conta • Ateliê',
         loadComponent: () =>
-          import('./features/auth/trocar-senha/trocar-senha').then((m) => m.TrocarSenha),
+          import('./features/auth/trocar-senha/trocar-senha').then(
+            (m) => m.TrocarSenha,
+          ),
       },
     ],
   },

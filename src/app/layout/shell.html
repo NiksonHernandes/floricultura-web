@@ -1,3 +1,4 @@
+<a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
 <mat-sidenav-container class="shell">
   <mat-sidenav
     class="shell__nav"
@@ -9,34 +10,43 @@
     aria-label="Navegação principal"
   >
     <div class="marca">
+      <img
+        class="marca__simbolo"
+        src="brand/mark.svg"
+        alt=""
+        width="40"
+        height="40"
+      />
       <span class="marca__caule" aria-hidden="true"></span>
       <span class="marca__eyebrow">Ateliê</span>
       <span class="marca__wordmark">Floricultura</span>
     </div>
 
+    <span class="menu__label">ESPAÇO DE TRABALHO</span>
     <mat-nav-list class="menu">
       @for (item of itensVisiveis(); track item.rota) {
-        <a
-          mat-list-item
-          class="menu__item"
-          [routerLink]="item.rota"
-          routerLinkActive="menu__item--ativo"
-          #rla="routerLinkActive"
-          [attr.aria-current]="rla.isActive ? 'page' : null"
-          (click)="aoNavegar()"
+      <a
+        mat-list-item
+        class="menu__item"
+        [routerLink]="item.rota"
+          [attr.aria-label]="item.rotulo"
+        routerLinkActive="menu__item--ativo"
+        #rla="routerLinkActive"
+        [attr.aria-current]="rla.isActive ? 'page' : null"
+        (click)="aoNavegar()"
+      >
+        <mat-icon matListItemIcon aria-hidden="true">{{ item.icone }}</mat-icon>
+        <span
+          matListItemTitle
+          [matBadge]="badgeEventos()"
+          [matBadgeHidden]="item.rota !== '/eventos' || badgeEventos() === 0"
+          [matBadgeDescription]="badgeEventos() + ' eventos próximos na janela de 60 dias'"
+          matBadgeColor="warn"
+          matBadgeSize="small"
+          matBadgeOverlap="false"
+          >{{ item.rotulo }}</span
         >
-          <mat-icon matListItemIcon aria-hidden="true">{{ item.icone }}</mat-icon>
-          <span
-            matListItemTitle
-            [matBadge]="badgeEventos()"
-            [matBadgeHidden]="item.rota !== '/eventos' || badgeEventos() === 0"
-            [matBadgeDescription]="badgeEventos() + ' eventos próximos na janela de 60 dias'"
-            matBadgeColor="warn"
-            matBadgeSize="small"
-            matBadgeOverlap="false"
-            >{{ item.rotulo }}</span
-          >
-        </a>
+      </a>
       }
     </mat-nav-list>
 
@@ -48,23 +58,30 @@
         spec herdado assere o array de rotas com `toEqual` e qualquer item novo o quebraria.
       -->
       @if (ehAdmin()) {
-        <a
-          class="rodape__config"
-          routerLink="/configuracoes/cores"
-          routerLinkActive="rodape__config--ativo"
-          #rlaConfig="routerLinkActive"
-          [attr.aria-current]="rlaConfig.isActive ? 'page' : null"
-          (click)="aoNavegar()"
+      <a
+        class="rodape__config"
+        routerLink="/configuracoes/cores"
+        routerLinkActive="rodape__config--ativo"
+        #rlaConfig="routerLinkActive"
+        [attr.aria-current]="rlaConfig.isActive ? 'page' : null"
+        (click)="aoNavegar()"
+      >
+        <mat-icon aria-hidden="true">settings</mat-icon>
+        <span>Configurações</span>
+      </a>
+      } @if (usuario(); as u) {
+      <a
+        class="rodape__usuario"
+        routerLink="/trocar-senha"
+        (click)="aoNavegar()"
+        aria-label="Minha conta e senha"
+      >
+        <span class="rodape__nome">{{ u.nome }}</span>
+        <span class="rodape__papel"
+          >{{ u.role === 'ADMIN' ? 'Administrador' : 'Equipe' }} · Minha
+          conta</span
         >
-          <mat-icon aria-hidden="true">settings</mat-icon>
-          <span>Configurações</span>
-        </a>
-      }
-      @if (usuario(); as u) {
-        <div class="rodape__usuario">
-          <span class="rodape__nome">{{ u.nome }}</span>
-          <span class="rodape__papel">{{ u.role === 'ADMIN' ? 'Administrador' : 'Equipe' }}</span>
-        </div>
+      </a>
       }
       <button type="button" mat-button class="rodape__sair" (click)="sair()">
         <mat-icon aria-hidden="true">logout</mat-icon>
@@ -75,21 +92,29 @@
 
   <mat-sidenav-content class="shell__content">
     @if (ehMobile()) {
-      <mat-toolbar class="barra">
-        <button
-          type="button"
-          mat-icon-button
-          class="barra__menu"
-          (click)="alternarDrawer()"
-          aria-label="Abrir menu de navegação"
-        >
-          <mat-icon aria-hidden="true">menu</mat-icon>
-        </button>
-        <span class="barra__wordmark">Floricultura</span>
-      </mat-toolbar>
+    <mat-toolbar class="barra">
+      <button
+        type="button"
+        mat-icon-button
+        class="barra__menu"
+        (click)="alternarDrawer()"
+        aria-label="Abrir menu de navegação"
+      >
+        <mat-icon aria-hidden="true">menu</mat-icon>
+      </button>
+      <span class="barra__wordmark">Floricultura</span>
+    </mat-toolbar>
+    } @if (!ehMobile()) {
+    <header class="desktop-bar">
+      <span
+        >Gestão do ateliê <span class="desktop-bar__divider">/</span> Seu
+        negócio, em boas mãos.</span
+      ><a routerLink="/trocar-senha"
+        ><mat-icon>account_circle</mat-icon>{{ usuario()?.nome }}</a
+      >
+    </header>
     }
-
-    <main class="shell__outlet">
+    <main id="conteudo" class="shell__outlet" tabindex="-1">
       <router-outlet />
     </main>
   </mat-sidenav-content>

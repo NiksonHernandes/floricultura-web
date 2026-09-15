@@ -92,4 +92,22 @@ describe('authInterceptor', () => {
     expect(localStorage.getItem(TOKEN_KEY)).toBe('jwt-xyz');
     expect(router.navigate).not.toHaveBeenCalled();
   });
+  it('não envia token a terceiros nem encerra a sessão por um 401 externo', () => {
+    localStorage.setItem(TOKEN_KEY, 'jwt-xyz');
+    http.get('https://imagens.example/api/v1/foto').subscribe({ error: () => {} });
+    const req = httpMock.expectOne('https://imagens.example/api/v1/foto');
+    expect(req.request.headers.has('Authorization')).toBeFalse();
+    req.flush({}, { status: 401, statusText: 'Unauthorized' });
+    expect(localStorage.getItem(TOKEN_KEY)).toBe('jwt-xyz');
+    expect(router.navigate).not.toHaveBeenCalled();
+  });
+
+  it('não confunde um prefixo parecido com o caminho da API', () => {
+    localStorage.setItem(TOKEN_KEY, 'jwt-xyz');
+    http.get(`${BASE}-externa/dados`).subscribe();
+    const req = httpMock.expectOne(`${BASE}-externa/dados`);
+    expect(req.request.headers.has('Authorization')).toBeFalse();
+    req.flush({});
+  });
+
 });

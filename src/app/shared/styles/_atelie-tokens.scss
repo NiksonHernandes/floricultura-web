@@ -7,12 +7,12 @@
 //   tinta     tinta botânica (títulos/corpo)        orvalho  orvalho (hairlines/preenches)
 //   sais      tinta clara sobre folhagem            Display: Fraunces (serifa botânica, com contenção)
 @mixin base {
-  --folhagem: #1f3a2e;
-  --estufa: #f3f6f0;
+  --folhagem: #294a38;
+  --estufa: #f7f8f2;
   --tinta: #14241c;
   --caule: #6b8f71;
-  --dalia: #c4326b;
-  --orvalho: #e4ece2;
+  --dalia: #a74460;
+  --orvalho: #e2e6da;
   --sais: #a9c6ae;
 
   --display: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;

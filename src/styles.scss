@@ -1,20 +1,21 @@
-
 // Include theming for Angular Material with `mat.theme()`.
 // This Sass mixin will define CSS variables that are used for styling Angular Material
 // components according to the Material 3 design spec.
 // Learn more about theming and how to use it for your application's
 // custom components at https://material.angular.dev/guide/theming
-@use '@angular/material' as mat;
+@use "@angular/material" as mat;
 
 html {
-  @include mat.theme((
-    color: (
-      primary: mat.$azure-palette,
-      tertiary: mat.$blue-palette,
-    ),
-    typography: Roboto,
-    density: 0,
-  ));
+  @include mat.theme(
+    (
+      color: (
+        primary: mat.$green-palette,
+        tertiary: mat.$rose-palette,
+      ),
+      typography: Roboto,
+      density: 0,
+    )
+  );
 }
 
 body {
@@ -35,5 +36,286 @@ body {
 }
 /* You can add global styles to this file, and also import other style files */
 
-html, body { height: 100%; }
-body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+html,
+body {
+  height: 100%;
+}
+body {
+  margin: 0;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+}
+
+/* Fontes locais: o sistema funciona sem acesso ao Google Fonts. */
+@import "@fontsource/roboto/latin-400.css";
+@import "@fontsource/roboto/latin-500.css";
+@import "@fontsource/roboto/latin-700.css";
+@import "@fontsource/fraunces/latin-400.css";
+@import "@fontsource/fraunces/latin-600.css";
+@import "@fontsource/material-icons/index.css";
+.material-icons {
+  font-family: "Material Icons";
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: "liga";
+  -webkit-font-smoothing: antialiased;
+}
+html {
+  --mat-sys-primary: #294a38;
+  --mat-sys-on-primary: #fff;
+  --mat-sys-primary-container: #e5eddb;
+  --mat-sys-on-primary-container: #263b27;
+  --mat-sys-secondary: #687958;
+  --mat-sys-surface: #fbfcf8;
+  --mat-sys-surface-container: #f1f3eb;
+  --mat-sys-surface-container-high: #edf0e6;
+  --mat-sys-outline: #8a9583;
+  --mat-sys-outline-variant: #dce2d4;
+  --mat-sys-on-surface: #243729;
+  --mat-sys-on-surface-variant: #596452;
+}
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+:focus-visible {
+  outline: 2px solid #597947;
+  outline-offset: 3px;
+}
+::selection {
+  background: #dbe6c8;
+  color: #233b2b;
+}
+.mat-mdc-form-field {
+  --mdc-outlined-text-field-container-shape: 8px;
+  --mat-form-field-container-text-size: 14px;
+}
+.mat-mdc-flat-button,
+.mat-mdc-outlined-button {
+  border-radius: 8px !important;
+}
+body .shell__outlet .prateleira,
+body .shell__outlet .agenda,
+body .shell__outlet .calendario,
+body .shell__outlet .canteiro,
+body .shell__outlet .livro {
+  max-width: 1500px;
+  padding: 32px 36px 48px;
+}
+body .shell__outlet .placa {
+  background: transparent;
+  color: #243729;
+  box-shadow: none;
+  border-radius: 0;
+  padding: 0 0 25px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid #e2e6da;
+}
+body .shell__outlet .placa__furo {
+  display: none;
+}
+body .shell__outlet .placa__eyebrow {
+  font:
+    500 10px/1.2 Roboto,
+    sans-serif;
+  color: #728166;
+  letter-spacing: 0.18em;
+}
+body .shell__outlet .placa__titulo {
+  font-size: 36px;
+  letter-spacing: -0.035em;
+  margin-top: 10px;
+}
+body .shell__outlet .placa__sub {
+  color: #687361;
+  font-size: 13px;
+  margin-top: 10px;
+}
+body .shell__outlet .placa__acao {
+  --mat-button-filled-container-color: #294a38;
+  border-radius: 8px;
+  padding: 0 20px;
+  font-size: 13px;
+}
+body .shell__outlet .busca {
+  margin-bottom: 8px;
+}
+body .shell__outlet .estado {
+  padding: 28px;
+  border-style: dashed;
+  color: #596452;
+}
+body .shell__outlet .estado--vazio {
+  min-height: 245px;
+  justify-content: center;
+  background: #fcfdf9;
+}
+body .shell__outlet .vasos {
+  gap: 18px;
+}
+body .shell__outlet .vaso {
+  border-radius: 12px;
+  border-color: #e0e5d8;
+  box-shadow: 0 3px 10px #233b2b04;
+}
+body .shell__outlet .vaso__corpo {
+  padding: 16px;
+}
+body .shell__outlet .vaso__nome {
+  font:
+    400 21px/1.2 "Fraunces",
+    Georgia,
+    serif;
+}
+body .shell__outlet .vaso__descricao {
+  color: #67725e;
+  font-size: 12px;
+}
+body .shell__outlet .vaso__planta {
+  aspect-ratio: 4/3;
+}
+body .shell__outlet .selo-baixo,
+body .shell__outlet .selo-sazonal {
+  font:
+    500 10px/1.5 Roboto,
+    sans-serif;
+}
+body .shell__outlet .vaso__placeholder {
+  background: #edf0e5 url("/brand/botanica.svg") center 38% / 85% no-repeat;
+}
+body .shell__outlet .vaso__placeholder mat-icon {
+  opacity: 0;
+}
+body .shell__outlet .paginacao {
+  border-radius: 8px;
+  font-size: 12px;
+}
+@media (min-width: 701px) and (max-width: 1100px) {
+  body .shell__outlet .vasos {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1101px) {
+  body .shell__outlet .vasos {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+@media (max-width: 700px) {
+  body .shell__outlet .prateleira,
+  body .shell__outlet .agenda,
+  body .shell__outlet .calendario,
+  body .shell__outlet .canteiro,
+  body .shell__outlet .livro {
+    padding: 24px 16px 36px;
+  }
+  body .shell__outlet .placa__titulo {
+    font-size: 30px;
+  }
+  body .shell__outlet .vasos {
+    gap: 10px;
+  }
+  body .shell__outlet .vaso__corpo {
+    padding: 12px;
+  }
+  body .shell__outlet .vaso__nome {
+    font-size: 18px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation: none !important;
+    transition: none !important;
+  }
+}
+body .catalogo-resumo {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin: 12px 0 18px;
+  font-size: 11px;
+  color: #6f7f63;
+}
+body .catalogo-resumo > span:first-child {
+  font-size: 9px;
+  letter-spacing: 0.15em;
+}
+body .shell__outlet app-filtros-produtos {
+  margin-bottom: 24px;
+}
+@media (min-width: 640px) {
+  body .shell__outlet app-filtros-produtos .cabeca {
+    display: block;
+  }
+  body .shell__outlet app-filtros-produtos .cabeca__gatilho {
+    width: auto;
+    min-width: 160px;
+    background: #fcfdf9;
+  }
+  body .shell__outlet app-filtros-produtos .painel {
+    display: none;
+    margin-top: 12px;
+  }
+  body .shell__outlet app-filtros-produtos .painel--aberto {
+    display: grid;
+  }
+  body .shell__outlet app-filtros-produtos .painel__topo {
+    display: flex;
+  }
+  body .shell__outlet app-filtros-produtos .veu {
+    display: none;
+  }
+}
+body app-shell .menu .menu__item {
+  border-radius: 8px;
+}
+/* Rótulos flutuantes não devem cobrir a área clicável dos selects. */
+.mat-mdc-form-field mat-label {
+  pointer-events: none;
+}
+body .shell__outlet app-filtros-produtos .campos {
+  align-items: start;
+}
+.mat-mdc-form-field .mdc-floating-label {
+  pointer-events: none;
+}
+body .shell__outlet .proximos {
+  background: #f0f3e8;
+  padding: 12px 16px;
+  border-radius: 10px;
+}
+body .shell__outlet .proximos__cabecalho {
+  margin-bottom: 6px;
+}
+body .shell__outlet .proximos__titulo {
+  font:
+    500 10px Roboto,
+    sans-serif;
+  letter-spacing: 0.1em;
+}
+body .shell__outlet .prox {
+  padding: 8px 12px;
+}
+/* Nomes de eventos continuam legíveis em telas estreitas. */
+@media (max-width: 700px) {
+  body .shell__outlet .proximos__lista { grid-auto-columns: minmax(18rem, 1fr); }
+  body .shell__outlet .prox__nome { white-space: normal; overflow: visible; line-height: 1.35; }
+}
