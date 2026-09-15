@@ -339,19 +339,43 @@ export class AtributosBotanicos implements OnInit {
       return;
     }
     if (!this.cores) {
+      // Serviço ausente: NUNCA auto-desliga aqui (§3.6/§12 #4) — sem `GET` não houve resposta que
+      // provasse "catálogo vazio", e o ligado-e-vazio continua sendo erro do operador (CA-21).
       this.catalogoPronto.set(true);
       return;
     }
     this.carregando = true;
     this.cores.listar(0, 100).subscribe({
       next: (pagina) => {
-        this.catalogo.set(pagina.conteudo);
+        // UNIÃO (D4a): a página do catálogo NUNCA apaga a semente de `p.cores` — com >100 cores a
+        // página 1 não traz a cor do produto, e substituir desvincularia em silêncio no próximo PUT.
+        const daPagina = pagina.conteudo;
+        const idsDaPagina = new Set(daPagina.map((c) => c.id));
+        const semeadasForaDaPagina = this.catalogo().filter((c) => !idsDaPagina.has(c.id));
+        this.catalogo.set([...daPagina, ...semeadasForaDaPagina]);
         this.catalogoPronto.set(true);
+        this.desligarBoxSeCatalogoVazio();
       },
       error: () => {
         this.catalogoFalhou.set(true);
         this.catalogoPronto.set(true);
+        this.desligarBoxSeCatalogoVazio();
       },
     });
+  }
+
+  /**
+   * D6 — o beco sem saída deixa de existir: catálogo que RESOLVEU vazio (vazio de verdade ou GET que
+   * falhou) desliga o box sozinho, porque o vazio é do sistema e não uma escolha do operador. Com o
+   * box desligado a regra do ligado-e-vazio não se aplica e o submit passa; `coletar()` não muda.
+   *
+   * ⚠️ Chamado SÓ dos ramos `next`/`error` do HTTP (§3.6): no ramo do serviço ausente derrubaria o
+   * caso herdado do ligado-e-vazio, e num `effect` passaria por acidente de ciclo de detecção.
+   */
+  private desligarBoxSeCatalogoVazio(): void {
+    if (this.catalogo().length === 0) {
+      this.boxCores.set(false);
+      this.limparErro('cores');
+    }
   }
 }
