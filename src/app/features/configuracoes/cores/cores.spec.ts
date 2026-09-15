@@ -79,7 +79,7 @@ describe('Configurações → Cores — lista (T-M6-06a, CA-30)', () => {
 
   // --- Estrutura da tabela (§3.15) ---
 
-  it('renderiza a tabela dentro do cartão, com as DUAS colunas desta task', () => {
+  it('renderiza a tabela dentro do cartão, com as colunas Cor e Produtos vinculados (sem ADMIN)', () => {
     const el = iniciar().nativeElement as HTMLElement;
     expect(el.querySelector('.tabela-cartao > table.tabela')).toBeTruthy();
 
@@ -189,7 +189,7 @@ describe('Configurações → Cores — lista (T-M6-06a, CA-30)', () => {
 
   // --- Fronteira da task: o que a 06b traz NÃO pode aparecer aqui ---
 
-  it('a lista não promete o que ainda não faz: sem "Nova cor", sem "Ações", sem ordenação', () => {
+  it('sem ADMIN a lista não mostra "Nova cor", coluna "Ações" nem afordance de ordenação', () => {
     const el = iniciar([cinza, azul]).nativeElement as HTMLElement;
 
     expect(el.querySelector('.placa__acao')).toBeNull();
