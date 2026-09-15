@@ -17,9 +17,20 @@
   margin: 16px;
   padding: 42px;
   border-radius: 20px;
+  /* 1) Fallback universal (A3): navegador que não entende `image-set()` descarta a
+        declaração 2 INTEIRA — e ela leva o gradiente junto, por ser shorthand. Sem esta,
+        o painel perderia o véu e o texto #f5f2df ficaria ilegível sobre fundo claro. */
   background:
     linear-gradient(90deg, #163e2ce8 0%, #163e2c90 45%, #163e2c00 100%),
-    url("/brand/atelie-floral.png") center / cover;
+    url("/brand/atelie-floral.jpg") center / cover;
+  /* 2) Preferido: WebP q80 (A3, mesmo critério do M5.2/AD-SQ-75). O navegador baixa UM
+        arquivo só — esta declaração sobrescreve a de cima. */
+  background:
+    linear-gradient(90deg, #163e2ce8 0%, #163e2c90 45%, #163e2c00 100%),
+    image-set(
+      url("/brand/atelie-floral.webp") type("image/webp"),
+      url("/brand/atelie-floral.jpg") type("image/jpeg")
+    ) center / cover;
   color: #f5f2df;
   min-height: 620px;
 }
