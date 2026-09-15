@@ -1,0 +1,195 @@
+<!-- Barra de filtros da prateleira (SPEC-M6 §3.14, CA-36/CA-37).
+     DOM ÚNICO: a mesma `<form class="painel">` é a BARRA no desktop e o PAINEL de baixo no celular.
+     Quem troca os dois é CSS (`acima($bp-sm)`), nunca um `@if` por largura — armadilha §12 #24(b). -->
+
+<!-- Gatilho do celular: some no desktop (lá a barra já está aberta). -->
+<div class="cabeca">
+  <button
+    type="button"
+    mat-stroked-button
+    class="cabeca__gatilho"
+    aria-controls="painel-filtros"
+    [attr.aria-expanded]="aberto()"
+    (click)="abrir()"
+  >
+    <mat-icon aria-hidden="true">tune</mat-icon>
+    <span>Filtros ({{ total() }})</span>
+  </button>
+</div>
+
+@if (aberto()) {
+  <!-- Mesmo padrão do véu do form de produto (T-M2-8/AD-SQ-69): sólido translúcido, sem blur. -->
+  <div class="veu" (click)="fechar()"></div>
+}
+
+<form
+  id="painel-filtros"
+  class="painel"
+  [class.painel--aberto]="aberto()"
+  [formGroup]="form"
+  (submit)="$event.preventDefault()"
+>
+  <header class="painel__topo">
+    <h2 class="painel__titulo">Filtros</h2>
+    <button
+      type="button"
+      mat-icon-button
+      class="painel__fechar"
+      aria-label="Fechar filtros"
+      (click)="fechar()"
+    >
+      <mat-icon aria-hidden="true">close</mat-icon>
+    </button>
+  </header>
+
+  <div class="campos">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Cor</mat-label>
+      <mat-select formControlName="corIds" multiple>
+        @for (c of cores(); track c.id) {
+          <mat-option [value]="c.id">
+            <!-- Pastilha de tinta do ateliê; sem hex ela fica VAZADA (R2/AD-SQ-123). O nome vai
+                 EXATAMENTE como o back devolveu — ele já é canônico (R1d/CA-40). -->
+            <span
+              class="tinta"
+              [class.tinta--sem]="!c.hex"
+              [style.background-color]="c.hex"
+              aria-hidden="true"
+            ></span>
+            {{ c.nome }}
+          </mat-option>
+        }
+      </mat-select>
+      @if (cores().length === 0) {
+        <mat-hint>Sem opções de cor por enquanto.</mat-hint>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Evento</mat-label>
+      <mat-select formControlName="eventoIds" multiple>
+        @for (e of eventos(); track e.id) {
+          <mat-option [value]="e.id">{{ e.nome }}</mat-option>
+        }
+      </mat-select>
+      @if (eventos().length === 0) {
+        <mat-hint>Sem opções de evento por enquanto.</mat-hint>
+      }
+    </mat-form-field>
+
+    <!-- ⚠️ Os `value` abaixo são o CONTRATO em caixa exata (§3.6/AD-SQ-127): o back só tolera caixa
+         em `ordenarPor`/`direcao`; `muda` ou `toxica` em minúsculas devolvem 400. -->
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Característica</mat-label>
+      <mat-select formControlName="caracteristica" multiple>
+        <mat-option value="MUDA">Muda</mat-option>
+        <mat-option value="JOVEM">Jovem</mat-option>
+        <mat-option value="ADULTA">Adulta</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Toxicidade</mat-label>
+      <mat-select formControlName="toxicidade" multiple>
+        <mat-option value="TOXICA">Tóxica</mat-option>
+        <mat-option value="NAO_TOXICA">Não tóxica</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Necessidade de luz</mat-label>
+      <mat-select formControlName="luz" multiple>
+        <mat-option value="SOL_PLENO">Sol pleno</mat-option>
+        <mat-option value="MEIA_SOMBRA">Meia-sombra</mat-option>
+        <mat-option value="SOMBRA">Sombra</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <!-- UM select para `ordenarPor` + `direcao` (P11): dois controles dariam dois donos do mesmo
+         estado, e o operador não pensa "coluna + sentido", pensa "menor preço". -->
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Ordenar por</mat-label>
+      <mat-select formControlName="ordem">
+        <mat-option value="nome-asc">Nome (A–Z)</mat-option>
+        <mat-option value="nome-desc">Nome (Z–A)</mat-option>
+        <mat-option value="estoque-asc">Menor estoque</mat-option>
+        <mat-option value="estoque-desc">Maior estoque</mat-option>
+        <mat-option value="preco-asc">Menor preço</mat-option>
+        <mat-option value="preco-desc">Maior preço</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <div class="grupo">
+    <span class="grupo__rotulo" id="rotulo-estoque">Estoque</span>
+    <div class="atalhos" role="group" aria-labelledby="rotulo-estoque">
+      @for (a of atalhos; track a) {
+        <button
+          type="button"
+          mat-button
+          class="atalho"
+          [class.atalho--ativo]="form.controls.estoque.value === a"
+          [attr.aria-pressed]="form.controls.estoque.value === a"
+          (click)="alternarEstoque(a)"
+        >
+          {{ rotuloEstoque[a] }}
+        </button>
+      }
+    </div>
+    <!-- Obrigatório pelo §3.6: os 3 atalhos NÃO são uma partição. Sem esta frase o operador lê
+         "sem estoque" e "estoque baixo" como conjuntos disjuntos, e eles não são. -->
+    <p class="grupo__dica">
+      São atalhos, não categorias: “Estoque baixo” usa a regra do selo (estoque atual ≤ mínimo) e,
+      por isso, <strong>inclui os zerados</strong> de “Sem estoque”.
+    </p>
+  </div>
+
+  <div class="grupo">
+    <span class="grupo__rotulo">Preço de venda</span>
+    <div class="faixa">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>De R$</mat-label>
+        <input matInput type="number" inputmode="decimal" min="0" step="0.01" formControlName="precoMin" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Até R$</mat-label>
+        <input matInput type="number" inputmode="decimal" min="0" step="0.01" formControlName="precoMax" />
+      </mat-form-field>
+    </div>
+    <!-- Ligar DESABILITA a faixa (§3.14): a exclusividade fica garantida na UI antes de virar 400. -->
+    <mat-slide-toggle class="chave" formControlName="semPreco">
+      Somente sem preço definido
+    </mat-slide-toggle>
+    <p class="grupo__dica">Os dois limites são inclusivos.</p>
+  </div>
+
+  <!-- Rodapé só do celular: no desktop quem limpa é a fileira de pastilhas, sempre à vista. -->
+  <footer class="painel__pe">
+    <button type="button" mat-button class="painel__limpar" (click)="limpar()">
+      Limpar filtros ({{ total() }})
+    </button>
+    <button type="button" mat-flat-button class="painel__ok" (click)="fechar()">
+      Ver resultados
+    </button>
+  </footer>
+</form>
+
+@if (pastilhas().length > 0) {
+  <div class="ativos" aria-label="Filtros ativos">
+    @for (p of pastilhas(); track p.dimensao) {
+      <!-- `<button>` puro com tokens — MatChips é módulo novo, proibido pelo §9. -->
+      <button
+        type="button"
+        class="pastilha"
+        [attr.aria-label]="'Remover filtro ' + p.rotulo"
+        (click)="remover(p.dimensao)"
+      >
+        <span class="pastilha__texto">{{ p.rotulo }}</span>
+        <span class="pastilha__x" aria-hidden="true">×</span>
+      </button>
+    }
+    <button type="button" class="ativos__limpar" (click)="limpar()">
+      Limpar filtros ({{ total() }})
+    </button>
+  </div>
+}

@@ -7,6 +7,7 @@ import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/materia
 
 import { ProdutosService } from '../produtos.service';
 import { ImagemProduto } from '../imagem-produto/imagem-produto';
+import { FichaBotanica } from './ficha-botanica/ficha-botanica';
 import {
   Movimentacao,
   Produto,
@@ -59,6 +60,7 @@ const ROTULOS_TIPO: Record<TipoMovimentacao, string> = {
     MatIconModule,
     MatProgressSpinnerModule,
     ImagemProduto,
+    FichaBotanica,
   ],
   templateUrl: './visualizar-produto.html',
   styleUrl: './visualizar-produto.scss',

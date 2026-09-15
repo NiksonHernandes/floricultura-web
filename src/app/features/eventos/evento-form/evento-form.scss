@@ -105,11 +105,16 @@
   gap: 0.2rem;
   padding: 0.35rem 0 0.7rem;
 
-  --mdc-switch-selected-track-color: var(--caule);
-  --mdc-switch-selected-handle-color: var(--folhagem);
-  --mdc-switch-selected-focus-track-color: var(--caule);
-  --mdc-switch-selected-hover-track-color: var(--caule);
-  --mdc-switch-selected-pressed-track-color: var(--caule);
+  // AD-SQ-102: os `--mdc-switch-*` são token MORTO no Material 20 (o switch ligado saía AZUL do
+  // tema, fora da paleta). Quem pinta agora é a família `--mat-slide-toggle-*`.
+  --mat-slide-toggle-selected-track-color: var(--caule);
+  --mat-slide-toggle-selected-handle-color: var(--folhagem);
+  --mat-slide-toggle-selected-focus-track-color: var(--caule);
+  --mat-slide-toggle-selected-hover-track-color: var(--caule);
+  --mat-slide-toggle-selected-pressed-track-color: var(--caule);
+  --mat-slide-toggle-selected-focus-handle-color: var(--folhagem);
+  --mat-slide-toggle-selected-hover-handle-color: var(--folhagem);
+  --mat-slide-toggle-selected-pressed-handle-color: var(--folhagem);
 }
 
 .toggle__dica {

@@ -1,0 +1,177 @@
+<!-- Os 4 boxes do ajuste 2 (SPEC-M6 §3.12/CA-32): a chave sim/não revela o conteúdo. Todos
+     opcionais; box desligado = atributo limpo. O conteúdo some por [hidden] (fora do tab order e
+     da árvore de a11y), com o par explícito `display:grid` / `[hidden]{display:none}` no SCSS —
+     sem ele a folha do autor venceria a do navegador e o bloco continuaria visível (armadilha #27). -->
+<div class="caixa">
+  <mat-slide-toggle
+    class="caixa__chave"
+    [checked]="boxCores()"
+    (change)="alternarCores($event.checked)"
+  >
+    Cor da planta
+  </mat-slide-toggle>
+  <p class="caixa__dica">Opcional — uma planta pode ter mais de uma cor.</p>
+
+  <div class="caixa__conteudo" [hidden]="!boxCores()">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Cores</mat-label>
+      <mat-select [formControl]="corIds" multiple [attr.aria-disabled]="corIds.disabled">
+        @for (c of catalogo(); track c.id) {
+          <mat-option [value]="c.id">
+            <!-- Pastilha de tinta: a mesma assinatura de Configurações → Cores. Sem hex ela fica
+                 VAZADA — o ateliê não inventa a cor que ninguém cadastrou (R2/AD-SQ-123). -->
+            <span
+              class="tinta"
+              [class.tinta--sem]="!c.hex"
+              [style.background-color]="c.hex"
+              aria-hidden="true"
+            ></span>
+            <!-- Nome exibido EXATAMENTE como o back devolveu (canônico — R1d/CA-40). -->
+            {{ c.nome }}
+          </mat-option>
+        }
+      </mat-select>
+      @if (catalogoPronto() && catalogo().length === 0) {
+        @if (catalogoFalhou()) {
+          <mat-hint>Não foi possível carregar o catálogo de cores agora.</mat-hint>
+        } @else {
+          <mat-hint>Nenhuma cor cadastrada em Configurações → Cores.</mat-hint>
+        }
+      }
+    </mat-form-field>
+    <!-- As cores escolhidas ficam à vista COM a amostra: o texto do `mat-select` não mostra tinta,
+         e o painel dele é lazy (com o select fechado nenhuma `mat-option` existe no DOM). -->
+    @if (coresSelecionadas().length > 0) {
+      <p class="selecao">
+        @for (c of coresSelecionadas(); track c.id) {
+          <span class="selecao__item">
+            <span
+              class="tinta"
+              [class.tinta--sem]="!c.hex"
+              [style.background-color]="c.hex"
+              aria-hidden="true"
+            ></span>
+            {{ c.nome }}
+          </span>
+        }
+      </p>
+    }
+    @if (erros()['cores']; as msg) {
+      <p class="caixa__erro" role="alert">{{ msg }}</p>
+    }
+  </div>
+</div>
+
+<div class="caixa">
+  <mat-slide-toggle
+    class="caixa__chave"
+    [checked]="boxPorte()"
+    (change)="alternarPorte($event.checked)"
+  >
+    Característica
+  </mat-slide-toggle>
+  <p class="caixa__dica">Opcional — muda, jovem ou adulta. Jovem e adulta podem ter altura.</p>
+
+  <div class="caixa__conteudo" [hidden]="!boxPorte()">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Característica</mat-label>
+      <mat-select [formControl]="caracteristica" (selectionChange)="aoTrocarCaracteristica()">
+        <mat-option value="MUDA">Muda</mat-option>
+        <mat-option value="JOVEM">Jovem</mat-option>
+        <mat-option value="ADULTA">Adulta</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <!-- Altura só existe para jovem/adulta (R13). A unidade é escolha de DIGITAÇÃO: o que viaja e
+         fica gravado é sempre o inteiro em centímetros (R12) — não há coluna de unidade. -->
+    @if (aceitaAltura()) {
+      <div class="altura">
+        <mat-form-field appearance="outline" class="altura__valor" subscriptSizing="dynamic">
+          <mat-label>Altura</mat-label>
+          <input
+            matInput
+            type="number"
+            [formControl]="altura"
+            inputmode="decimal"
+            [min]="unidade() === 'm' ? 0.01 : 1"
+            [max]="unidade() === 'm' ? 100 : 10000"
+            [step]="unidade() === 'm' ? 0.01 : 1"
+          />
+          @if (alturaLegivel(); as legivel) {
+            <mat-hint>Fica registrada como {{ legivel }}.</mat-hint>
+          }
+        </mat-form-field>
+
+        <!-- Rótulo curto ("cm/m") porque a 375px o campo tem ~96px e "Unidade" era truncado no
+             print; o nome por extenso fica no `aria-label`, para quem usa leitor de tela. -->
+        <mat-form-field appearance="outline" class="altura__unidade" subscriptSizing="dynamic">
+          <mat-label>cm/m</mat-label>
+          <mat-select
+            [value]="unidade()"
+            aria-label="Unidade da altura"
+            (selectionChange)="trocarUnidade($event.value)"
+          >
+            <mat-option value="cm">cm</mat-option>
+            <mat-option value="m">m</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+    }
+    @if (alturaRemovida()) {
+      <p class="caixa__aviso" role="status">A altura saiu: muda não tem altura registrada.</p>
+    }
+    @if (erros()['porte']; as msg) {
+      <p class="caixa__erro" role="alert">{{ msg }}</p>
+    }
+  </div>
+</div>
+
+<div class="caixa">
+  <!-- Tri-estado (R8): o box DESLIGADO é o "não informado". Não existe default aqui. -->
+  <mat-slide-toggle
+    class="caixa__chave"
+    [checked]="boxToxicidade()"
+    (change)="alternarToxicidade($event.checked)"
+  >
+    Toxicidade
+  </mat-slide-toggle>
+  <p class="caixa__dica">Opcional — ligue só se souber se a planta é tóxica.</p>
+
+  <div class="caixa__conteudo" [hidden]="!boxToxicidade()">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Toxicidade</mat-label>
+      <mat-select [formControl]="toxicidade">
+        <mat-option value="TOXICA">Tóxica</mat-option>
+        <mat-option value="NAO_TOXICA">Não tóxica</mat-option>
+      </mat-select>
+    </mat-form-field>
+    @if (erros()['toxicidade']; as msg) {
+      <p class="caixa__erro" role="alert">{{ msg }}</p>
+    }
+  </div>
+</div>
+
+<div class="caixa">
+  <mat-slide-toggle
+    class="caixa__chave"
+    [checked]="boxLuz()"
+    (change)="alternarLuz($event.checked)"
+  >
+    Necessidade de luz
+  </mat-slide-toggle>
+  <p class="caixa__dica">Opcional — a planta pode aceitar mais de uma condição.</p>
+
+  <div class="caixa__conteudo" [hidden]="!boxLuz()">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Luz</mat-label>
+      <mat-select [formControl]="luz" multiple>
+        <mat-option value="SOL_PLENO">Sol pleno</mat-option>
+        <mat-option value="MEIA_SOMBRA">Meia-sombra</mat-option>
+        <mat-option value="SOMBRA">Sombra</mat-option>
+      </mat-select>
+    </mat-form-field>
+    @if (erros()['luz']; as msg) {
+      <p class="caixa__erro" role="alert">{{ msg }}</p>
+    }
+  </div>
+</div>

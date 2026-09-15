@@ -14,6 +14,34 @@ import {
   ProdutoRelacionamentos,
   VarianteImagem,
 } from '../../core/models/produto.model';
+import { FiltroProdutos } from '../../core/models/produto-filtro.model';
+
+/**
+ * Traduz a barra de filtros (§3.14) nos query params do §3.6. Regras que o contrato crava:
+ *
+ * - **repetível é repetido**: `append` por item (`?corIds=3&corIds=7`), nunca CSV;
+ * - **caixa exata**: os literais (`BAIXO`, `MUDA`, `TOXICA`, `SOL_PLENO`…) viajam como estão no
+ *   modelo — a tolerância de caixa do back existe SÓ em `ordenarPor`/`direcao` (AD-SQ-127);
+ * - **default não viaja**: `ordenarPor=nome`/`direcao=asc` são o default do servidor; omiti-los
+ *   preserva byte a byte a URL que os specs herdados do M2/M3 conferem (anti-burla);
+ * - **nada de "consertar" a exclusividade aqui**: se `semPreco` vier com faixa, o param sai como
+ *   está e o back devolve o 400 — quem garante a exclusividade é a UI (o toggle desabilita a
+ *   faixa). Um `if` silencioso aqui esconderia um estado inconsistente em vez de denunciá-lo.
+ */
+function aplicarFiltro(params: HttpParams, f: FiltroProdutos): HttpParams {
+  for (const id of f.corIds) params = params.append('corIds', id);
+  for (const id of f.eventoIds) params = params.append('eventoIds', id);
+  for (const v of f.caracteristica) params = params.append('caracteristica', v);
+  for (const v of f.toxicidade) params = params.append('toxicidade', v);
+  for (const v of f.luz) params = params.append('luz', v);
+  if (f.estoque !== null) params = params.set('estoque', f.estoque);
+  if (f.precoMin !== null) params = params.set('precoMin', f.precoMin);
+  if (f.precoMax !== null) params = params.set('precoMax', f.precoMax);
+  if (f.semPreco) params = params.set('semPreco', true);
+  if (f.ordenarPor !== 'nome') params = params.set('ordenarPor', f.ordenarPor);
+  if (f.direcao !== 'asc') params = params.set('direcao', f.direcao);
+  return params;
+}
 
 /**
  * Serviço de Produtos (SPEC-M2 §3.1/§3.6, T-M2-7/T-M2-8).
@@ -34,14 +62,25 @@ export class ProdutosService {
   private readonly baseUrl = `${environment.apiBaseUrl}/produtos`;
 
   /**
-   * GET /produtos?pagina&tamanho&nome → página de produtos (§3.3, 0-based).
+   * GET /produtos?pagina&tamanho&nome[&filtros do §3.6] → página de produtos (§3.3, 0-based).
    * `nome` só entra no request quando há filtro (evita `nome=` vazio na URL).
+   *
+   * T-M6-11: `filtro` é o 4º parâmetro, OPCIONAL e no fim de propósito — a assinatura de 3
+   * argumentos dos chamadores/specs do M2 continua válida e produzindo a MESMA URL (anti-burla).
    */
-  listar(pagina: number, tamanho: number, nome?: string): Observable<PaginaResponse<Produto>> {
+  listar(
+    pagina: number,
+    tamanho: number,
+    nome?: string,
+    filtro?: FiltroProdutos,
+  ): Observable<PaginaResponse<Produto>> {
     let params = new HttpParams().set('pagina', pagina).set('tamanho', tamanho);
     const termo = nome?.trim();
     if (termo) {
       params = params.set('nome', termo);
+    }
+    if (filtro) {
+      params = aplicarFiltro(params, filtro);
     }
     return this.http
       .get<ApiResponse<PaginaResponse<Produto>>>(this.baseUrl, { params })

@@ -41,6 +41,14 @@
     }
   </mat-form-field>
 
+  <!-- Barra de filtros (T-M6-11/§3.14, CA-36): componente próprio por orçamento de CSS (§9). -->
+  <app-filtros-produtos
+    [cores]="cores()"
+    [eventos]="eventos()"
+    [valor]="filtros()"
+    (mudou)="aoFiltrar($event)"
+  />
+
   @if (carregando()) {
     <p class="estado" aria-live="polite">
       <mat-progress-spinner diameter="22" mode="indeterminate" aria-hidden="true" />
@@ -50,12 +58,23 @@
     <p class="estado estado--erro" role="alert">
       <mat-icon aria-hidden="true">error_outline</mat-icon>
       <span>{{ msg }}</span>
-      <button mat-button (click)="carregar()">Tentar de novo</button>
+      <!-- 400 do §3.6: um `details[]` por campo, exibido com a mensagem que o back mandou. -->
+      @for (d of errosFiltro(); track d) {
+        <span>{{ d }}</span>
+      }
+      @if (errosFiltro().length > 0) {
+        <button mat-button (click)="limparFiltros()">Limpar filtros</button>
+      } @else {
+        <button mat-button (click)="carregar()">Tentar de novo</button>
+      }
     </p>
   } @else if (vazia()) {
     <div class="estado estado--vazio">
       <mat-icon aria-hidden="true">local_florist</mat-icon>
-      @if (filtro.value) {
+      @if (temFiltro()) {
+        <p>Nenhum produto com esses filtros.</p>
+        <button mat-button (click)="limparFiltros()">Limpar filtros</button>
+      } @else if (filtro.value) {
         <p>Nenhum produto encontrado para “{{ filtro.value }}”. Tente outro nome.</p>
       } @else {
         <p>A prateleira ainda está vazia. Os produtos aparecem aqui assim que forem cadastrados.</p>

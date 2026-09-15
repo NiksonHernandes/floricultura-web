@@ -1,0 +1,277 @@
+// Configurações → Cores — "a cartela de tintas do ateliê" (SPEC-M6 §3.15, T-M6-06a, CA-30/CA-37).
+//
+// Passe 1 (tokens): NENHUM hex novo. A tela reusa o design system canônico do ateliê
+// (`_atelie-tokens.scss`): folhagem/estufa/tinta/caule/dalia/orvalho/sais + Fraunces com contenção
+// (placa, eyebrow e rótulo em versalete) e corpo do tema nas células. Layout: placa + cartão branco
+// com a tabela densa do M6 — a MESMA "etiqueta de viveiro" de Clientes/Fornecedores, porque é o
+// mesmo produto e a gramática já está estabelecida.
+// Assinatura (uma só): a PASTILHA DE TINTA presa ao nome — prima do monograma da agenda e do selo
+// de calendário dos Eventos. Quando a cor não tem hex cadastrado, a pastilha fica VAZADA (traço
+// pontilhado): o ateliê não pinta a cor que ninguém informou.
+// Passe 2 anti-default: recusa a "grade de swatches coloridos" que todo gerador de UI entrega para
+// "tela de cores" — aqui a cor é um DADO de catálogo (nome canônico + uso), então ela mora numa
+// lista densa legível no celular, não num mosaico decorativo.
+//
+// Leveza (memória do dono): zero blur, zero sombra nova, zero animação. Mobile-first (FC-02).
+// ⚠️ `tabela-ordenar` NÃO é incluído (D3/§10 #30e): esta tela não ordena, então não paga o byte.
+@use '../../../shared/styles/atelie-tokens' as atelie;
+@use '../../../shared/styles/tabela-densa' as tabela;
+
+:host {
+  @include atelie.base;
+  @include atelie.densa; // D3: --esp-*, --linha-densa, --toque, --raio
+
+  display: block;
+  min-height: 100%;
+  background: var(--estufa);
+  color: var(--tinta);
+}
+
+// 52rem, e não os 68rem das outras listas: a coluna de leitura é estreita de propósito, para a
+// contagem não ficar a meia tela do nome que ela qualifica.
+// ⚠️ REMEDIDO na T-M6-06b, com a 3ª coluna no lugar (não herdado por inércia): o nome continua
+// cravado em 18rem e a contagem continua começando em 18rem — o que mudou é que o vão à direita
+// dela, que na 06a era espaço morto, agora é a coluna "Ações". Medido no preview 1424px: nome
+// 288px · contagem em x=288px (idêntico à 06a) · alvos de ação 44×44 encostados na borda direita.
+// Alargar para 68rem afastaria de novo contagem e nome; estreitar espremeria os 2 alvos de toque.
+.cartela {
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3rem;
+}
+
+/* Utilitário só-leitor de tela (a ausência de amostra é dita, não só desenhada). */
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---- Placa (cabeçalho) — ecoa a de Produtos/Fornecedores ---- */
+.placa {
+  position: relative;
+  display: grid;
+  gap: 0.9rem;
+  margin-bottom: 1.25rem;
+  padding: 1.5rem 1.5rem 1.25rem;
+  background: radial-gradient(120% 140% at 100% 0%, #274a3a 0%, var(--folhagem) 60%);
+  color: var(--estufa);
+  border-radius: 14px;
+  box-shadow: 0 18px 40px -30px rgba(20, 36, 28, 0.6);
+}
+
+.placa__furo {
+  position: absolute;
+  top: -11px;
+  left: 2rem;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--estufa);
+  border: 1.5px solid var(--caule);
+}
+
+.placa__eyebrow {
+  font: 600 0.72rem/1 var(--display);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--sais);
+}
+
+/* Ação primária em dália carmim — a única ousadia da tela (mesma gramática das outras placas). */
+.placa__acao {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+
+  --mat-button-filled-container-color: var(--dalia);
+  --mat-button-filled-label-text-color: #fff;
+  --mat-button-filled-state-layer-color: #fff;
+}
+
+.placa__titulo {
+  margin: 0.35rem 0 0;
+  font: 400 clamp(1.7rem, 4.5vw, 2.4rem) / 1.05 var(--display);
+  font-optical-sizing: auto;
+  letter-spacing: -0.01em;
+}
+
+.placa__sub {
+  margin: 0.4rem 0 0;
+  max-width: 34rem;
+  font: var(--mat-sys-body-medium);
+  color: color-mix(in srgb, var(--sais) 92%, white);
+}
+
+/* ---- Busca ---- */
+.controles {
+  display: flex;
+  margin-bottom: var(--esp-3);
+}
+
+.busca {
+  flex: 1 1 16rem;
+
+  --mdc-outlined-text-field-focus-outline-color: var(--caule);
+  --mdc-outlined-text-field-caret-color: var(--caule);
+  --mdc-outlined-text-field-focus-label-text-color: var(--folhagem);
+
+  mat-icon[matPrefix] {
+    margin-right: 0.5rem;
+    color: var(--caule);
+  }
+}
+
+/* ---- Estados honestos ---- */
+.estado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1.25rem;
+  border: 1px solid var(--orvalho);
+  border-radius: 12px;
+  background: #fff;
+  color: color-mix(in srgb, var(--tinta) 70%, var(--estufa));
+  font: var(--mat-sys-body-medium);
+}
+
+.estado--erro {
+  border-color: color-mix(in srgb, var(--dalia) 40%, white);
+  color: #8f2450;
+}
+
+.estado--vazio {
+  flex-direction: column;
+  text-align: center;
+  padding: 2.75rem 1.5rem;
+
+  mat-icon {
+    color: var(--caule);
+    font-size: 2.25rem;
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  p {
+    margin: 0.75rem 0 0;
+    width: 100%;
+    max-width: 28rem;
+  }
+}
+
+.estado .mat-mdc-button {
+  --mat-button-text-label-text-color: var(--folhagem);
+  --mat-button-text-icon-color: var(--folhagem);
+  min-height: 44px;
+}
+
+/* ---- O catálogo em tabela: anatomia herdada do partial, ajustes só desta tela ----
+   O partial é COMPARTILHADO (clientes/fornecedores): nada aqui o toca (§9 regra 7b). */
+@include tabela.tabela-densa;
+
+/* "PRODUTOS VINCULADOS" é rótulo longo: nos 5.5rem do partial ele quebrava em duas linhas no
+   celular. Aqui a etiqueta ganha a largura do próprio texto — e o alinhamento entre linhas não se
+   perde porque esta tela tem UM único rótulo, igual em todas elas. Override local: o partial é
+   compartilhado com Clientes/Fornecedores e não pode ser taxado (§9 regra 7b). */
+.tabela td[data-rotulo]::before {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+/* Assinatura: a pastilha de tinta. `background-color` vem do hex do back (já em maiúsculas). */
+.cor__amostra {
+  display: inline-block;
+  flex: 0 0 auto;
+  align-self: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--tinta) 20%, var(--orvalho));
+  vertical-align: middle;
+}
+
+/* Sem hex cadastrado: pastilha VAZADA. Ausência de dado tem desenho próprio — não vira cor falsa. */
+.cor__amostra--sem {
+  border-style: dashed;
+  border-color: var(--caule);
+  background: #fff;
+}
+
+/* O nome NÃO declara tipografia: herda o corpo do `.tabela` como as demais células (o dono removeu
+   o destaque da 1ª coluna na T-M6-A2 — pedido posterior que vale para a tabela do M6 inteira). */
+.cor__nome {
+  overflow-wrap: anywhere;
+}
+
+/* Ações da linha: alvo de 44px (FC-02/CA-37) sem menu intermediário — são só duas. */
+.cor__acao {
+  width: 44px;
+  height: 44px;
+  color: var(--folhagem);
+}
+
+.cor__excluir {
+  color: var(--dalia);
+}
+
+/* Véu do overlay do form: sem `blur` (leveza — AD-SQ-69/§10 #32). */
+.veu {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: color-mix(in srgb, var(--tinta) 55%, transparent);
+}
+
+/* ---- Paginação ---- */
+.paginacao {
+  margin-top: 1.25rem;
+  border-radius: 12px;
+  border: 1px solid var(--orvalho);
+  background: #fff;
+
+  --mat-paginator-container-text-color: color-mix(in srgb, var(--tinta) 78%, var(--estufa));
+  --mat-paginator-enabled-icon-color: var(--folhagem);
+}
+
+/* ---- Desktop (>= 640px): larguras das 2 colunas (§3.11) ---- */
+@include atelie.acima(atelie.$bp-sm) {
+  .placa:has(.placa__acao) {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+  }
+
+  .placa__acao {
+    justify-self: end;
+  }
+
+  .tabela {
+    table-layout: fixed;
+  }
+
+  // Só a 1ª coluna é cravada: a amostra + o nome canônico cabem em 18rem, e a contagem encosta
+  // logo ao lado, ainda no campo de leitura do nome (o resto da linha fica respirando).
+  .tabela th:nth-child(1) {
+    width: 18rem;
+  }
+
+  .cor__amostra {
+    margin-right: var(--esp-2);
+  }
+}
+
+/* ---- Foco de teclado visível (piso de qualidade §9) ---- */
+:host ::ng-deep .mdc-button:focus-visible,
+:host ::ng-deep .mat-mdc-paginator .mdc-icon-button:focus-visible {
+  outline: 2px solid var(--caule);
+  outline-offset: -2px;
+  border-radius: 8px;
+}

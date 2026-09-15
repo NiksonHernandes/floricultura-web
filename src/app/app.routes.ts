@@ -61,6 +61,21 @@ export const routes: Routes = [
         loadComponent: () => import('./features/usuarios/usuarios').then((m) => m.Usuarios),
       },
       {
+        // Configurações (SPEC-M6 §3.15, CA-30): área de SISTEMA, exclusiva de ADMIN. Rota FILHA de
+        // propósito — Relatórios (M7) e futuras seções entram aqui sem `MatTabs`. O `adminGuard`
+        // cobre o grupo inteiro; o RBAC efetivo continua sendo do back (FC-07).
+        path: 'configuracoes',
+        canActivate: [adminGuard],
+        children: [
+          { path: '', pathMatch: 'full', redirectTo: 'cores' },
+          {
+            path: 'cores',
+            loadComponent: () =>
+              import('./features/configuracoes/cores/cores').then((m) => m.Cores),
+          },
+        ],
+      },
+      {
         path: 'trocar-senha',
         loadComponent: () =>
           import('./features/auth/trocar-senha/trocar-senha').then((m) => m.TrocarSenha),

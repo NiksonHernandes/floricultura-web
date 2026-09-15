@@ -204,6 +204,11 @@
         }
       </mat-form-field>
 
+      <!-- Ficha botânica (T-M6-09a, §3.12/CA-32/CA-33 — ajuste 2 do dono): 4 boxes sim/não em
+           componente próprio (orçamento de CSS, §9 regra 7a). O estado vive no filho; o form só
+           coleta os 5 campos no submit (viewChild) e lhe entrega os `details` de campo botânico. -->
+      <app-atributos-botanicos class="ficha__campo--largo" [produto]="produto()" />
+
       <!-- Entrada inicial de estoque (T-M2-11, CA-22 — SÓ no modo criação; AD-SQ-35).
            Ajuste 1/M6 (T-M6-10, §3.13/CA-35): quantidade e fornecedor passam a viver num BOX
            sim/não; desligado (default) limpa os dois ⇒ nenhum lançamento nasce do cadastro.

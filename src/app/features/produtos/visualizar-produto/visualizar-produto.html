@@ -67,6 +67,10 @@
         <p class="ficha__descricao">{{ p.descricao }}</p>
       }
 
+      <!-- Ficha botânica (SPEC-M6 §3.12/CA-34) — só leitura, e só o que o detalhe devolveu. O filho
+           não renderiza nada quando nenhum atributo veio (host `display:contents`). -->
+      <app-ficha-botanica [produto]="p" />
+
       <!-- Movimentações recentes (HISTÓRIA #4/CA-9/CA-10) — últimas 5, espelha visualizar-lancamento.
            Só renderiza quando carregado; falha ⇒ movimentacoes()=null ⇒ seção some (degrada em silêncio). -->
       @if (movimentacoes(); as movs) {
