@@ -138,6 +138,12 @@ export type AtualizarProdutoRequest = ProdutoRequest;
 export type TipoMovimentacao = 'ENTRADA' | 'SAIDA' | 'AJUSTE';
 
 /**
+ * Tipo do desconto do lançamento (SPEC-M7 §3.2-b): `PERCENTUAL` = 0..100 sobre o total bruto;
+ * `VALOR` = reais abatidos direto. `null`/ausente = sem desconto (os dois campos viajam juntos).
+ */
+export type DescontoTipo = 'PERCENTUAL' | 'VALOR';
+
+/**
  * Request de `POST /produtos/{id}/movimentacoes` (§3.2). `motivo` opcional (≤255).
  *
  * **REVISÃO 2026-09-04 (RF-2/AD-SQ-64) — contraparte opcional por tipo:**
@@ -145,6 +151,13 @@ export type TipoMovimentacao = 'ENTRADA' | 'SAIDA' | 'AJUSTE';
  * - `clienteId`: SÓ em `SAIDA` (para quem foi a saída). Ausente = sem contraparte.
  * - `AJUSTE` nunca leva contraparte. Exclusividade/existência são validadas no back (400 com `field`);
  *   o front só envia o campo do tipo vigente quando há seleção (mutuamente exclusivos).
+ *
+ * **REVISÃO 2026-09-16 (SPEC-M7 §3.2, aditiva) — valores financeiros, todos OPCIONAIS:**
+ * - `valorUnitario`: preço CONGELADO no lançamento (não acompanha `produto.preco` depois).
+ * - `descontoTipo` + `descontoValor`: viajam **juntos** ou nenhum dos dois.
+ * - `AJUSTE` não aceita nenhum dos três (PA#1/AD-SQ-160 — o back devolve 400 `field=valorUnitario`).
+ * - `totalBruto`/`totalFinal` **NÃO existem aqui**: quem calcula é o servidor (§3.2-a), numa linha
+ *   que ninguém pode corrigir depois. O front envia os valores já normalizados a 2 casas (§3.2-b1).
  */
 export interface MovimentacaoRequest {
   tipo: TipoMovimentacao;
@@ -152,6 +165,9 @@ export interface MovimentacaoRequest {
   motivo?: string | null;
   fornecedorId?: number | null;
   clienteId?: number | null;
+  valorUnitario?: number | null;
+  descontoTipo?: DescontoTipo | null;
+  descontoValor?: number | null;
 }
 
 /**

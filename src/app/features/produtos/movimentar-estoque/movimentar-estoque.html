@@ -74,6 +74,82 @@
         </mat-form-field>
       }
 
+      <!-- Valores do lançamento (SPEC-M7 §3.12): unitário + desconto % / R$ + totais AO VIVO. O
+           bloco SOME no AJUSTE (PA#1) e os 3 controles são standalone (fora do group — §3.12-a). -->
+      @if (mostrarFinanceiro()) {
+        <section class="valores" aria-label="Valores do lançamento">
+          <mat-form-field appearance="outline" class="livro__campo">
+            <mat-label>Valor unitário</mat-label>
+            <span matTextPrefix>R$&nbsp;</span>
+            <input
+              matInput
+              type="number"
+              [formControl]="valorUnitario"
+              min="0"
+              step="0.01"
+              inputmode="decimal"
+              placeholder="Opcional"
+            />
+            <!-- Dica CURTA de propósito: a 375 px o `mat-hint` de 2 linhas invade a linha de baixo. -->
+            <mat-hint>Preço congelado neste lançamento.</mat-hint>
+          </mat-form-field>
+
+          <div class="valores__desconto">
+            <span class="valores__rotulo" id="rotulo-desconto">Desconto</span>
+            <div class="valores__alternador" role="group" aria-labelledby="rotulo-desconto">
+              <button
+                type="button"
+                class="valores__opcao"
+                [class.valores__opcao--ativa]="descontoTipoAtual() === 'PERCENTUAL'"
+                [attr.aria-pressed]="descontoTipoAtual() === 'PERCENTUAL'"
+                (click)="escolherDesconto('PERCENTUAL')"
+              >
+                %
+              </button>
+              <button
+                type="button"
+                class="valores__opcao"
+                [class.valores__opcao--ativa]="descontoTipoAtual() === 'VALOR'"
+                [attr.aria-pressed]="descontoTipoAtual() === 'VALOR'"
+                (click)="escolherDesconto('VALOR')"
+              >
+                R$
+              </button>
+            </div>
+          </div>
+
+          @if (descontoTipoAtual(); as dt) {
+            <mat-form-field appearance="outline" class="livro__campo">
+              <mat-label>{{ dt === 'PERCENTUAL' ? 'Desconto (%)' : 'Desconto (R$)' }}</mat-label>
+              <input
+                matInput
+                type="number"
+                [formControl]="descontoValor"
+                min="0"
+                [attr.max]="dt === 'PERCENTUAL' ? 100 : null"
+                step="0.01"
+                inputmode="decimal"
+              />
+            </mat-form-field>
+          }
+
+          @if (avisoDesconto(); as aviso) {
+            <p class="valores__aviso" role="alert">{{ aviso }}</p>
+          }
+
+          <dl class="valores__totais" aria-live="polite">
+            <div class="valores__linha">
+              <dt>Bruto</dt>
+              <dd class="valores__bruto">{{ moeda(totalBruto()) }}</dd>
+            </div>
+            <div class="valores__linha valores__linha--final">
+              <dt>Total final</dt>
+              <dd class="valores__final">{{ moeda(totalFinal()) }}</dd>
+            </div>
+          </dl>
+        </section>
+      }
+
       <mat-form-field appearance="outline" class="livro__campo">
         <mat-label>Motivo</mat-label>
         <input matInput formControlName="motivo" autocomplete="off" maxlength="255" placeholder="Opcional — ex.: Venda no balcão" />

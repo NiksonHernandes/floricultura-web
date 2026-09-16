@@ -100,6 +100,95 @@
   }
 }
 
+// --- Valores do lançamento (M7/§3.12): unitário + desconto % / R$ + totais ao vivo -------------
+// Sem sombra, sem animação, sem blur (leveza — §9/AD-SQ-69): o destaque é hierarquia de tinta.
+.valores {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.valores__desconto {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+
+.valores__rotulo {
+  font: 600 0.68rem/1 var(--display);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--caule);
+}
+
+.valores__alternador {
+  display: flex;
+  border: 1px solid var(--orvalho);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+// Alvo de toque >= 44px (FC-02, ~90% celular).
+.valores__opcao {
+  min-width: 56px;
+  min-height: 44px;
+  padding: 0 0.9rem;
+  border: 0;
+  background: transparent;
+  color: var(--folhagem);
+  font: 600 0.9rem/1 var(--corpo);
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--caule);
+    outline-offset: -2px;
+  }
+}
+
+.valores__opcao--ativa {
+  background: var(--folhagem);
+  color: var(--estufa);
+}
+
+.valores__aviso {
+  margin: 0 0 0.5rem;
+  color: #8f2450;
+  font: var(--mat-sys-body-small);
+}
+
+.valores__totais {
+  margin: 0 0 0.25rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--orvalho) 45%, white);
+  font: var(--mat-sys-body-small);
+}
+
+.valores__linha {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+
+  dt {
+    color: color-mix(in srgb, var(--tinta) 70%, white);
+  }
+
+  dd {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.valores__linha--final dd {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--folhagem);
+}
+
 // --- Histórico das últimas movimentações ---
 .historico {
   margin-top: 0.5rem;

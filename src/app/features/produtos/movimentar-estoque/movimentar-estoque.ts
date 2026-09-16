@@ -21,6 +21,7 @@ import { ApiResponse } from '../../../core/models/api-response.model';
 import { Cliente } from '../../../core/models/cliente.model';
 import { Fornecedor } from '../../../core/models/fornecedor.model';
 import {
+  DescontoTipo,
   Movimentacao,
   MovimentacaoRequest,
   Produto,
@@ -58,6 +59,25 @@ export const OPCOES_TIPO: ReadonlyArray<{
 ];
 
 /**
+ * Arredonda para 2 casas com **HALF_UP no empate** — a MESMA normalização que o back aplica
+ * (SPEC-M7 §3.2-b1 / AD-SQ-161: `setScale(2, RoundingMode.HALF_UP)`).
+ *
+ * `Math.round(v * 100) / 100` **NÃO serve**: `10.005 * 100` vale `1000.4999999999999` em binário,
+ * o empate DESCE e a tela mostraria `R$ 20,01` enquanto o banco grava `R$ 20,02` — divergência que
+ * só aparece **depois** de salvar, numa linha imutável. Deslocar a vírgula na REPRESENTAÇÃO DECIMAL
+ * (`Number('10.005e2')` = `1000.5`, exato) preserva o número que o operador digitou, que é o mesmo
+ * que o back lê do JSON com `BigDecimal`. Os valores deste modal são ≥ 0 (`min="0"`, e o back
+ * rejeita negativo em V1/V6), então a assimetria do `Math.round` no negativo não é alcançável aqui.
+ */
+export function normalizar2(valor: number): number {
+  if (!Number.isFinite(valor)) return 0;
+  const texto = String(valor);
+  // Fora da notação decimal simples (ex.: `1e-7`) não há centavo a preservar — cai no caminho comum.
+  if (!/^-?\d+(\.\d+)?$/.test(texto)) return Math.round(valor * 100) / 100;
+  return Math.round(Number(`${texto}e2`)) / 100;
+}
+
+/**
  * Diálogo de movimentação de estoque — "o livro-caixa da prateleira"
  * (SPEC-M2 §7 T-M2-9, CA-20 parte movimentação / CA-11, AD-SQ-30).
  *
@@ -75,6 +95,15 @@ export const OPCOES_TIPO: ReadonlyArray<{
  * `httpMock.verify()` limpo — invariante anti-burla (R5.5), mesma tática do RF-1. O contrato observável
  * é honrado (`GET /fornecedores?tamanho=100` / `GET /clientes?tamanho=100`; payload com `fornecedorId`
  * ou `clienteId` só quando há seleção — §R3.3).
+ *
+ * **M7 (SPEC-M7 §3.12) — valores financeiros.** `valorUnitario`, `descontoTipo` (alternador % / R$)
+ * e `descontoValor` são controles **standalone**, fora do `form` group, pelo mesmo motivo da
+ * contraparte (§3.12-a): os specs herdados fazem `form.setValue` de 3 chaves e `toEqual` ESTRITO do
+ * corpo. Eles só entram no payload quando preenchidos, e **já normalizados a 2 casas** (§3.2-b1) —
+ * o total exibido ao vivo usa a mesma normalização, para tela e banco nunca divergirem de 1 centavo.
+ * `AJUSTE` esconde e limpa o bloco (PA#1/AD-SQ-160); a SAÍDA pré-preenche o unitário com
+ * `produto.preco` quando o campo está intocado (§3.12-d). **O back continua sendo a autoridade**
+ * (§3.2-d): o que fica gravado é o que a resposta do POST devolve.
  */
 @Component({
   selector: 'app-movimentar-estoque',
@@ -125,6 +154,15 @@ export class MovimentarEstoque implements OnInit {
    */
   protected readonly contraparteId = this.fb.control<number | null>(null);
 
+  /**
+   * Valores financeiros (M7/§3.12-a) — os 3 são controles STANDALONE, FORA do `form` group, pela
+   * mesma razão do `contraparteId`: preservam o `form.setValue` de 3 chaves e o `toEqual` estrito do
+   * corpo nos specs herdados do M2/M4/M5 (anti-burla). Vazios ⇒ nenhuma chave nova no payload.
+   */
+  protected readonly valorUnitario = this.fb.control<number | null>(null);
+  protected readonly descontoTipo = this.fb.control<DescontoTipo | null>(null);
+  protected readonly descontoValor = this.fb.control<number | null>(null);
+
   /** Opções carregadas sob demanda ao abrir o select (`?tamanho=100`, teto MVP). */
   protected readonly fornecedores = signal<Fornecedor[]>([]);
   protected readonly clientes = signal<Cliente[]>([]);
@@ -148,13 +186,109 @@ export class MovimentarEstoque implements OnInit {
   /** Espelha o valor do select num signal (para o `computed` da dica reagir). */
   private readonly tipoSelecionado = signal<TipoMovimentacao | ''>('');
 
+  /** Espelhos em signal dos 4 valores que alimentam os totais ao vivo (§3.12-c). */
+  private readonly quantidadeAtual = signal<number | null>(null);
+  private readonly valorUnitarioAtual = signal<number | null>(null);
+  protected readonly descontoTipoAtual = signal<DescontoTipo | null>(null);
+  private readonly descontoValorAtual = signal<number | null>(null);
+
+  /** O bloco financeiro existe em ENTRADA/SAÍDA; em AJUSTE ele SOME (PA#1/§3.12-e). */
+  protected readonly mostrarFinanceiro = computed(() => {
+    const t = this.tipoSelecionado();
+    return t === 'ENTRADA' || t === 'SAIDA';
+  });
+
+  /**
+   * Total bruto ao vivo = `quantidade × valorUnitario`, **com o unitário já normalizado** (§3.2-b1).
+   * `null` (a tela mostra "—") enquanto não há unitário/quantidade — nunca um `R$ 0,00` fake.
+   */
+  protected readonly totalBruto = computed<number | null>(() => {
+    const vu = this.valorUnitarioAtual();
+    const qtd = this.quantidadeAtual();
+    if (vu == null || !Number.isFinite(vu) || vu < 0) return null;
+    if (qtd == null || !Number.isFinite(qtd) || qtd < 0) return null;
+    return normalizar2(qtd * normalizar2(vu));
+  });
+
+  /** Desconto efetivo em R$ (§3.2-b): PERCENTUAL → `bruto × d ÷ 100` arredondado; VALOR → `d`. */
+  protected readonly descontoEfetivo = computed<number | null>(() => {
+    const bruto = this.totalBruto();
+    const tipo = this.descontoTipoAtual();
+    const dv = this.descontoValorAtual();
+    if (bruto == null || tipo == null || dv == null || !Number.isFinite(dv) || dv < 0) return null;
+    const d = normalizar2(dv);
+    return tipo === 'PERCENTUAL' ? normalizar2((bruto * d) / 100) : d;
+  });
+
+  /**
+   * Feedback de UX das validações V6/V7/V8 (§3.2-c), com a MESMA frase que o back devolveria — e
+   * sobre o valor JÁ NORMALIZADO, como manda o §3.2-b1. Não substitui o back (§3.2-d): só evita o
+   * round-trip no celular. Enquanto houver aviso, o total final não é exibido (não há total honesto).
+   */
+  protected readonly avisoDesconto = computed<string | null>(() => {
+    const tipo = this.descontoTipoAtual();
+    const dv = this.descontoValorAtual();
+    if (tipo == null || dv == null || !Number.isFinite(dv)) return null;
+    const d = normalizar2(dv);
+    if (d < 0) return 'Desconto deve ser maior ou igual a zero.';
+    if (tipo === 'PERCENTUAL' && d > 100) return 'Desconto percentual deve estar entre 0 e 100.';
+    const bruto = this.totalBruto();
+    if (tipo === 'VALOR' && bruto != null && d > bruto) {
+      return 'Desconto não pode exceder o total bruto.';
+    }
+    return null;
+  });
+
+  /** Total final ao vivo = `bruto − desconto efetivo` (§3.2-b). Espelho de UX; o back é a autoridade. */
+  protected readonly totalFinal = computed<number | null>(() => {
+    const bruto = this.totalBruto();
+    if (bruto == null || this.avisoDesconto() != null) return null;
+    return normalizar2(bruto - (this.descontoEfetivo() ?? 0));
+  });
+
   ngOnInit(): void {
     this.form.controls.tipo.valueChanges.subscribe((t) => {
       this.tipoSelecionado.set(t);
       // Troca de tipo limpa a contraparte do outro tipo (RF-2 — mutuamente exclusivos por tipo).
       this.contraparteId.setValue(null);
+      this.aplicarTipoNoFinanceiro(t);
     });
+    this.form.controls.quantidade.valueChanges.subscribe((q) => this.quantidadeAtual.set(q));
+    this.valorUnitario.valueChanges.subscribe((v) => this.valorUnitarioAtual.set(v));
+    this.descontoTipo.valueChanges.subscribe((t) => this.descontoTipoAtual.set(t));
+    this.descontoValor.valueChanges.subscribe((v) => this.descontoValorAtual.set(v));
     this.carregarHistorico();
+  }
+
+  /**
+   * AJUSTE **limpa e esconde** o bloco financeiro (PA#1/§3.12-e). A SAÍDA pré-preenche o unitário
+   * com o preço de catálogo quando o campo está **intocado** (§3.12-d) — editável, e o `reset` do
+   * AJUSTE devolve o `pristine`, de modo que voltar para SAÍDA pré-preenche de novo.
+   */
+  private aplicarTipoNoFinanceiro(t: TipoMovimentacao | ''): void {
+    if (t === 'AJUSTE') {
+      this.valorUnitario.reset(null);
+      this.descontoTipo.setValue(null);
+      this.descontoValor.setValue(null);
+      return;
+    }
+    if (t === 'SAIDA' && this.produto.preco != null && this.valorUnitario.pristine) {
+      this.valorUnitario.setValue(this.produto.preco);
+    }
+  }
+
+  /**
+   * Alternador % / R$ (D2/§3.12-b): define o `descontoTipo` e **sempre limpa** o `descontoValor` —
+   * senão um "10 %" viraria "R$ 10" por acidente. Clicar no botão já ativo desliga o desconto.
+   */
+  protected escolherDesconto(tipo: DescontoTipo): void {
+    this.descontoTipo.setValue(this.descontoTipo.value === tipo ? null : tipo);
+    this.descontoValor.setValue(null);
+  }
+
+  /** Formata em pt-BR; `null` vira "—" (empty-state honesto: sem valor informado ≠ R$ 0,00). */
+  protected moeda(valor: number | null): string {
+    return valor == null ? '—' : valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 
   /** Carrega os fornecedores (ENTRADA) ao abrir o select — 1ª página, teto 100. Só na abertura. */
@@ -206,6 +340,10 @@ export class MovimentarEstoque implements OnInit {
       this.form.markAllAsTouched();
       return;
     }
+    // Desconto fora de faixa (V7/V8): o aviso já está na tela; não gastamos um round-trip no celular.
+    if (this.avisoDesconto() != null) {
+      return;
+    }
 
     this.enviando.set(true);
     this.erroGeral.set(null);
@@ -222,6 +360,20 @@ export class MovimentarEstoque implements OnInit {
     if (cp != null) {
       if (tipo === 'ENTRADA') req.fornecedorId = cp;
       else if (tipo === 'SAIDA') req.clienteId = cp;
+    }
+
+    // Valores (M7/§3.12-a): só entram quando preenchidos — e NORMALIZADOS a 2 casas (§3.2-b1), para
+    // o que o operador viu na tela ser exatamente o que o servidor vai congelar. AJUSTE nunca leva
+    // dinheiro (PA#1). Desconto viaja em par (tipo + valor) ou não viaja.
+    const vu = this.valorUnitario.value;
+    if (tipo !== 'AJUSTE' && vu != null && Number.isFinite(vu)) {
+      req.valorUnitario = normalizar2(vu);
+      const dt = this.descontoTipo.value;
+      const dv = this.descontoValor.value;
+      if (dt != null && dv != null && Number.isFinite(dv)) {
+        req.descontoTipo = dt;
+        req.descontoValor = normalizar2(dv);
+      }
     }
 
     this.service.movimentar(this.produto.id, req).subscribe({
