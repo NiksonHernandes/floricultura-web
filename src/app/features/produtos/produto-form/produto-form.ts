@@ -282,6 +282,25 @@ export class ProdutoForm implements OnInit, OnDestroy {
   private eventosOriginais: number[] = [];
 
   /**
+   * Box "Eventos (sazonalidade)" (A1, SPEC-M6.1 §3.1 — pedido do dono). Nasce LIGADO só na edição de
+   * produto que já chegou com vínculo; na criação e no caminho degradado (detalhe falhou ⇒ item de
+   * LISTA, sem `eventoIds`) nasce desligado — e aí `montarPayload` OMITE, então o back preserva.
+   */
+  protected readonly eventosAberto = signal(false);
+
+  /**
+   * Liga/desliga o box. Desligar LIMPA a seleção (PA#1/R1): é o gesto explícito de "não vincular a
+   * nada", o mesmo dos 4 boxes irmãos. Quem tinha vínculo manda `[]` (limpa); quem não tinha
+   * continua omitindo — a regra do payload NÃO muda, o box só mexe no CONTROLE (armadilha §12 #2).
+   */
+  protected alternarEventos(ligado: boolean): void {
+    this.eventosAberto.set(ligado);
+    if (!ligado) {
+      this.eventosSelecionados.setValue([]);
+    }
+  }
+
+  /**
    * Estado dos selects de vínculo VAZIOS (SPEC-M5.1 HISTÓRIA #5/AD-SQ-72). Reage aos `@Input` de
    * opções + "prontos" e desabilita o controle correspondente (mat-select fica cinza/inerte) quando a
    * carga RESOLVEU com zero itens — via `.disable()` num `effect()` (evita o warning do `[disabled]`
@@ -304,6 +323,10 @@ export class ProdutoForm implements OnInit, OnDestroy {
     if (p) {
       this.eventosOriginais = p.eventoIds ?? [];
       this.eventosSelecionados.setValue([...this.eventosOriginais]);
+      // A1/CA-2: o box só nasce ligado quando o form SABE que há vínculo. No caminho degradado
+      // (`produtos.ts::editarProduto` abre com o item de lista porque o `GET /{id}` falhou) o
+      // `eventoIds` vem `undefined` ⇒ nasce desligado ⇒ payload omite ⇒ o back preserva (CA-4b).
+      this.eventosAberto.set(this.eventosOriginais.length > 0);
       // Modo edição: guarda o produto vivo (para a foto atual/remover) e pré-preenche o form
       // (sem `estoqueAtual` — não é editável por CRUD).
       this.produtoAtual.set(p);
@@ -647,7 +670,16 @@ export class ProdutoForm implements OnInit, OnDestroy {
       preco: v.preco ?? null,
       imagemUrl: v.imagemUrl.trim() || null,
     };
-    const ids = this.eventosSelecionados.value;
+    let ids = this.eventosSelecionados.value;
+    if (this.eventosAberto()) {
+      // D4b (§3.4-b): vínculo que a página 1 de `GET /eventos` não trouxe NÃO vira desvínculo
+      // silencioso — o form recebe IDS, não nomes, então não há como semear a opção; a saída é não
+      // destruir o que a tela não conseguiu mostrar. Desligar o box (limpeza explícita) continua
+      // mandando `[]`, porque aí o operador MANDOU limpar.
+      const visiveis = new Set(this.eventos().map((e) => e.id));
+      const invisiveis = this.eventosOriginais.filter((id) => !visiveis.has(id));
+      ids = [...new Set([...ids, ...invisiveis])];
+    }
     if (ids.length > 0 || this.eventosOriginais.length > 0) {
       req.eventoIds = ids;
     }

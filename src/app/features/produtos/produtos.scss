@@ -182,8 +182,14 @@
 // Anatomia do card (foto 16/10, corpo, etiqueta rótulo/valor, fileira de ações) — T-M6-03.
 @include card.card-compacto('vaso');
 
+// A2 (SPEC-M6.1 §3.2): a borda JÁ existia e era invisível (dália diluída a 40% em orvalho, 1px).
+// Passa à tinta CHEIA do selo — sempre pelo TOKEN, nunca pelo hex: quando a paleta mudar, selo e
+// borda mudam juntos (R8). 2px porque 1px some na grade de 5 colunas; `box-sizing: border-box`
+// global (styles.scss) garante que engrossar não empurra o layout. Vale também para os zerados
+// (FC-13: `estoqueBaixo = atual <= minimo`). Sem sombra/contorno/animação — leveza (§9).
 .vaso--alerta {
-  border-color: color-mix(in srgb, var(--dalia) 40%, var(--orvalho));
+  border-color: var(--dalia);
+  border-width: 2px;
 }
 
 // A imagem/placeholder da foto vivem no <app-imagem-produto> (T-M3-4): ele preenche

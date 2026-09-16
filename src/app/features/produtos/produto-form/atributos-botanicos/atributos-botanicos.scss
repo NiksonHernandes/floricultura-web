@@ -23,7 +23,9 @@
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
-  padding: 0.35rem 0 0.6rem;
+  // D8 (SPEC-M6.1 §3.7): 0.6rem divergia do canônico (`produto-form.scss` .caixa) em 1,6px. Com a
+  // A1 são 5 boxes na mesma coluna — o degrau vira visível. O canônico é o do form-mãe.
+  padding: 0.35rem 0 0.7rem;
 }
 
 // Switch em caule/folhagem. Os tokens que pintam o `mat-slide-toggle` no Material 20 são os
@@ -50,7 +52,7 @@
 .caixa__conteudo {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  row-gap: 0.7rem;
+  row-gap: 0.75rem; // D8: idem — o canônico do `.caixa__conteudo` do form-mãe.
   margin-top: 0.55rem;
   padding-left: 0.6rem;
   border-left: 2px solid color-mix(in srgb, var(--caule) 45%, var(--orvalho));

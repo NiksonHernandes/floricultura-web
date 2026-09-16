@@ -22,8 +22,12 @@ export const QUALIDADE_SAIDA = 85;
 /** Cap do lado maior do recorte (PA#3); com `onlyScaleDown` nunca faz upscale. */
 export const LARGURA_MAX_RECORTE = 1920;
 
-/** Guarda de 5 MB no recorte FINAL, antes de emitir (espelho do back — §4/CA-5). */
-export const TAMANHO_MAX_RECORTE_BYTES = 5 * 1024 * 1024;
+/**
+ * Guarda de 2 MB no recorte FINAL, antes de emitir — MESMO teto do `produto-form` e do back
+ * (AD-SQ-77/FC-09). Amarrado por teste em `recorte-foto.teto.spec.ts` (D1, SPEC-M6.1 §3.10):
+ * este número NÃO pode divergir do `TAMANHO_MAX_IMAGEM_BYTES` sem deixar a suíte vermelha.
+ */
+export const TAMANHO_MAX_RECORTE_BYTES = 2 * 1024 * 1024;
 
 /** Limites do zoom (só pan + zoom; SEM rotação/flip — AD-SQ-41). */
 export const ZOOM_MIN = 1;
@@ -40,7 +44,7 @@ export const ZOOM_PASSO = 0.1;
  * Contrato de I/O (front-only, zero delta de API — o envelope blob→File mantém a assinatura de
  * `enviarImagem` intacta na T-M3.1-3, PA#4):
  *  - entrada `arquivo` = a foto-fonte escolhida;
- *  - `recortado` = o **File JPEG** do recorte final (após validar `size ≤ 5 MB`);
+ *  - `recortado` = o **File JPEG** do recorte final (após validar `size ≤ 2 MB`);
  *  - `cancelado` = o operador desistiu (o form descarta a fonte, nada muda).
  *
  * Design distintivo (CA-9): usa os tokens do ateliê (`_atelie-tokens.scss`); a dália segue
@@ -56,7 +60,7 @@ export class RecorteFoto {
   /** Foto-fonte a enquadrar (o `<image-cropper>` a carrega direto via `[imageFile]`). */
   readonly arquivo = input.required<File>();
 
-  /** Recorte confirmado: File JPEG (blob→File envelopado, ≤ 5 MB). */
+  /** Recorte confirmado: File JPEG (blob→File envelopado, ≤ 2 MB). */
   readonly recortado = output<File>();
   /** O operador cancelou o enquadramento. */
   readonly cancelado = output<void>();
@@ -137,7 +141,7 @@ export class RecorteFoto {
 
   /**
    * Confirmar: envelopa o blob do último recorte em `File` (nome derivado, `image/jpeg`), valida
-   * `size ≤ 5 MB` (senão erro local, NÃO emite) e emite `recortado` (CA-5/CA-8).
+   * `size ≤ 2 MB` (senão erro local, NÃO emite) e emite `recortado` (CA-5/CA-8).
    */
   protected confirmar(): void {
     const blob = this.ultimoEvento?.blob;
@@ -145,10 +149,10 @@ export class RecorteFoto {
       this.erro.set('Não foi possível preparar o recorte. Ajuste o enquadramento e tente de novo.');
       return;
     }
-    // Guarda de 5 MB no payload do recorte (== tamanho do File para bytes reais). Rede de
-    // segurança antes do round-trip: o recorte capado a 1920px/JPEG q85 fica bem abaixo disso.
+    // Guarda de 2 MB no payload do recorte (== tamanho do File para bytes reais). Rede de
+    // segurança antes do round-trip: barra aqui o que o back barraria depois (AD-SQ-77).
     if (blob.size > TAMANHO_MAX_RECORTE_BYTES) {
-      this.erro.set('O recorte ficou acima de 5 MB. Reduza o zoom ou escolha uma imagem menor.');
+      this.erro.set('O recorte ficou acima de 2 MB. Reduza o zoom ou escolha uma imagem menor.');
       return;
     }
     this.erro.set(null);

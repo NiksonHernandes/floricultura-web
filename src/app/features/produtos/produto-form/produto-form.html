@@ -180,29 +180,46 @@
 
       <!-- Eventos vinculados (T-M4-6, CA-9/CA-12 — SPEC-M4 §3.4): multiselect informativo.
            HISTÓRIA #5/AD-SQ-72: vazio settled ⇒ controle desabilitado (effect) + hint "nada a vincular"
-           + cinza escuro (SCSS). Guard anti-flash: o hint só aparece com `eventosProntos()`. -->
-      <mat-form-field
-        appearance="outline"
-        class="ficha__campo ficha__campo--largo"
-        [class.ficha__campo--vazio]="eventosSelecionados.disabled"
-        subscriptSizing="dynamic"
-      >
-        <mat-label>Eventos (sazonalidade)</mat-label>
-        <mat-select
-          [formControl]="eventosSelecionados"
-          multiple
-          [attr.aria-disabled]="eventosSelecionados.disabled"
+           + cinza escuro (SCSS). Guard anti-flash: o hint só aparece com `eventosProntos()`.
+           A1 (SPEC-M6.1 §3.1, pedido do dono): era o ÚNICO opcional deste bloco sempre aberto —
+           agora é um BOX irmão idêntico aos 4 botânicos e ao da entrada inicial. O conteúdo some por
+           [hidden] (nunca @if): `produto-form.spec.ts:585` lê `textContent`, que enxerga nó oculto
+           por CSS mas NÃO nó ausente (armadilha §12 #1). A chave usa a MESMA fonte de verdade do
+           controle (`eventosSelecionados.disabled`, do `estadoVinculosEffect`) — sem 2º estado. -->
+      <div class="ficha__campo--largo caixa">
+        <mat-slide-toggle
+          class="caixa__chave"
+          [checked]="eventosAberto()"
+          [disabled]="eventosSelecionados.disabled"
+          (change)="alternarEventos($event.checked)"
         >
-          @for (ev of eventos(); track ev.id) {
-            <mat-option [value]="ev.id">{{ ev.nome }}</mat-option>
-          }
-        </mat-select>
-        @if (eventosProntos() && eventos().length === 0) {
-          <mat-hint>Nenhum evento cadastrado para vincular.</mat-hint>
-        } @else {
-          <mat-hint>Opcional — vincule o produto às datas em que ele é vendido.</mat-hint>
-        }
-      </mat-form-field>
+          Eventos (sazonalidade)
+        </mat-slide-toggle>
+        <p class="caixa__dica">Opcional — vincule o produto às datas em que ele é vendido.</p>
+
+        <div class="caixa__conteudo" [hidden]="!eventosAberto()">
+          <mat-form-field
+            appearance="outline"
+            class="ficha__campo ficha__campo--largo"
+            [class.ficha__campo--vazio]="eventosSelecionados.disabled"
+            subscriptSizing="dynamic"
+          >
+            <mat-label>Eventos (sazonalidade)</mat-label>
+            <mat-select
+              [formControl]="eventosSelecionados"
+              multiple
+              [attr.aria-disabled]="eventosSelecionados.disabled"
+            >
+              @for (ev of eventos(); track ev.id) {
+                <mat-option [value]="ev.id">{{ ev.nome }}</mat-option>
+              }
+            </mat-select>
+            @if (eventosProntos() && eventos().length === 0) {
+              <mat-hint>Nenhum evento cadastrado para vincular.</mat-hint>
+            }
+          </mat-form-field>
+        </div>
+      </div>
 
       <!-- Ficha botânica (T-M6-09a, §3.12/CA-32/CA-33 — ajuste 2 do dono): 4 boxes sim/não em
            componente próprio (orçamento de CSS, §9 regra 7a). O estado vive no filho; o form só

@@ -3,14 +3,30 @@
      da árvore de a11y), com o par explícito `display:grid` / `[hidden]{display:none}` no SCSS —
      sem ele a folha do autor venceria a do navegador e o bloco continuaria visível (armadilha #27). -->
 <div class="caixa">
+  <!-- A chave segue o MESMO estado do controle (D6): catálogo vazio resolvido ⇒ `corIds` inerte ⇒
+       chave inerte. Uma fonte de verdade só, e nada de box ligado sem nada para escolher. -->
   <mat-slide-toggle
     class="caixa__chave"
     [checked]="boxCores()"
+    [disabled]="corIds.disabled"
     (change)="alternarCores($event.checked)"
   >
     Cor da planta
   </mat-slide-toggle>
-  <p class="caixa__dica">Opcional — uma planta pode ter mais de uma cor.</p>
+  <!-- A dica fica FORA do [hidden]: com o box desligado pela D6 o `mat-hint` some da vista, e o
+       operador precisa continuar sabendo POR QUE não há cor para escolher. Vazio e falha são
+       estados distintos (R6) — nenhum dos dois é apresentado como o outro. -->
+  <p class="caixa__dica">
+    @if (catalogoPronto() && catalogo().length === 0) {
+      @if (catalogoFalhou()) {
+        Não foi possível carregar o catálogo de cores agora.
+      } @else {
+        Nenhuma cor cadastrada em Configurações → Cores.
+      }
+    } @else {
+      Opcional — uma planta pode ter mais de uma cor.
+    }
+  </p>
 
   <div class="caixa__conteudo" [hidden]="!boxCores()">
     <mat-form-field appearance="outline" subscriptSizing="dynamic">

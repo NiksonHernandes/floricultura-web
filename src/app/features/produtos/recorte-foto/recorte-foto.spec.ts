@@ -156,18 +156,18 @@ describe('RecorteFoto (T-M3.1-2 — CA-3/4/5/8/9)', () => {
     expect(probe.erro()).toBeNull();
   });
 
-  it('recorte > 5 MB NÃO emite e mostra erro local (guarda de tamanho) — CA-5/CA-8', () => {
+  it('recorte > 2 MB NÃO emite e mostra erro local (guarda de tamanho) — CA-5/CA-8', () => {
     criar();
     let emitido = false;
     fixture.componentInstance.recortado.subscribe(() => (emitido = true));
 
     const grande = new Blob([new Uint8Array([1])], { type: 'image/jpeg' });
-    Object.defineProperty(grande, 'size', { value: 5 * 1024 * 1024 + 1 });
+    Object.defineProperty(grande, 'size', { value: 2 * 1024 * 1024 + 1 });
     probe.aoRecortar(eventoRecorte(grande));
     probe.confirmar();
 
     expect(emitido).toBeFalse();
-    expect(probe.erro()).toContain('5 MB');
+    expect(probe.erro()).toContain('2 MB');
   });
 
   it('Confirmar sem recorte disponível não emite e sinaliza erro — CA-8', () => {
