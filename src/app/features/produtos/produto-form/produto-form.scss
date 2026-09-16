@@ -151,6 +151,12 @@
   --mat-slide-toggle-selected-hover-handle-color: var(--folhagem);
   --mat-slide-toggle-selected-pressed-handle-color: var(--folhagem);
   --mat-slide-toggle-selected-icon-color: var(--estufa);
+
+  // Alvo de toque de 44px (FC-02/CA-51). MEDIDO a 375px: o switch já tem touch-target de 48px, mas
+  // o RÓTULO — que também alterna a chave — tinha 20px. `<label>` é do MatSlideToggle ⇒ `::ng-deep`.
+  ::ng-deep label {
+    padding-block: 12px; // 20 + 24 = 44px, texto segue centrado com o switch.
+  }
 }
 
 .caixa__dica {

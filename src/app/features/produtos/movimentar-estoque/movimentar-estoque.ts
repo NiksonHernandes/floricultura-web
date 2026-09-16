@@ -62,12 +62,18 @@ export const OPCOES_TIPO: ReadonlyArray<{
  * Arredonda para 2 casas com **HALF_UP no empate** — a MESMA normalização que o back aplica
  * (SPEC-M7 §3.2-b1 / AD-SQ-161: `setScale(2, RoundingMode.HALF_UP)`).
  *
- * `Math.round(v * 100) / 100` **NÃO serve**: `10.005 * 100` vale `1000.4999999999999` em binário,
- * o empate DESCE e a tela mostraria `R$ 20,01` enquanto o banco grava `R$ 20,02` — divergência que
- * só aparece **depois** de salvar, numa linha imutável. Deslocar a vírgula na REPRESENTAÇÃO DECIMAL
- * (`Number('10.005e2')` = `1000.5`, exato) preserva o número que o operador digitou, que é o mesmo
- * que o back lê do JSON com `BigDecimal`. Os valores deste modal são ≥ 0 (`min="0"`, e o back
- * rejeita negativo em V1/V6), então a assimetria do `Math.round` no negativo não é alcançável aqui.
+ * `Math.round(v * 100) / 100` **NÃO serve**: `8.165 * 100` vale `816.4999999999999` em binário
+ * (medido em `node`), o empate DESCE para `8.16` e a tela mostraria `R$ 16,32` enquanto o banco
+ * grava `R$ 16,34` (`BigDecimal("8.165").setScale(2, HALF_UP)`) — divergência que só aparece
+ * **depois** de salvar, numa linha imutável. Deslocar a vírgula na REPRESENTAÇÃO DECIMAL
+ * (`Number('8.165e2')` = `816.5`, exato) preserva o número que o operador digitou, que é o mesmo
+ * que o back lê do JSON com `BigDecimal`.
+ *
+ * ⚠️ `10.005` **não** serve de prova (AD-SQ-164/R6): `10.005 * 100` vale `1000.5000000000001`, o
+ * empate SOBE e o atalho binário ACERTA por acidente — ele documenta a regra, não a discrimina.
+ *
+ * Os valores deste modal são ≥ 0 (`min="0"`, e o back rejeita negativo em V1/V6), então a
+ * assimetria do `Math.round` no negativo não é alcançável aqui.
  */
 export function normalizar2(valor: number): number {
   if (!Number.isFinite(valor)) return 0;
@@ -102,7 +108,8 @@ export function normalizar2(valor: number): number {
  * corpo. Eles só entram no payload quando preenchidos, e **já normalizados a 2 casas** (§3.2-b1) —
  * o total exibido ao vivo usa a mesma normalização, para tela e banco nunca divergirem de 1 centavo.
  * `AJUSTE` esconde e limpa o bloco (PA#1/AD-SQ-160); a SAÍDA pré-preenche o unitário com
- * `produto.preco` quando o campo está intocado (§3.12-d). **O back continua sendo a autoridade**
+ * `produto.preco` quando o campo está intocado (§3.12-d) e **sair da SAÍDA descarta esse prefill**
+ * enquanto ele seguir `pristine` (AD-SQ-166). **O back continua sendo a autoridade**
  * (§3.2-d): o que fica gravado é o que a resposta do POST devolve.
  */
 @Component({
@@ -264,6 +271,12 @@ export class MovimentarEstoque implements OnInit {
    * AJUSTE **limpa e esconde** o bloco financeiro (PA#1/§3.12-e). A SAÍDA pré-preenche o unitário
    * com o preço de catálogo quando o campo está **intocado** (§3.12-d) — editável, e o `reset` do
    * AJUSTE devolve o `pristine`, de modo que voltar para SAÍDA pré-preenche de novo.
+   *
+   * **AD-SQ-166 — o prefill é preso à SAÍDA.** Sair da SAÍDA **limpa** o unitário quando ele ainda
+   * está `pristine` (foi a tela que preencheu, ninguém digitou): o preço de VENDA não pode virar
+   * custo de COMPRA numa ENTRADA, que é linha imutável e só se corrige com estorno. O que o
+   * operador **digitou** (`dirty`) é preservado — mesma razão pela qual a contraparte já é limpa a
+   * cada troca de tipo: o campo muda de significado junto com o tipo.
    */
   private aplicarTipoNoFinanceiro(t: TipoMovimentacao | ''): void {
     if (t === 'AJUSTE') {
@@ -271,6 +284,9 @@ export class MovimentarEstoque implements OnInit {
       this.descontoTipo.setValue(null);
       this.descontoValor.setValue(null);
       return;
+    }
+    if (t !== 'SAIDA' && this.valorUnitario.pristine) {
+      this.valorUnitario.setValue(null); // AD-SQ-166: descarta o prefill que ninguém digitou.
     }
     if (t === 'SAIDA' && this.produto.preco != null && this.valorUnitario.pristine) {
       this.valorUnitario.setValue(this.produto.preco);

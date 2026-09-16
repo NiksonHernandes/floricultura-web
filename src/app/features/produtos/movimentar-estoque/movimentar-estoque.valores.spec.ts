@@ -174,6 +174,55 @@ describe('MovimentarEstoque — valores e desconto (T-M7-05, CA-31..CA-35/CA-53)
     req.flush(envelope(movBase));
   });
 
+  it('AD-SQ-166: sair da SAÍDA LIMPA o unitário auto-preenchido (preço de venda não vira custo de entrada)', () => {
+    iniciar(25);
+    probe.form.controls.tipo.setValue('SAIDA');
+    expect(probe.valorUnitario.value).toBe(25); // prefill do catálogo, ninguém digitou (pristine)
+
+    probe.form.controls.tipo.setValue('ENTRADA');
+    fixture.detectChanges();
+    expect(probe.valorUnitario.value).toBeNull();
+
+    probe.form.controls.quantidade.setValue(5);
+    probe.registrar();
+    const req = httpMock.expectOne(`${PRODUTOS}/10/movimentacoes`);
+    // Sem o descarte, o R$ 25,00 de VENDA viajaria como custo de COMPRA numa linha imutável.
+    expect(req.request.body).toEqual({ tipo: 'ENTRADA', quantidade: 5, motivo: null });
+    expect('valorUnitario' in (req.request.body as Record<string, unknown>)).toBeFalse();
+    req.flush(envelope({ ...movBase, tipo: 'ENTRADA' }));
+  });
+
+  it('AD-SQ-166: o outro lado — o valor DIGITADO pelo operador sobrevive à troca de tipo', () => {
+    iniciar(25);
+    probe.form.controls.tipo.setValue('SAIDA');
+    fixture.detectChanges();
+
+    // Digitação de verdade: é o evento `input` no campo que marca o controle como `dirty`.
+    const campo = (fixture.nativeElement as HTMLElement).querySelector(
+      '.valores input[type="number"]',
+    ) as HTMLInputElement;
+    campo.value = '30';
+    campo.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(probe.valorUnitario.dirty).toBeTrue();
+
+    probe.form.controls.tipo.setValue('ENTRADA');
+    fixture.detectChanges();
+    // "Limpar sempre" apagaria trabalho do operador — trocaria um defeito por outro.
+    expect(probe.valorUnitario.value).toBe(30);
+
+    probe.form.controls.quantidade.setValue(4);
+    probe.registrar();
+    const req = httpMock.expectOne(`${PRODUTOS}/10/movimentacoes`);
+    expect(req.request.body).toEqual({
+      tipo: 'ENTRADA',
+      quantidade: 4,
+      motivo: null,
+      valorUnitario: 30,
+    });
+    req.flush(envelope({ ...movBase, tipo: 'ENTRADA' }));
+  });
+
   it('CA-34: trocar o alternador de % para R$ LIMPA o descontoValor (10 % não vira R$ 10)', () => {
     iniciar();
     probe.form.controls.tipo.setValue('SAIDA');
@@ -285,23 +334,29 @@ describe('MovimentarEstoque — valores e desconto (T-M7-05, CA-31..CA-35/CA-53)
     fixture.detectChanges();
     expect(texto('.valores__bruto')).toBe('R$ 20,00');
 
-    // (c) e o desconto percentual passa pela mesma normalização (33,335 → 33,34).
+    // (c) o desconto percentual passa pela MESMA normalização — agora com o valor que DISCRIMINA
+    // (errata AD-SQ-167): `33.335 * 100` = 3333.5 é EXATO, então o atalho ingênuo acerta e o caso
+    // não reprovava nada nesta perna. `8.165 * 100` = 816.4999999999999 desce para 8,16; sobre um
+    // bruto de R$ 1.000,00 a diferença de 1 centavo no percentual vira R$ 0,10 no desconto e
+    // sobrevive ao arredondamento do total — discrimina no PAYLOAD (8,17 × 8,16) e NA TELA
+    // (R$ 918,30 × R$ 918,40). Com bruto de R$ 20,00 ela some (18,37 dos dois lados).
     probe.valorUnitario.setValue(10);
+    probe.form.controls.quantidade.setValue(100);
     probe.escolherDesconto('PERCENTUAL');
-    probe.descontoValor.setValue(33.335);
+    probe.descontoValor.setValue(8.165);
     fixture.detectChanges();
-    expect(texto('.valores__bruto')).toBe('R$ 20,00');
-    expect(texto('.valores__final')).toBe('R$ 13,33'); // 20,00 − round2(20 × 33,34 ÷ 100) = 20,00 − 6,67
+    expect(texto('.valores__bruto')).toBe('R$ 1.000,00');
+    expect(texto('.valores__final')).toBe('R$ 918,30'); // 1.000,00 − round2(1000 × 8,17 ÷ 100) = −81,70
 
     probe.registrar();
     const req = httpMock.expectOne(`${PRODUTOS}/10/movimentacoes`);
     expect(req.request.body).toEqual({
       tipo: 'SAIDA',
-      quantidade: 2,
+      quantidade: 100,
       motivo: null,
       valorUnitario: 10,
       descontoTipo: 'PERCENTUAL',
-      descontoValor: 33.34,
+      descontoValor: 8.17,
     });
     req.flush(envelope(movBase));
   });

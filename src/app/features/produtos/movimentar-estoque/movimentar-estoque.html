@@ -20,7 +20,7 @@
         </p>
       }
 
-      <mat-form-field appearance="outline" class="livro__campo">
+      <mat-form-field appearance="outline" class="livro__campo" subscriptSizing="dynamic">
         <mat-label>Tipo de movimentação</mat-label>
         <mat-select formControlName="tipo">
           @for (op of opcoesTipo; track op.valor) {
