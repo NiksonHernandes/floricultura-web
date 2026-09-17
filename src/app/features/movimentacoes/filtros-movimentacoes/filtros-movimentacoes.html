@@ -1,0 +1,58 @@
+<!--
+  Painel de filtros (§3.5/§3.11-f). O PAI decide se este componente existe (`@if (filtrosAbertos())`):
+  fechado, o `MatDatepicker` não entra na árvore — é o que mantém os herdados verdes sem `DateAdapter`.
+  A11y: o gatilho do pai carrega `aria-expanded`/`aria-controls` apontando para este `id`.
+-->
+<form id="painel-filtros-mov" class="painel" [formGroup]="form" (submit)="$event.preventDefault()">
+  <header class="painel__topo">
+    <h2 class="painel__titulo">Filtrar lançamentos</h2>
+    <button
+      type="button"
+      mat-icon-button
+      class="painel__fechar"
+      aria-label="Fechar filtros"
+      (click)="fechar()"
+    >
+      <mat-icon aria-hidden="true">close</mat-icon>
+    </button>
+  </header>
+
+  <div class="campos">
+    <!-- Datepickers pt-BR (AD-SQ-52): o adapter do app já formata dd/MM/yyyy. -->
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>De</mat-label>
+      <input matInput [matDatepicker]="pickerDe" formControlName="de" />
+      <mat-datepicker-toggle matIconSuffix [for]="pickerDe" />
+      <mat-datepicker #pickerDe />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Até</mat-label>
+      <input matInput [matDatepicker]="pickerAte" formControlName="ate" />
+      <mat-datepicker-toggle matIconSuffix [for]="pickerAte" />
+      <mat-datepicker #pickerAte />
+    </mat-form-field>
+
+    <!-- `<select>` NATIVO (§3.11-f): 1 alvo, 1 picker do sistema, zero módulo Material a mais. -->
+    <div class="campo-nativo">
+      <label class="campo-nativo__rotulo" for="filtro-tipo">Tipo</label>
+      <select id="filtro-tipo" class="campo-nativo__campo" formControlName="tipo">
+        <option [ngValue]="null">Todos</option>
+        @for (t of tipos; track t.valor) {
+          <option [ngValue]="t.valor">{{ t.rotulo }}</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  @if (periodoInvertido()) {
+    <p class="painel__erro" role="alert">A data inicial não pode ser maior que a final.</p>
+  }
+
+  <div class="painel__acoes">
+    <button type="button" mat-button class="painel__limpar" (click)="limpar()">Limpar</button>
+    <button type="submit" mat-flat-button class="painel__aplicar" (click)="aplicar()">
+      Aplicar
+    </button>
+  </div>
+</form>

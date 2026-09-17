@@ -85,6 +85,19 @@
   }
 }
 
+/* ---- Fileira de controles (gatilho dos filtros, §3.11-f) ---- */
+.controles {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.75rem;
+}
+
+.controles__filtros {
+  min-height: 44px; /* FC-02 */
+  --mat-button-outlined-label-text-color: var(--folhagem);
+  --mat-button-outlined-icon-color: var(--caule);
+}
+
 /* ---- Estados honestos ---- */
 .estado {
   display: flex;

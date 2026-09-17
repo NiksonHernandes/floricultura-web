@@ -1,0 +1,113 @@
+// Painel de filtros das Movimentações (SPEC-M7 §3.5/§3.11-f).
+//
+// Componente próprio por razão MEDIDA, não estética: `movimentacoes.scss` já paga o mixin da tabela
+// densa (2008 B compilados) e fecha em ~6,9 kB contra um `maximumError` de 8 kB. Os campos de filtro
+// inline estourariam o build. Componente separado tem orçamento de estilo próprio.
+//
+// Mobile-first (FC-02): uma coluna no celular, alvos >= 44px. Zero sombra/blur/animação (§9) — o
+// painel aparece e some por `@if` do pai, sem transição.
+@use '../../../shared/styles/atelie-tokens' as atelie;
+
+:host {
+  @include atelie.base;
+  display: block;
+  margin-bottom: 1.25rem;
+}
+
+.painel {
+  padding: 1rem 1.1rem 1.1rem;
+  border: 1px solid var(--orvalho);
+  border-radius: var(--raio, 12px);
+  background: #fff;
+}
+
+.painel__topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.painel__titulo {
+  margin: 0;
+  font: 600 0.72rem/1 var(--display);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--caule);
+}
+
+.campos {
+  display: grid;
+  gap: 0.75rem;
+}
+
+// Campo nativo (o `<select>` de tipo): MÍNIMO de propósito — sem `appearance: none`, o chevron e o
+// picker do sistema vêm de graça (AD-SQ-69). Os 16px do `font-size` evitam o zoom automático do
+// Safari iOS no foco: é requisito de uso no celular, não estética.
+.campo-nativo {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.campo-nativo__rotulo {
+  font: 600 0.66rem/1 var(--display);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--caule);
+}
+
+.campo-nativo__campo {
+  min-height: var(--toque, 44px);
+  padding: 0 0.6rem;
+  border: 1px solid var(--orvalho);
+  border-radius: var(--raio, 12px);
+  background: #fff;
+  font-family: inherit;
+  font-size: 1rem;
+  color: var(--tinta);
+}
+
+.painel__erro {
+  margin: 0.75rem 0 0;
+  color: #8f2450;
+  font: var(--mat-sys-body-small);
+}
+
+.painel__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.painel__acoes .mat-mdc-button,
+.painel__acoes .mat-mdc-unelevated-button {
+  min-height: 44px;
+}
+
+.painel__limpar {
+  --mat-button-text-label-text-color: var(--folhagem);
+}
+
+.painel__aplicar {
+  --mat-button-filled-container-color: var(--folhagem);
+  --mat-button-filled-label-text-color: #fff;
+}
+
+// Bancada: os campos viram fileira; o painel deixa de ocupar a tela inteira.
+@include atelie.acima(atelie.$bp-sm) {
+  .campos {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: end;
+  }
+}
+
+// Foco de teclado visível (piso de qualidade §9).
+:host ::ng-deep .mdc-button:focus-visible,
+.campo-nativo__campo:focus-visible {
+  outline: 2px solid var(--caule);
+  outline-offset: 2px;
+  border-radius: 8px;
+}

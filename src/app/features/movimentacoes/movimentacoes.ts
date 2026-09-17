@@ -12,7 +12,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatPaginatorModule, MatPaginatorIntl, PageEvent } from '@angular/material/paginator';
 import { MatDialog } from '@angular/material/dialog';
 
-import { MovimentacoesService } from './movimentacoes.service';
+import { MovimentacoesService, FiltroMovimentacoes } from './movimentacoes.service';
+import { FiltrosMovimentacoes } from './filtros-movimentacoes/filtros-movimentacoes';
 import {
   VisualizarLancamento,
   VisualizarLancamentoDados,
@@ -90,6 +91,7 @@ export const ROTULOS_TIPO_MOV: Record<TipoMovimentacao, string> = {
     MatIconModule,
     MatProgressSpinnerModule,
     MatPaginatorModule,
+    FiltrosMovimentacoes,
   ],
   providers: [{ provide: MatPaginatorIntl, useFactory: paginatorPtBr }],
   templateUrl: './movimentacoes.html',
@@ -109,6 +111,28 @@ export class Movimentacoes implements OnInit {
 
   /** Erro do ESTORNO (409/400) — banner na LISTA, separado do `erro()` de carregar a página. */
   protected readonly erroEstorno = signal<string | null>(null);
+
+  /**
+   * Recorte vigente (§3.5) e estado do painel. O painel nasce FECHADO nos dois breakpoints, e o
+   * `@if` do template é o que mantém o `MatDatepicker` fora da árvore enquanto ninguém o abre —
+   * ver a explicação no cabeçalho de `filtros-movimentacoes.ts`. O estado mora aqui, então fechar
+   * o painel não perde recorte.
+   */
+  protected readonly filtros = signal<FiltroMovimentacoes>({});
+  protected readonly filtrosAbertos = signal(false);
+
+  /** Quantos recortes estão ativos — alimenta o rótulo "Filtros (n)" do gatilho. */
+  protected readonly filtrosAtivos = computed(
+    () =>
+      Object.values(this.filtros()).filter((v) => v !== null && v !== undefined && v !== '').length,
+  );
+
+  /**
+   * Houve recorte aplicado? É o que separa "o livro está vazio" de "este recorte não achou nada" no
+   * estado vazio — dizer "nenhuma movimentação registrada" a quem filtrou seria mentira (AD-SQ-168:
+   * id sem correspondência é **200 com lista vazia**, resposta honesta, nunca erro).
+   */
+  protected readonly comRecorte = computed(() => this.filtrosAtivos() > 0 || !!this.filtro.value);
 
   protected readonly movimentacoes = signal<Movimentacao[]>([]);
   protected readonly carregando = signal(false);
@@ -139,7 +163,7 @@ export class Movimentacoes implements OnInit {
   protected carregar(): void {
     this.carregando.set(true);
     this.erro.set(null);
-    this.service.listar(this.pagina(), this.tamanho(), this.filtro.value).subscribe({
+    this.service.listar(this.pagina(), this.tamanho(), this.filtro.value, this.filtros()).subscribe({
       next: (pagina) => {
         this.movimentacoes.set(pagina.conteudo);
         this.totalElementos.set(pagina.totalElementos);
@@ -160,6 +184,14 @@ export class Movimentacoes implements OnInit {
 
   protected limparFiltro(): void {
     this.filtro.setValue('');
+  }
+
+  /** Novo recorte (§3.5): volta à 1ª página — senão a pessoa cai na página 4 de um resultado de 1. */
+  protected aplicarFiltros(novo: FiltroMovimentacoes): void {
+    this.filtros.set(novo);
+    this.filtrosAbertos.set(false);
+    this.pagina.set(0);
+    this.carregar();
   }
 
   protected rotuloTipo(t: TipoMovimentacao): string {

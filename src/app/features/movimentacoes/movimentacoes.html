@@ -33,6 +33,34 @@
   </mat-form-field>
 
   <!--
+    Gatilho dos filtros (§3.5/§3.11-f). O painel é montado SÓ quando aberto — `@if` por ESTADO DO
+    USUÁRIO, não por largura de viewport (a §12 #24(b) do M6 proíbe a segunda, não esta). É o que
+    mantém o `MatDatepicker` fora da árvore na carga inicial: os 3 specs herdados desta tela não
+    provêem `DateAdapter`, e montá-lo eagerly os derrubaria com `NullInjectorError`.
+  -->
+  <div class="controles">
+    <button
+      type="button"
+      mat-stroked-button
+      class="controles__filtros"
+      aria-controls="painel-filtros-mov"
+      [attr.aria-expanded]="filtrosAbertos()"
+      (click)="filtrosAbertos.set(!filtrosAbertos())"
+    >
+      <mat-icon aria-hidden="true">tune</mat-icon>
+      <span>Filtros ({{ filtrosAtivos() }})</span>
+    </button>
+  </div>
+
+  @if (filtrosAbertos()) {
+    <app-filtros-movimentacoes
+      [valor]="filtros()"
+      (mudou)="aplicarFiltros($event)"
+      (fechou)="filtrosAbertos.set(false)"
+    />
+  }
+
+  <!--
     Banner do ESTORNO recusado (§3.11-d, CA-40): mora na LISTA, não no diálogo — o 409 chega DEPOIS
     de o diálogo fechar. Separado do `erro()` de carregar a página, senão uma recusa de estorno
     apagaria a tabela. A lista NÃO muda: quem decide o efeito é o servidor.
@@ -59,8 +87,15 @@
   } @else if (vazia()) {
     <div class="estado estado--vazio">
       <mat-icon aria-hidden="true">receipt_long</mat-icon>
+      <!--
+        Vazio HONESTO, e a distinção importa (AD-SQ-168): recorte que não casa nada devolve 200 com
+        lista vazia — não é erro, e dizer "nenhuma movimentação registrada" a quem filtrou seria
+        mentira sobre o livro. Por isso o texto pergunta pelo RECORTE, não pelo acervo.
+      -->
       @if (filtro.value) {
         <p>Nenhuma movimentação encontrada para “{{ filtro.value }}”. Tente outro termo.</p>
+      } @else if (comRecorte()) {
+        <p>Nenhuma movimentação neste recorte. Ajuste o período ou os filtros.</p>
       } @else {
         <p>Nenhuma movimentação registrada ainda. Elas aparecem aqui a cada entrada, saída ou ajuste.</p>
       }
