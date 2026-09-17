@@ -50,6 +50,35 @@
       }
     </mat-nav-list>
 
+    <!--
+      Fechamento (SPEC-M7 §3.13, CA-45 — decisão do DONO em 2026-09-17, opção B do plano da
+      T-M7-09): grupo PRÓPRIO na lista principal, e não no rodapé. Relatórios é operação do dia a
+      dia; o rodapé é área de configuração/conta. Fica FORA do array `itens` do `shell.ts` por
+      medição, não por gosto: um item novo naquele array derruba dois casos herdados
+      (`shell.spec.ts` "ADMIN vê Usuários" e `shell.configuracoes.spec.ts` "o menu inclui a visão
+      geral"), os dois com `Expected $.length = 8 to equal 7` — e gastar a primeira liberação de
+      teste herdado do marco num item de menu seria péssima troca (§12 #0). Mesmo precedente do M6
+      com Configurações (AD-SQ-78/86).
+    -->
+    @if (ehAdmin()) {
+    <span class="menu__label">FECHAMENTO</span>
+    <mat-nav-list class="gestao">
+      <a
+        mat-list-item
+        class="gestao__item"
+        routerLink="/relatorios"
+        aria-label="Relatórios"
+        routerLinkActive="gestao__item--ativo"
+        #rlaRel="routerLinkActive"
+        [attr.aria-current]="rlaRel.isActive ? 'page' : null"
+        (click)="aoNavegar()"
+      >
+        <mat-icon matListItemIcon aria-hidden="true">summarize</mat-icon>
+        <span matListItemTitle>Relatórios</span>
+      </a>
+    </mat-nav-list>
+    }
+
     <div class="rodape">
       <!--
         Configurações (SPEC-M6 §3.15, PA#1/AD-SQ-86): área de SISTEMA, separada das áreas de

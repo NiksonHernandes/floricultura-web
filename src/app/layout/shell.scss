@@ -71,8 +71,13 @@
 }
 
 /* ---- Menu ---- */
-.menu {
-  flex: 1;
+// `flex: 0 0 auto` (era `1`) porque a estante passou a ter DOIS grupos (espaço de trabalho +
+// fechamento, SPEC-M7 §3.13): com `flex:1` no primeiro, o segundo era empurrado para junto do
+// rodapé e parecia área de sistema — o oposto da decisão do dono. Quem prende o rodapé embaixo é o
+// `margin-top: auto` dele, não este flex.
+.menu,
+.gestao {
+  flex: 0 0 auto;
   padding-top: 0.5rem;
 
   --mat-list-list-item-label-text-color: var(--estufa);
@@ -80,7 +85,8 @@
   --mat-list-list-item-hover-label-text-color: #fff;
 }
 
-.menu__item {
+.menu__item,
+.gestao__item {
   position: relative;
   margin: 0.15rem 0;
   border-radius: 10px;
@@ -91,7 +97,8 @@
 }
 
 // Item ativo: caule (fundo clareado) + nó de dália à esquerda — a ÚNICA ousadia (§gaste num lugar só).
-.menu__item--ativo {
+.menu__item--ativo,
+.gestao__item--ativo {
   background: color-mix(in srgb, var(--caule) 26%, transparent);
 
   --mat-list-list-item-label-text-color: #fff;
@@ -238,21 +245,25 @@
   color: #b5c7aa;
   padding: 0 16px;
 }
-.menu {
+.menu,
+.gestao {
   padding-top: 14px;
 }
-.menu__item {
+.menu__item,
+.gestao__item {
   margin: 4px 0;
   border-radius: 8px;
   --mat-list-list-item-label-text-size: 13px;
 }
-.menu__item--ativo {
+.menu__item--ativo,
+.gestao__item--ativo {
   background: #e8eedc;
   --mat-list-list-item-label-text-color: #294a38;
   --mat-list-list-item-leading-icon-color: #294a38;
   --mat-list-list-item-hover-label-text-color: #294a38;
 }
-.menu__item--ativo::before {
+.menu__item--ativo::before,
+.gestao__item--ativo::before {
   display: none;
 }
 .rodape {

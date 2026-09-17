@@ -85,9 +85,22 @@ export const routes: Routes = [
           import('./features/usuarios/usuarios').then((m) => m.Usuarios),
       },
       {
+        // Relatórios (SPEC-M7 §3.13, CA-45): fechamento do livro-caixa, **só ADMIN**. Rota de TOPO,
+        // e não filha de `configuracoes` (D8): Configurações é área de *sistema*; relatório é
+        // *operação*. O `adminGuard` orienta a UX; quem barra é o back (`/api/v1/relatorios/**`
+        // com `hasRole('ADMIN')`, §3.9) — FC-07.
+        path: 'relatorios',
+        title: 'Relatórios • Ateliê',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./features/relatorios/relatorios').then((m) => m.Relatorios),
+      },
+      {
         // Configurações (SPEC-M6 §3.15, CA-30): área de SISTEMA, exclusiva de ADMIN. Rota FILHA de
-        // propósito — Relatórios (M7) e futuras seções entram aqui sem `MatTabs`. O `adminGuard`
-        // cobre o grupo inteiro; o RBAC efetivo continua sendo do back (FC-07).
+        // propósito — futuras seções de sistema entram aqui sem `MatTabs`. O `adminGuard` cobre o
+        // grupo inteiro; o RBAC efetivo continua sendo do back (FC-07).
+        // (Este comentário dizia que Relatórios entraria aqui; o D8 decidiu o contrário — a rota
+        // vive no topo, logo acima.)
         path: 'configuracoes',
         canActivate: [adminGuard],
         children: [

@@ -11,6 +11,54 @@
     </div>
   </header>
 
+  <div class="controles">
+    <div class="atalhos" role="group" aria-label="Período do relatório">
+      <button
+        type="button"
+        class="atalho"
+        [attr.aria-pressed]="atalho() === 'SEMANA'"
+        (click)="escolherAtalho('SEMANA')"
+      >
+        Esta semana
+      </button>
+      <button
+        type="button"
+        class="atalho"
+        [attr.aria-pressed]="atalho() === 'MES'"
+        (click)="escolherAtalho('MES')"
+      >
+        Este mês
+      </button>
+      <button
+        type="button"
+        class="atalho"
+        [attr.aria-pressed]="atalho() === 'INTERVALO'"
+        (click)="escolherAtalho('INTERVALO')"
+      >
+        Intervalo
+      </button>
+    </div>
+
+    <div class="atalhos" role="group" aria-label="Agrupar por">
+      <button
+        type="button"
+        class="atalho"
+        [attr.aria-pressed]="granularidade() === 'SEMANA'"
+        (click)="trocarGranularidade('SEMANA')"
+      >
+        Por semana
+      </button>
+      <button
+        type="button"
+        class="atalho"
+        [attr.aria-pressed]="granularidade() === 'MES'"
+        (click)="trocarGranularidade('MES')"
+      >
+        Por mês
+      </button>
+    </div>
+  </div>
+
   @if (carregando()) {
     <div class="estado" role="status">
       <mat-spinner diameter="32" />
@@ -25,9 +73,47 @@
     <div class="estado estado--vazio">
       <p>Escolha um período para gerar o relatório.</p>
     </div>
-  } @else if (semLancamentos()) {
-    <div class="estado estado--vazio">
-      <p>Nenhum lançamento neste período.</p>
+  } @else if (relatorio(); as r) {
+    <!--
+      Resumo: três fichas + a linha dos ajustes. O RESULTADO traz a fórmula ESCRITA ("Saídas −
+      Entradas", §3.7-a): saldo sem fórmula é adjetivo. Todos os números vêm do servidor.
+    -->
+    <div class="resumo">
+      <article class="ficha">
+        <span class="ficha__rotulo">Entradas</span>
+        <strong class="ficha__valor">{{ moeda(r.resumo.entradas.valor) }}</strong>
+        <span class="ficha__apoio"
+          >{{ r.resumo.entradas.lancamentos }} lançamentos ·
+          {{ quantidade(r.resumo.entradas.quantidade) }}</span
+        >
+      </article>
+
+      <article class="ficha">
+        <span class="ficha__rotulo">Saídas</span>
+        <strong class="ficha__valor">{{ moeda(r.resumo.saidas.valor) }}</strong>
+        <span class="ficha__apoio"
+          >{{ r.resumo.saidas.lancamentos }} lançamentos ·
+          {{ quantidade(r.resumo.saidas.quantidade) }}</span
+        >
+      </article>
+
+      <article class="ficha ficha--resultado">
+        <span class="ficha__rotulo">Resultado</span>
+        <strong class="ficha__valor">{{ moeda(r.resumo.resultadoValor) }}</strong>
+        <span class="ficha__apoio ficha__formula">Saídas − Entradas</span>
+      </article>
     </div>
+
+    <!-- AJUSTE não carrega dinheiro (PA#1): mostrar "R$ 0,00" aqui sugeriria movimento de valor. -->
+    <p class="ajustes">
+      Ajustes no período: {{ r.resumo.ajustes.lancamentos }} lançamentos ·
+      {{ quantidade(r.resumo.ajustes.quantidade) }} — sem valor financeiro.
+    </p>
+
+    @if (semLancamentos()) {
+      <div class="estado estado--vazio">
+        <p>Nenhum lançamento neste período.</p>
+      </div>
+    }
   }
 </section>
