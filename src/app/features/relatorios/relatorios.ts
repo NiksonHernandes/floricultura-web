@@ -4,7 +4,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 import { FiltroRelatorio, RelatoriosService } from './relatorios.service';
-import { Granularidade, Relatorio } from '../../core/models/relatorio.model';
+import { FiltrosMovimentacoes } from '../movimentacoes/filtros-movimentacoes/filtros-movimentacoes';
+import { FiltroMovimentacoes } from '../movimentacoes/movimentacoes.service';
+import { Granularidade, PeriodoRelatorio, Relatorio } from '../../core/models/relatorio.model';
 
 /** Fuso de TODA fronteira de data do projeto (§4.8, AD-SQ-47). */
 const ZONA = 'America/Sao_Paulo';
@@ -51,7 +53,7 @@ export type Atalho = 'SEMANA' | 'MES' | 'INTERVALO';
  */
 @Component({
   selector: 'app-relatorios',
-  imports: [MatButtonModule, MatIconModule, MatProgressSpinnerModule],
+  imports: [MatButtonModule, MatIconModule, MatProgressSpinnerModule, FiltrosMovimentacoes],
   templateUrl: './relatorios.html',
   styleUrl: './relatorios.scss',
 })
@@ -62,10 +64,23 @@ export class Relatorios implements OnInit {
   protected readonly carregando = signal(false);
   protected readonly erro = signal<string | null>(null);
 
-  /** Recorte vigente (§3.7). `de`/`ate` nascem do atalho "Este mês" (CA-46). */
-  protected readonly filtros = signal<FiltroRelatorio>({});
+  /**
+   * Recorte vigente (§3.7). `de`/`ate` nascem do atalho "Este mês" (CA-46).
+   *
+   * É um `FiltroMovimentacoes` — **sem** a granularidade —, porque é este objeto que vai e volta do
+   * painel de filtros reusado. A granularidade entra só na hora do pedido (`carregar`).
+   */
+  protected readonly filtros = signal<FiltroMovimentacoes>({});
+  protected readonly filtrosAbertos = signal(false);
   protected readonly atalho = signal<Atalho>('MES');
   protected readonly granularidade = signal<Granularidade>('MES');
+
+  /** Quantos recortes além do período estão ativos — alimenta o rótulo "Filtros (n)". */
+  protected readonly filtrosAtivos = computed(() => {
+    const { tipo, produtoId, clienteId, fornecedorId } = this.filtros();
+    return [tipo, produtoId, clienteId, fornecedorId].filter((v) => v !== null && v !== undefined)
+      .length;
+  });
 
   /** Sem período não há o que pedir — o back responderia 400 `field=de` (§3.7-a0). */
   protected readonly semPeriodo = computed(() => !this.filtros().de || !this.filtros().ate);
@@ -98,7 +113,13 @@ export class Relatorios implements OnInit {
    */
   protected escolherAtalho(atalho: Atalho): void {
     this.atalho.set(atalho);
-    if (atalho === 'INTERVALO') return;
+    // "Intervalo" não calcula período nenhum: ele abre o painel, que é onde moram os dois
+    // datepickers pt-BR (§3.13). O painel é o MESMO da tela de Movimentações — consumido, não
+    // duplicado (aval do orquestrador; mesma postura do §3.7-a1 no back).
+    if (atalho === 'INTERVALO') {
+      this.filtrosAbertos.set(true);
+      return;
+    }
 
     const hoje = hojeEmSaoPaulo();
     let de: Date;
@@ -112,6 +133,18 @@ export class Relatorios implements OnInit {
     }
     this.granularidade.set(atalho);
     this.filtros.update((f) => ({ ...f, de: iso(de), ate: iso(ate) }));
+    this.carregar();
+  }
+
+  /**
+   * Recorte novo vindo do painel (§3.5): o período passa a ser o que o operador escolheu, então o
+   * atalho vigente vira "Intervalo" — deixar "Este mês" aceso com outro período na mão seria a tela
+   * afirmando algo que não é verdade.
+   */
+  protected aplicarFiltros(novo: FiltroMovimentacoes): void {
+    this.filtros.set(novo);
+    this.filtrosAbertos.set(false);
+    this.atalho.set('INTERVALO');
     this.carregar();
   }
 
@@ -161,5 +194,19 @@ export class Relatorios implements OnInit {
    */
   protected quantidade(valor: number): string {
     return valor.toLocaleString('pt-BR');
+  }
+
+  /**
+   * Rótulo do balde: `dd/MM` → `dd/MM` a partir do `yyyy-MM-dd` que o servidor manda (§3.7-c), sem
+   * passar por `Date`.
+   *
+   * Recortar a string é **mais honesto** que formatar: `new Date('2026-09-01')` é interpretado como
+   * UTC e, em `America/Sao_Paulo`, voltaria 31/08 — o erro de fronteira que o §12 #12 descreve. De
+   * quebra, esta tela não usa `| date` e por isso **não** depende do `registerLocaleData` que o
+   * §12 #30 exige: `toLocaleString` de número é `Intl`, não pipe do Angular.
+   */
+  protected intervalo(p: PeriodoRelatorio): string {
+    const dia = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+    return p.inicio === p.fim ? dia(p.inicio) : `${dia(p.inicio)} a ${dia(p.fim)}`;
   }
 }

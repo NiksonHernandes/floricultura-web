@@ -7,6 +7,7 @@
 // melhor e imprime. A ÚNICA ousadia é a fórmula escrita na ficha de resultado.
 // Mobile-first (FC-02): uma coluna no celular, alvos >= 44px, zero sombra nova/animação (CA-52).
 @use '../../shared/styles/atelie-tokens' as atelie;
+@use '../../shared/styles/tabela-densa' as tabela;
 
 :host {
   @include atelie.base;
@@ -17,6 +18,10 @@
   background: var(--estufa);
   color: var(--tinta);
 }
+
+// Base da tabela densa (§3.13 manda reusar) — CONSUMIDA, nunca editada (§8): Movimentações,
+// clientes, fornecedores e cores dependem do mesmo arquivo.
+@include tabela.tabela-densa;
 
 .fechamento {
   max-width: 60rem;
@@ -147,6 +152,27 @@
   font: 600 0.78rem/1.3 var(--display);
   letter-spacing: 0.08em;
   color: var(--folhagem);
+}
+
+// A coluna do período é a "primeira coluna" do mixin: sem `data-rotulo`, porque ela é o nome da
+// linha — quem rotula no celular seria etiqueta dobrada.
+.balde__periodo {
+  font-variant-numeric: tabular-nums;
+}
+
+.nota {
+  margin: 1rem 0 0;
+  padding: 0.75rem 0.9rem;
+  border-left: 3px solid var(--caule);
+  background: #fff;
+  font: var(--txt-apoio);
+  color: var(--tinta-media);
+}
+
+.controles__filtros {
+  min-height: var(--toque, 44px);
+  --mat-button-outlined-label-text-color: var(--folhagem);
+  --mat-button-outlined-icon-color: var(--folhagem);
 }
 
 .ajustes {

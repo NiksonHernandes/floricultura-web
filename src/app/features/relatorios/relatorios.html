@@ -57,7 +57,32 @@
         Por mês
       </button>
     </div>
+
+    <button
+      type="button"
+      mat-stroked-button
+      class="controles__filtros"
+      aria-controls="painel-filtros-mov"
+      [attr.aria-expanded]="filtrosAbertos()"
+      (click)="filtrosAbertos.set(!filtrosAbertos())"
+    >
+      <mat-icon aria-hidden="true">tune</mat-icon>
+      <span>Filtros ({{ filtrosAtivos() }})</span>
+    </button>
   </div>
+
+  <!--
+    Painel REUSADO da tela de Movimentações (§3.13 pede os mesmos recortes do §3.5). Montado por
+    `@if`, como lá: fechado, o `MatDatepicker` fica fora da árvore — e é isso que permite a esta
+    tela ter specs que não provêem `DateAdapter`.
+  -->
+  @if (filtrosAbertos()) {
+    <app-filtros-movimentacoes
+      [valor]="filtros()"
+      (mudou)="aplicarFiltros($event)"
+      (fechou)="filtrosAbertos.set(false)"
+    />
+  }
 
   @if (carregando()) {
     <div class="estado" role="status">
@@ -114,6 +139,44 @@
       <div class="estado estado--vazio">
         <p>Nenhum lançamento neste período.</p>
       </div>
+    } @else {
+      <!--
+        Detalhado = a SÉRIE DE BALDES, que é o que o §3.7 entrega. O lançamento linha a linha sai no
+        arquivo exportado (§3.8) e já existe na tela de Movimentações — três lugares, três
+        granularidades, sem sobreposição (decisão do orquestrador sobre a S1 do plano).
+      -->
+      <table class="tabela">
+        <thead>
+          <tr>
+            <th scope="col">Período</th>
+            <th scope="col">Entradas</th>
+            <th scope="col">Saídas</th>
+            <th scope="col">Resultado</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (p of r.periodos; track p.inicio) {
+            <tr class="balde">
+              <td class="balde__periodo">{{ intervalo(p) }}</td>
+              <td data-rotulo="Entradas">{{ moeda(p.entradas.valor) }}</td>
+              <td data-rotulo="Saídas">{{ moeda(p.saidas.valor) }}</td>
+              <td data-rotulo="Resultado">{{ moeda(p.resultadoValor) }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+
+    <!--
+      Omissão DECLARADA (PA#3/CA-49): o par estornado sai dos totais, e a tela diz quanto saiu.
+      O contador é de LANÇAMENTOS (linhas do recorte), não de pares — no par que atravessa a
+      fronteira do período ele vale 1, e chamar isso de "1 par" seria a segunda mentira (§12 #23).
+    -->
+    @if (r.resumo.lancamentosEstornadosExcluidos > 0) {
+      <p class="nota">
+        {{ r.resumo.lancamentosEstornadosExcluidos }} lançamento(s) ficaram fora destes totais por
+        participarem de um estorno — o lançamento corrigido e a linha que o estornou.
+      </p>
     }
   }
 </section>
