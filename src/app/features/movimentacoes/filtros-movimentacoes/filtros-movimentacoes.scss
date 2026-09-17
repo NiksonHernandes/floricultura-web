@@ -12,6 +12,15 @@
   @include atelie.base;
   display: block;
   margin-bottom: 1.25rem;
+
+  // Alvo de toque dos botões de ÍCONE (AD-SQ-180, decisão do dono — entrega da T-M7-09).
+  // O default do `mat-icon-button` do Material 20 é 40px, abaixo dos 44 do CA-51/FC-02. MEDIDO a
+  // 375px, no harness de iframe (`filtros-movimentacoes.toque.spec.ts`): 40,0 antes e 44,0 depois,
+  // nos três — os dois `mat-datepicker-toggle` e o `.painel__fechar`.
+  // Uma declaração só: o token HERDA para dentro do `mat-datepicker-toggle`, que é componente
+  // filho. Por isso aqui NÃO cabe `::ng-deep` (diferente da AD-SQ-174, onde o alvo pequeno era um
+  // `<label>` interno do Material e nenhum token o alcançava).
+  --mat-icon-button-state-layer-size: var(--toque, 44px);
 }
 
 .painel {
