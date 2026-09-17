@@ -33,4 +33,21 @@ export class MovimentacoesService {
       .get<ApiResponse<PaginaResponse<Movimentacao>>>(this.baseUrl, { params })
       .pipe(map((r) => r.data!));
   }
+
+  /**
+   * `POST /movimentacoes/{id}/estorno` — cria a LINHA NOVA que reverte o lançamento (SPEC-M7 §3.4, D-A).
+   *
+   * Não existe edição de ledger: corrigir um erro de digitação é **inserir outra linha**, e o extrato
+   * mostra as duas. O `motivo` é obrigatório no back (3..255, PA#2) — é a única chance de gravar o
+   * porquê, já que a linha é imutável. Só ADMIN (o `SecurityConfig` barra USER com 403, §3.9).
+   *
+   * Recusas conhecidas, todas ANTES de qualquer escrita (§3.4-d): 404 inexistente · 409 já estornada /
+   * estorno-de-estorno / AJUSTE / produto excluído · 400 estoque insuficiente. A tela mostra a
+   * mensagem do envelope e **não** mexe na lista — quem decide é o servidor.
+   */
+  estornar(id: number, motivo: string): Observable<Movimentacao> {
+    return this.http
+      .post<ApiResponse<Movimentacao>>(`${this.baseUrl}/${id}/estorno`, { motivo })
+      .pipe(map((r) => r.data!));
+  }
 }

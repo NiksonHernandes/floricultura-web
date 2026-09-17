@@ -1,0 +1,119 @@
+// Confirmação de ESTORNO — "a linha que corrige a linha" (SPEC-M7 §3.11-d, D-A/PA#2).
+//
+// Irmã do `confirmar-exclusao`: MESMA linguagem do ateliê (design system canônico vence), mesmos
+// nomes de bloco (`.alerta__*`) para que as duas confirmações do app sejam reconhecíveis como uma
+// família. Diferença deliberada no AVISO: aqui ele não é vermelho de perigo — estornar não destrói
+// nada, cria uma linha. O acento da dália fica só no botão, que é o gesto que grava no ledger.
+// Mobile-first (FC-02): alvos >= 44px, sem overflow a 375px. Zero sombra/blur/animação (§9).
+@use '../../../shared/styles/atelie-tokens' as atelie;
+
+:host {
+  @include atelie.base;
+  display: block;
+  color: var(--tinta);
+}
+
+.alerta__cabecalho {
+  padding: 1.1rem 1.5rem 0.5rem;
+}
+
+.alerta__eyebrow {
+  font: 600 0.68rem/1 var(--display);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--caule);
+}
+
+.alerta__titulo {
+  margin: 0.3rem 0 0;
+  padding: 0;
+  font: 400 clamp(1.35rem, 3.4vw, 1.7rem) / 1.1 var(--display);
+  font-optical-sizing: auto;
+  letter-spacing: -0.01em;
+  color: var(--folhagem);
+}
+
+.alerta__corpo {
+  padding: 0 1.5rem;
+}
+
+.alerta__pergunta {
+  margin: 0.25rem 0 1rem;
+  font: var(--mat-sys-body-large);
+  line-height: 1.5;
+}
+
+.estorno__produto,
+.estorno__qtd,
+.estorno__valor {
+  color: var(--folhagem);
+}
+
+// Aviso INFORMATIVO (não de perigo): verde-vidro do ateliê, não o carmim da exclusão. O operador
+// precisa entender que a linha original permanece — isso tranquiliza, não alarma.
+.alerta__aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--orvalho);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--orvalho) 45%, #fff);
+  color: color-mix(in srgb, var(--tinta) 80%, var(--estufa));
+  font: var(--mat-sys-body-small);
+  line-height: 1.45;
+
+  mat-icon {
+    flex: none;
+    color: var(--caule);
+  }
+}
+
+// `subscriptSizing="dynamic"` no template (§12 #28/AD-SQ-173): a faixa de subscript tem altura fixa
+// (~20px) e a mensagem de erro do motivo quebra em 2 linhas a 375px, transbordando sobre o que vier
+// abaixo. Aqui o campo é o último do corpo, mas o `dynamic` é o padrão certo e custa só a variação
+// de altura no instante do erro.
+.estorno__motivo {
+  width: 100%;
+
+  --mdc-outlined-text-field-focus-outline-color: var(--caule);
+  --mdc-outlined-text-field-caret-color: var(--caule);
+  --mdc-outlined-text-field-focus-label-text-color: var(--folhagem);
+}
+
+.alerta__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 1rem 1.5rem 1.25rem;
+}
+
+.alerta__acoes .mat-mdc-button,
+.alerta__acoes .mat-mdc-unelevated-button {
+  min-height: 44px;
+}
+
+.botao-secundario {
+  --mat-button-text-label-text-color: var(--folhagem);
+  --mat-button-text-icon-color: var(--folhagem);
+}
+
+// O acento da dália é gasto no gesto que GRAVA no ledger — a linha nova é definitiva.
+.acao-perigo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  --mat-button-filled-container-color: var(--dalia);
+  --mat-button-filled-label-text-color: #fff;
+  --mat-button-filled-state-layer-color: #fff;
+  --mat-button-filled-ripple-color: color-mix(in srgb, white 30%, transparent);
+}
+
+// Foco de teclado visível (piso de qualidade §9).
+:host ::ng-deep .mdc-button:focus-visible {
+  outline: 2px solid var(--caule);
+  outline-offset: 2px;
+  border-radius: 8px;
+}

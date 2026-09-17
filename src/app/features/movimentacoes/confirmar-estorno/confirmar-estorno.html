@@ -1,0 +1,60 @@
+<div class="alerta">
+  <header class="alerta__cabecalho">
+    <span class="alerta__eyebrow">Ateliê · Livro-caixa</span>
+    <h2 mat-dialog-title class="alerta__titulo">Estornar lançamento</h2>
+  </header>
+
+  <div mat-dialog-content class="alerta__corpo">
+    <!--
+      O texto fala do que SERÁ CRIADO, não de "desfazer" (§3.11-d / D-A): o ledger é insert-only, a
+      linha original continua no livro para sempre e o estoque volta porque uma linha NOVA o move.
+      O valor vem de `totalFinal` GRAVADO — a tela nunca remultiplica (ver `valorRevertido`).
+    -->
+    <p class="alerta__pergunta">
+      Isto criará uma <strong>{{ tipoInvertido }}</strong> de
+      <strong class="estorno__qtd">{{ dados.movimentacao.quantidade }}</strong> de
+      <strong class="estorno__produto">{{ dados.movimentacao.produtoNome }}</strong
+      >@if (valorRevertido; as valor) {, no valor de
+      <strong class="estorno__valor">{{ valor }}</strong
+      >}.
+    </p>
+
+    <p class="alerta__aviso" role="alert">
+      <mat-icon aria-hidden="true">info_outline</mat-icon>
+      <span>
+        O lançamento original <strong>não é apagado</strong> — as duas linhas ficam visíveis no livro.
+      </span>
+    </p>
+
+    <!-- Motivo OBRIGATÓRIO (PA#2): a linha é imutável, esta é a única chance de gravar o porquê. -->
+    <mat-form-field appearance="outline" class="estorno__motivo" subscriptSizing="dynamic">
+      <mat-label>Motivo do estorno</mat-label>
+      <textarea
+        matInput
+        [formControl]="motivo"
+        rows="2"
+        maxlength="255"
+        required
+        aria-label="Motivo do estorno"
+      ></textarea>
+      @if (motivo.touched && motivo.hasError('required')) {
+        <mat-error>Informe o motivo do estorno.</mat-error>
+      } @else if (motivo.touched && motivo.hasError('minlength')) {
+        <mat-error>O motivo precisa de pelo menos 3 caracteres.</mat-error>
+      }
+    </mat-form-field>
+  </div>
+
+  <div mat-dialog-actions class="alerta__acoes">
+    <button type="button" mat-button class="botao-secundario" (click)="cancelar()">Cancelar</button>
+    <button
+      type="button"
+      mat-flat-button
+      class="acao-perigo estorno__confirmar"
+      (click)="confirmar()"
+    >
+      <mat-icon aria-hidden="true">undo</mat-icon>
+      <span>Estornar</span>
+    </button>
+  </div>
+</div>

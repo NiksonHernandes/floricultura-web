@@ -246,6 +246,18 @@
   --mat-button-text-icon-color: var(--caule);
 }
 
+/* Estornar (§3.11-d) — acento da dália no gatilho que GRAVA no ledger, alvo >= 44px (FC-02). */
+.lancamento__estornar {
+  min-height: 44px;
+  --mat-button-text-label-text-color: #8f2450;
+  --mat-button-text-icon-color: #8f2450;
+}
+
+/* Banner da recusa do estorno: some quando fechado, e não substitui a tabela. */
+.estorno-erro {
+  margin-bottom: 1rem;
+}
+
 /* ---- Paginação ---- */
 .paginacao {
   margin-top: 1.25rem;

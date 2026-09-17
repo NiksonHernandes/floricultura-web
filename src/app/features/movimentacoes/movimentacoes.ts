@@ -1,5 +1,6 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ReactiveFormsModule, FormControl } from '@angular/forms';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
@@ -16,6 +17,12 @@ import {
   VisualizarLancamento,
   VisualizarLancamentoDados,
 } from './visualizar-lancamento/visualizar-lancamento';
+import {
+  ConfirmarEstorno,
+  ConfirmarEstornoDados,
+} from './confirmar-estorno/confirmar-estorno';
+import { AuthService } from '../../core/services/auth.service';
+import { ApiResponse } from '../../core/models/api-response.model';
 import { Movimentacao, TipoMovimentacao } from '../../core/models/produto.model';
 
 /** MatPaginator em pt-BR — ecoa `produtos.ts`, rótulo do domínio (o ledger é o "livro-caixa"). */
@@ -33,6 +40,21 @@ function paginatorPtBr(): MatPaginatorIntl {
     return `${inicio}–${fim} de ${length}`;
   };
   return intl;
+}
+
+/**
+ * Mensagem do ENVELOPE §3.1 (`{ error: { message } }`), com fallback honesto por status.
+ *
+ * O estorno recusa por motivos que só o servidor conhece — "já foi estornado", "AJUSTE não é
+ * estornável", "estoque insuficiente" (§3.4-d). Inventar um texto local aqui trocaria a razão real
+ * por um palpite; por isso a mensagem do back vem primeiro, e o genérico só cobre falha sem corpo
+ * (rede/502), onde não há nada de verdadeiro a dizer sobre o lançamento.
+ */
+function mensagemDoEnvelope(erro: HttpErrorResponse): string {
+  const envelope = (erro.error as ApiResponse<unknown> | null)?.error ?? null;
+  if (envelope?.message) return envelope.message;
+  if (erro.status === 403) return 'Você não tem permissão para estornar lançamentos.';
+  return 'Não foi possível estornar agora. Tente novamente.';
 }
 
 /** Rótulos pt-BR dos tipos do ledger (AD-SQ-30). */
@@ -76,6 +98,17 @@ export const ROTULOS_TIPO_MOV: Record<TipoMovimentacao, string> = {
 export class Movimentacoes implements OnInit {
   private readonly service = inject(MovimentacoesService);
   private readonly dialog = inject(MatDialog);
+  private readonly auth = inject(AuthService);
+
+  /**
+   * RBAC de UX (§3.11-d): a ação "Estornar" só aparece para ADMIN. É orientação de interface — quem
+   * barra de verdade é o back (403 do `SecurityConfig`, §3.9). Signal do `AuthService`: com sessão
+   * anônima (o caso das suítes herdadas) vale `false` e nada é renderizado nem requisitado.
+   */
+  protected readonly ehAdmin = this.auth.ehAdmin;
+
+  /** Erro do ESTORNO (409/400) — banner na LISTA, separado do `erro()` de carregar a página. */
+  protected readonly erroEstorno = signal<string | null>(null);
 
   protected readonly movimentacoes = signal<Movimentacao[]>([]);
   protected readonly carregando = signal(false);
@@ -184,6 +217,40 @@ export class Movimentacoes implements OnInit {
     return valor == null
       ? '—'
       : valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  /**
+   * O lançamento é estornável **pela regra de UX** (§3.4-d): `AJUSTE` não é estornável, linha que já É
+   * um estorno não é estornável, e linha órfã de produto excluído não é (não há estoque a devolver).
+   *
+   * Isto **não substitui** o back — ele devolve 409 para cada um desses casos e é a autoridade. O que
+   * a tela faz é não oferecer um botão que só pode falhar. "Esta linha JÁ FOI estornada" **não** é
+   * derivável do payload (o ponteiro é só para frente, §12 #5): esse caso chega como 409 e vira banner.
+   */
+  protected podeEstornar(m: Movimentacao): boolean {
+    return m.tipo !== 'AJUSTE' && !this.ehEstorno(m) && !this.produtoExcluido(m);
+  }
+
+  /**
+   * Abre a confirmação e, se o operador assinar com um motivo, dispara o `POST` (§3.11-d).
+   *
+   * Sucesso ⇒ **recarrega a página atual**: a linha nova aparece no topo e a original permanece — as
+   * duas visíveis, que é o ponto do D-A. Erro ⇒ mostra a mensagem DO ENVELOPE e **não mexe na lista**;
+   * remover a linha otimistamente seria inventar um efeito que o servidor recusou.
+   */
+  protected estornar(m: Movimentacao): void {
+    const dados: ConfirmarEstornoDados = { movimentacao: m };
+    this.dialog
+      .open(ConfirmarEstorno, { data: dados, maxWidth: 'min(34rem, calc(100vw - 2rem))' })
+      .afterClosed()
+      .subscribe((motivo?: string) => {
+        if (!motivo) return; // cancelou / Esc / backdrop
+        this.erroEstorno.set(null);
+        this.service.estornar(m.id, motivo).subscribe({
+          next: () => this.carregar(),
+          error: (falha: HttpErrorResponse) => this.erroEstorno.set(mensagemDoEnvelope(falha)),
+        });
+      });
   }
 
   /** Abre a ficha do lançamento (`MatDialog`, só leitura — RF-3/R-CA-11). */

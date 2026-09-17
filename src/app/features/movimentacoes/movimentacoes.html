@@ -32,6 +32,19 @@
     }
   </mat-form-field>
 
+  <!--
+    Banner do ESTORNO recusado (§3.11-d, CA-40): mora na LISTA, não no diálogo — o 409 chega DEPOIS
+    de o diálogo fechar. Separado do `erro()` de carregar a página, senão uma recusa de estorno
+    apagaria a tabela. A lista NÃO muda: quem decide o efeito é o servidor.
+  -->
+  @if (erroEstorno(); as msg) {
+    <p class="estado estado--erro estorno-erro" role="alert">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span>{{ msg }}</span>
+      <button mat-button type="button" (click)="erroEstorno.set(null)">Fechar</button>
+    </p>
+  }
+
   @if (carregando()) {
     <p class="estado" aria-live="polite">
       <mat-progress-spinner diameter="22" mode="indeterminate" aria-hidden="true" />
@@ -162,6 +175,19 @@
                   <mat-icon aria-hidden="true">visibility</mat-icon>
                   <span>Visualizar</span>
                 </button>
+                <!-- Estornar: só ADMIN (§3.11-d). RBAC de UX — quem barra de verdade é o back (403). -->
+                @if (ehAdmin() && podeEstornar(m)) {
+                  <button
+                    type="button"
+                    mat-button
+                    class="lancamento__estornar"
+                    (click)="estornar(m)"
+                    [attr.aria-label]="'Estornar lançamento de ' + m.produtoNome"
+                  >
+                    <mat-icon aria-hidden="true">undo</mat-icon>
+                    <span>Estornar</span>
+                  </button>
+                }
               </td>
             </tr>
           }
