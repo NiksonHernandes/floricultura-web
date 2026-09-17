@@ -216,6 +216,24 @@
   min-height: var(--toque, 44px);
 }
 
+/* ---- Baixar o arquivo ---- */
+.acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+}
+
+.acoes__baixar {
+  min-height: var(--toque, 44px);
+  --mat-button-outlined-label-text-color: var(--folhagem);
+  --mat-button-outlined-icon-color: var(--folhagem);
+}
+
+.acoes__erro {
+  margin-top: 0.75rem;
+}
+
 /* ---- Bancada ---- */
 @include atelie.acima(atelie.$bp-sm) {
   .resumo {

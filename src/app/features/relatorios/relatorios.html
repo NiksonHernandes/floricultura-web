@@ -178,5 +178,37 @@
         participarem de um estorno — o lançamento corrigido e a linha que o estornou.
       </p>
     }
+
+    <!--
+      Download (§3.8/CA-47): o arquivo traz o DETALHADO linha a linha, que esta tela não mostra.
+      Nada de `<a href>` para a API — o endpoint exige `Authorization` e um link cru daria 401,
+      deslogando a pessoa pelo interceptor.
+    -->
+    <div class="acoes">
+      <button
+        type="button"
+        mat-stroked-button
+        class="acoes__baixar acoes__pdf"
+        [disabled]="baixando() !== null"
+        (click)="baixar('PDF')"
+      >
+        <mat-icon aria-hidden="true">picture_as_pdf</mat-icon>
+        <span>{{ baixando() === 'PDF' ? 'Gerando…' : 'Baixar PDF' }}</span>
+      </button>
+      <button
+        type="button"
+        mat-stroked-button
+        class="acoes__baixar acoes__xlsx"
+        [disabled]="baixando() !== null"
+        (click)="baixar('XLSX')"
+      >
+        <mat-icon aria-hidden="true">table_view</mat-icon>
+        <span>{{ baixando() === 'XLSX' ? 'Gerando…' : 'Baixar Excel' }}</span>
+      </button>
+    </div>
+
+    @if (erroDownload()) {
+      <p class="estado estado--erro acoes__erro" role="alert">{{ erroDownload() }}</p>
+    }
   }
 </section>

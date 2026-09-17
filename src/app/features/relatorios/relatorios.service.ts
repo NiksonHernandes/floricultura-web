@@ -4,7 +4,7 @@ import { Observable, map } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../../core/models/api-response.model';
-import { Granularidade, Relatorio } from '../../core/models/relatorio.model';
+import { FormatoExport, Granularidade, Relatorio } from '../../core/models/relatorio.model';
 import { FiltroMovimentacoes } from '../movimentacoes/movimentacoes.service';
 
 /**
@@ -41,6 +41,21 @@ export class RelatoriosService {
     return this.http
       .get<ApiResponse<Relatorio>>(this.baseUrl, { params: paramsDe(filtros) })
       .pipe(map((r) => r.data!));
+  }
+
+  /**
+   * `GET /relatorios/movimentacoes/export?formato=PDF|XLSX` → **binário fora do envelope** (§3.8).
+   *
+   * `responseType: 'blob'` e **nunca** `<a href>` direto nem `window.open`: o endpoint exige
+   * `Authorization`, que só existe no `HttpClient` (o interceptor o injeta). Um link cru daria 401
+   * e — pior — o interceptor deslogaria a pessoa no meio de um download.
+   *
+   * A `granularidade` **não** vai: o back a aceita e a ignora neste endpoint (o arquivo traz o
+   * detalhado, não a série). Mandar um parâmetro inerte sugeriria que ele muda o arquivo.
+   */
+  exportar(filtros: FiltroMovimentacoes, formato: FormatoExport): Observable<Blob> {
+    const params = paramsDe(filtros).set('formato', formato);
+    return this.http.get(`${this.baseUrl}/export`, { params, responseType: 'blob' });
   }
 }
 

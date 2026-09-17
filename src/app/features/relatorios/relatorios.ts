@@ -1,4 +1,5 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -6,7 +7,40 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { FiltroRelatorio, RelatoriosService } from './relatorios.service';
 import { FiltrosMovimentacoes } from '../movimentacoes/filtros-movimentacoes/filtros-movimentacoes';
 import { FiltroMovimentacoes } from '../movimentacoes/movimentacoes.service';
-import { Granularidade, PeriodoRelatorio, Relatorio } from '../../core/models/relatorio.model';
+import { ApiResponse } from '../../core/models/api-response.model';
+import {
+  FormatoExport,
+  Granularidade,
+  PeriodoRelatorio,
+  Relatorio,
+} from '../../core/models/relatorio.model';
+
+/**
+ * Mensagem do envelope §3.1 num erro de request **binário**.
+ *
+ * ⚠️ Com `responseType: 'blob'`, o corpo de ERRO também chega como `Blob` — `erro.error.error.message`
+ * não existe, e ler o envelope exige **descompactar o texto** (assíncrono). O §3.13 é silente sobre
+ * isto, e sem tratar o caso a tela teria de adivinhar a razão do 400, que pode ser "formato
+ * inválido", "período ausente" ou "passou de 5.000 lançamentos" (§3.8) — três coisas diferentes. O
+ * genérico só cobre corpo ilegível (rede/proxy), onde não há nada de verdadeiro a dizer.
+ */
+async function mensagemDoEnvelope(erro: HttpErrorResponse): Promise<string> {
+  const corpo: unknown = erro.error;
+  const texto = corpo instanceof Blob ? await corpo.text().catch(() => '') : '';
+  const envelope = lerEnvelope(texto);
+  if (envelope?.error?.message) return envelope.error.message;
+  if (erro.status === 403) return 'Você não tem permissão para baixar este relatório.';
+  return 'Não foi possível gerar o arquivo agora. Tente novamente.';
+}
+
+/** Corpo que não é JSON (binário truncado, HTML de proxy) vira `null` — e cai no genérico. */
+function lerEnvelope(texto: string): ApiResponse<unknown> | null {
+  try {
+    return texto ? (JSON.parse(texto) as ApiResponse<unknown>) : null;
+  } catch (naoEhJson) {
+    return null;
+  }
+}
 
 /** Fuso de TODA fronteira de data do projeto (§4.8, AD-SQ-47). */
 const ZONA = 'America/Sao_Paulo';
@@ -208,5 +242,47 @@ export class Relatorios implements OnInit {
   protected intervalo(p: PeriodoRelatorio): string {
     const dia = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
     return p.inicio === p.fim ? dia(p.inicio) : `${dia(p.inicio)} a ${dia(p.fim)}`;
+  }
+
+  /** Formato em geração (desabilita os dois botões) e o erro do download, em banner próprio. */
+  protected readonly baixando = signal<FormatoExport | null>(null);
+  protected readonly erroDownload = signal<string | null>(null);
+
+  /**
+   * Baixa o relatório como arquivo (§3.8/CA-47, CA-48).
+   *
+   * O nome é montado **aqui**, com a mesma regra do §3.8, e não lido do `Content-Disposition`: o
+   * `CorsConfig` do back não declara `exposedHeaders`, então **o navegador não enxerga aquele
+   * header** entre origens (conferido no código da API, não suposto). Duplicar a regra do nome é o
+   * preço de não depender de um header inalcançável — e um teste que só conferisse "o header existe"
+   * ficaria verde sem a exposição, porque ele sempre existiu na resposta.
+   */
+  protected baixar(formato: FormatoExport): void {
+    if (this.semPeriodo() || this.baixando()) return;
+    this.baixando.set(formato);
+    this.erroDownload.set(null);
+    this.service.exportar(this.filtros(), formato).subscribe({
+      next: (blob) => {
+        this.salvar(blob, formato);
+        this.baixando.set(null);
+      },
+      error: (falha: HttpErrorResponse) => {
+        void mensagemDoEnvelope(falha).then((mensagem) => {
+          this.erroDownload.set(mensagem);
+          this.baixando.set(null); // o botão VOLTA a ficar habilitado (CA-48)
+        });
+      },
+    });
+  }
+
+  /** Object URL + `<a download>` clicado por código, e **revogado em seguida** (CA-47). */
+  private salvar(blob: Blob, formato: FormatoExport): void {
+    const { de, ate } = this.filtros();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `movimentacoes-${de}_a_${ate}.${formato.toLowerCase()}`;
+    link.click();
+    URL.revokeObjectURL(url); // sem isto o blob fica retido na aba até recarregar
   }
 }
