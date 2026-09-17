@@ -179,6 +179,9 @@
    some do CSS emitido e devolve bytes. */
 .lancamento__produto {
   overflow-wrap: anywhere;
+  /* Celular: o mixin faz `td { display: flex }`, então SEM isto o `<p>` do motivo vira item da
+     MESMA fileira do nome, que fica espremido. O §3.11-b diz "embaixo". */
+  flex-wrap: wrap;
 }
 
 /* Selo "Excluído" — linha órfã do ledger (produtoId=null, FC-08/AD-SQ-34). SPEC-M5.2 B-R3/B-R4/B-R5.
@@ -241,9 +244,15 @@
   }
 }
 
+/* Celular: linha própria e texto INTEIRO. O `display: block` desarma o clamp de 1 linha que o
+   `.tabela__apoio` impõe via `-webkit-box` — no desktop o clamp é certo (tabela densa, e o `title`
+   entrega o texto no hover), mas no celular não há hover e o que sumiria é justamente o MOTIVO,
+   que o dono tornou obrigatório no estorno (PA#2). O desktop devolve o clamp mais abaixo. */
 .lancamento__motivo {
   margin: 0.25rem 0 0;
   overflow-wrap: anywhere;
+  flex: 1 0 100%;
+  display: block;
 }
 
 /* Carimbo data+hora pt-BR/America/Sao_Paulo (CA-24) */
@@ -287,6 +296,12 @@
 @include atelie.acima(atelie.$bp-sm) {
   .campo dt {
     display: none;
+  }
+
+  /* Devolve o clamp de 1 linha da tabela densa: aqui a célula é `table-cell`, o motivo já cai
+     embaixo naturalmente, e o `title` entrega o texto completo no hover. */
+  .lancamento__motivo {
+    display: -webkit-box;
   }
 }
 

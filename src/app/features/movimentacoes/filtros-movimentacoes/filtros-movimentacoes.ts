@@ -1,4 +1,4 @@
-import { Component, inject, input, output, signal } from '@angular/core';
+import { Component, effect, inject, input, output, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -54,6 +54,12 @@ function deDataIso(iso: string | null | undefined): Date | null {
  *
  * O ESTADO mora no pai (`valor` in / `mudou` out), então fechar o painel não perde recorte: mesma
  * API do `filtros-produtos`. Nada é carregado no `ngOnInit` (CA-41).
+ *
+ * ⚠️ **Quem cumpre essa promessa é o `effect()` de reidratação abaixo, não o construtor.** Na 1ª
+ * entrega esta doc prometia preservar o recorte e o código lia `this.valor()` no construtor — onde o
+ * signal de `input()` ainda vale o default. Resultado: o painel reabria em branco e o "Aplicar"
+ * seguinte apagava o recorte **em silêncio** (P1-1 da review). Doc que promete o que o código não faz
+ * é pior que doc nenhuma: ela desliga a desconfiança de quem lê.
  */
 @Component({
   selector: 'app-filtros-movimentacoes',
@@ -105,16 +111,46 @@ export class FiltrosMovimentacoes {
   /** `de > ate` é 400 no back (§3.5). A tela avisa antes de gastar a viagem — o back segue mandando. */
   protected readonly periodoInvertido = signal(false);
 
-  constructor() {
-    const atual = this.valor();
-    this.form.setValue({
-      de: deDataIso(atual.de),
-      ate: deDataIso(atual.ate),
-      tipo: atual.tipo ?? null,
-      produtoId: atual.produtoId ?? null,
-      clienteId: atual.clienteId ?? null,
-      fornecedorId: atual.fornecedorId ?? null,
-    });
+  /**
+   * Reidrata o form a partir do recorte vigente — em `effect()`, **nunca no construtor**.
+   *
+   * ⚠️ Signal de `input()` só é preenchido **depois** da instanciação: ler `this.valor()` no
+   * construtor devolve o default (`{}`), sempre. E como o pai monta este painel por `@if`, nasce
+   * instância nova a cada abertura — ou seja, este é o **único** caminho de reidratação, e no
+   * construtor ele nunca funcionaria. O sintoma era mudo e caro: reabrir mostrava o form em branco e
+   * o "Aplicar" seguinte **apagava o recorte em silêncio**, numa tela de auditoria (P1-1 da review).
+   *
+   * O guard de comparação é o que impede o laço: `limpar()` emite `{}`, o pai devolve `{}` pelo
+   * `valor`, e sem ele o efeito reescreveria o form a cada volta. Mesmo desenho do
+   * `filtros-produtos.ts:213`, que é o padrão que o §3.11-f mandava reusar.
+   */
+  private readonly reidratacao = effect(() => {
+    const externo = this.valor();
+    if (JSON.stringify(externo) === JSON.stringify(this.montar())) return;
+    this.form.setValue(
+      {
+        de: deDataIso(externo.de),
+        ate: deDataIso(externo.ate),
+        tipo: externo.tipo ?? null,
+        produtoId: externo.produtoId ?? null,
+        clienteId: externo.clienteId ?? null,
+        fornecedorId: externo.fornecedorId ?? null,
+      },
+      { emitEvent: false },
+    );
+  });
+
+  /** Estado atual do form no formato do contrato (§3.5) — base do guard acima e do `aplicar()`. */
+  private montar(): FiltroMovimentacoes {
+    const { de, ate, tipo, produtoId, clienteId, fornecedorId } = this.form.getRawValue();
+    return {
+      de: paraDataIso(de),
+      ate: paraDataIso(ate),
+      tipo: tipo ?? null,
+      produtoId: produtoId ?? null,
+      clienteId: clienteId ?? null,
+      fornecedorId: fornecedorId ?? null,
+    };
   }
 
   /**
@@ -162,20 +198,13 @@ export class FiltrosMovimentacoes {
   }
 
   protected aplicar(): void {
-    const { de, ate, tipo, produtoId, clienteId, fornecedorId } = this.form.getRawValue();
+    const { de, ate } = this.form.getRawValue();
     if (de && ate && de > ate) {
       this.periodoInvertido.set(true);
       return;
     }
     this.periodoInvertido.set(false);
-    this.mudou.emit({
-      de: paraDataIso(de),
-      ate: paraDataIso(ate),
-      tipo: tipo ?? null,
-      produtoId: produtoId ?? null,
-      clienteId: clienteId ?? null,
-      fornecedorId: fornecedorId ?? null,
-    });
+    this.mudou.emit(this.montar());
   }
 
   protected limpar(): void {
