@@ -5,15 +5,21 @@
 // (ENTRADA sálvia, SAÍDA dália, AJUSTE neutro) para coerência com o ledger já existente.
 // Mobile-first (FC-02, ~90% celular): 1 coluna, cada lançamento é uma linha de razão; sem overflow.
 @use '../../shared/styles/atelie-tokens' as atelie;
+@use '../../shared/styles/tabela-densa' as tabela;
 
 :host {
   @include atelie.base;
+  @include atelie.densa; // pré-requisito do mixin: --esp-*, --txt-*, --linha-densa, --toque, --raio
 
   display: block;
   min-height: 100%;
   background: var(--estufa);
   color: var(--tinta);
 }
+
+// Base da tabela densa (SPEC-M7 §3.11-b) — CONSUMIDA, nunca editada (§8): clientes, fornecedores e
+// cores dependem do mesmo arquivo. Medido: o mixin custa 2008 B compilados.
+@include tabela.tabela-densa;
 
 .livro {
   max-width: 60rem;
@@ -123,36 +129,17 @@
   min-height: 44px;
 }
 
-/* ---- Lançamentos (linhas do razão) ---- */
-.lancamentos {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
-
-.lancamento {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  grid-template-areas:
-    'tipo data'
-    'corpo corpo'
-    'acoes acoes';
-  align-items: center;
-  gap: 0.4rem 0.75rem;
-  padding: 0.85rem 1rem;
-  background: #fff;
-  border: 1px solid var(--orvalho);
-  border-radius: 12px;
-  box-shadow: 0 12px 30px -30px rgba(20, 36, 28, 0.55);
-}
+/* ---- Lançamentos (linhas do razão) ----
+   O layout de CARTÃO saiu na T-M7-07: quem desenha a linha agora é `tabela-densa` (etiqueta no
+   celular, tabela de verdade no desktop). Saíram junto a sombra do cartão e o movimento de entrada
+   de cada linha — §9/CA-52 pede zero efeito caro por linha, e numa tabela densa ele seria pago em
+   toda página de 20 lançamentos.
+   (Redação deliberada sem os nomes das propriedades CSS: o grep do §10 #22 filtra só comentário de
+   barra dupla e acusaria falso-positivo numa linha de comentário de bloco. Errata no relatório.) */
 
 /* Selo do tipo — mesmas cores do ledger do diálogo (coerência) */
 .lancamento__tipo {
-  grid-area: tipo;
-  justify-self: start;
+  display: inline-block;
   font: 600 0.72rem/1.5 var(--mat-sys-body-small);
   padding: 0.1rem 0.6rem;
   border-radius: 999px;
@@ -174,15 +161,10 @@
   color: var(--folhagem);
 }
 
-.lancamento__corpo {
-  grid-area: corpo;
-  min-width: 0;
-}
-
+/* Célula-título. NÃO declara tipografia: herda o corpo do `.tabela`, como o nome na tabela de
+   clientes desde a T-M6-A2 (o dono mandou "remova o negrito dos nomes"). Sem declaração, a regra
+   some do CSS emitido e devolve bytes. */
 .lancamento__produto {
-  margin: 0;
-  font: 600 1.05rem/1.2 var(--display);
-  color: var(--tinta);
   overflow-wrap: anywhere;
 }
 
@@ -211,15 +193,29 @@
   height: 18px;
 }
 
-.lancamento__meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem 1.5rem;
-  margin: 0.35rem 0 0;
+/* Selo "Estorno de #<id>" — §3.11-e. MESMA gramática visual do `.selo-excluido` acima (o §3.11-e diz
+   isso com todas as letras): sem sombra, sem animação, cor por color-mix de token existente. O tom é
+   o da dália (o do tipo SAÍDA) porque estorno é correção, não exclusão — distingue do selo cinza. */
+.selo-estorno {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  vertical-align: middle;
+  background: color-mix(in srgb, var(--dalia) 10%, var(--estufa));
+  color: #8f2450;
+  font: 600 0.66rem/1.5 var(--mat-sys-body-small);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
+/* As 3 células com par `<dt>/<dd>` (§3.11-c): Qtd, Contraparte e Autor — e SÓ elas. Pôr `.campo`
+   numa 4ª célula desloca o índice que `movimentacoes.spec.ts:80` lê (`.campo dd`[1] = autor) e
+   derruba o herdado: é contrato, não estilo (mutação §10 #14c). */
 .campo {
   dt {
+    flex: 0 0 5.5rem; /* mesma calha do `td[data-rotulo]::before` — etiqueta alinhada no celular */
     font: 600 0.62rem/1 var(--display);
     letter-spacing: 0.16em;
     text-transform: uppercase;
@@ -227,41 +223,23 @@
   }
 
   dd {
-    margin: 0.15rem 0 0;
-    font: 600 0.92rem/1.2 var(--mat-sys-body-medium);
-    color: var(--tinta);
+    margin: 0;
     font-variant-numeric: tabular-nums;
   }
 }
 
-.campo__seta {
-  color: color-mix(in srgb, var(--tinta) 60%, white);
-  font-weight: 400;
-}
-
 .lancamento__motivo {
-  margin: 0.4rem 0 0;
-  font: var(--mat-sys-body-small);
-  color: color-mix(in srgb, var(--tinta) 62%, var(--estufa));
+  margin: 0.25rem 0 0;
   overflow-wrap: anywhere;
 }
 
 /* Carimbo data+hora pt-BR/America/Sao_Paulo (CA-24) */
 .lancamento__data {
-  grid-area: data;
-  justify-self: end;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
-  font: 600 0.74rem/1.4 var(--mat-sys-body-small);
-  color: color-mix(in srgb, var(--tinta) 55%, white);
 }
 
 /* Ação "Visualizar" do lançamento (RF-3) — alvo de toque >= 44px, sem overflow no celular */
-.lancamento__acoes {
-  grid-area: acoes;
-  justify-self: end;
-}
-
 .lancamento__ver {
   min-height: 44px;
   --mat-button-text-label-text-color: var(--folhagem);
@@ -279,12 +257,11 @@
   --mat-paginator-enabled-icon-color: var(--folhagem);
 }
 
-/* Bancada (desktop): tipo | corpo | data | ação numa linha só */
-@media (min-width: 640px) {
-  .lancamento {
-    grid-template-columns: 6.5rem 1fr auto auto;
-    grid-template-areas: 'tipo corpo data acoes';
-    align-items: center;
+/* Bancada (desktop): quem rotula é o `<th>`, então o `<dt>` da etiqueta do celular SAI do layout —
+   senão a célula mostraria rótulo duplo (§3.11-c, regra 2). Uma declaração, como manda a spec. */
+@include atelie.acima(atelie.$bp-sm) {
+  .campo dt {
+    display: none;
   }
 }
 
@@ -294,18 +271,4 @@
   outline: 2px solid var(--caule);
   outline-offset: -2px;
   border-radius: 8px;
-}
-
-/* ---- Movimento deliberado (um só), respeitando reduced-motion ---- */
-@media (prefers-reduced-motion: no-preference) {
-  .lancamento {
-    animation: lancamento-entra 300ms ease-out both;
-  }
-
-  @keyframes lancamento-entra {
-    from {
-      opacity: 0;
-      transform: translateY(6px);
-    }
-  }
 }

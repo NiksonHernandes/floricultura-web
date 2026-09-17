@@ -53,63 +53,121 @@
       }
     </div>
   } @else {
-    <ul class="lancamentos" aria-label="Movimentações de estoque">
-      @for (m of movimentacoes(); track m.id) {
-        <li class="lancamento">
-          <span class="lancamento__tipo lancamento__tipo--{{ m.tipo }}">{{ rotuloTipo(m.tipo) }}</span>
+    <!--
+      TABELA DENSA (SPEC-M7 §3.11-b): `<table>` SEMÂNTICA reusando `_tabela-densa.scss` — a MESMA base
+      que clientes/fornecedores/cores já consomem (o §8 manda CONSUMIR, nunca editar). No desktop é
+      tabela de verdade; abaixo de 640px o mixin desmonta cada `<tr>` numa etiqueta de viveiro.
 
-          <div class="lancamento__corpo">
-            <h2 class="lancamento__produto">
-              {{ m.produtoNome }}
-              <!-- Selo do produto excluído: só em linha órfã (produtoId=null, FC-08). B-R1/B-R5. -->
-              @if (produtoExcluido(m)) {
-                <span class="selo-excluido" aria-label="Produto excluído">
-                  <mat-icon class="selo-excluido__icone" aria-hidden="true">delete_outline</mat-icon>
-                  <span class="selo-excluido__texto">Excluído</span>
-                </span>
-              }
-            </h2>
-            <dl class="lancamento__meta">
-              <div class="campo">
+      ⚠️ CONTRATO DE MARCAÇÃO (§3.11-c) — normativo, é o que evita pedir liberação de teste herdado.
+      Os 3 specs de Movimentações ancoram em `.lancamento`, `.lancamento__tipo--<TIPO>`,
+      `.lancamento__data`, `.lancamento__ver`, `.selo-excluido`, `.campo dd` e `.campo--contraparte`.
+      Duas regras que parecem detalhe e NÃO são:
+        1. ORDEM: `Qtd` → `Contraparte` → `Autor`. `movimentacoes.spec.ts:80` lê `.campo dd`[1] e espera
+           o AUTOR, com fixture SEM contraparte. Por isso Saldo/Unitário/Total NÃO levam `.campo`, e a
+           célula de contraparte só o ganha QUANDO HÁ contraparte (vazia, é `<td>` comum — mantém a
+           coluna alinhada sem deslocar o índice).
+        2. A célula com `.campo` não leva `data-rotulo`: o `<dt>` já é o rótulo do celular (etiqueta
+           dupla, não). O `<dt>` some no desktop por UMA declaração no `.scss`, onde quem rotula é o `<th>`.
+      `<dt>/<dd>` ficam DIRETO no `<td>` (sem `<dl>`): é o que o §3.11-c desenha, e é o que faz o
+      `display:flex` do mixin render a etiqueta "rótulo à esquerda, dado à direita" sem CSS extra.
+    -->
+    <div class="tabela-cartao">
+      <table class="tabela" aria-label="Movimentações de estoque">
+        <thead>
+          <tr>
+            <th scope="col">Data/hora</th>
+            <th scope="col">Produto</th>
+            <th scope="col">Tipo</th>
+            <th scope="col">Qtd</th>
+            <th scope="col">Saldo</th>
+            <th scope="col">Unitário</th>
+            <th scope="col">Total</th>
+            <th scope="col">Contraparte</th>
+            <th scope="col">Autor</th>
+            <th scope="col" class="tabela__acoes">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (m of movimentacoes(); track m.id) {
+            <tr class="lancamento">
+              <td data-rotulo="Data/hora">
+                <time class="lancamento__data" [attr.datetime]="m.criadoEm">
+                  {{ m.criadoEm | date: 'dd/MM/yyyy HH:mm' : 'America/Sao_Paulo' : 'pt-BR' }}
+                </time>
+              </td>
+
+              <!-- Célula-título: dispensa `data-rotulo` (precedente da tabela de clientes). -->
+              <td class="lancamento__produto">
+                {{ m.produtoNome }}
+                <!-- Selo do produto excluído: só em linha órfã (produtoId=null, FC-08). B-R1/B-R5. -->
+                @if (produtoExcluido(m)) {
+                  <span class="selo-excluido" aria-label="Produto excluído">
+                    <mat-icon class="selo-excluido__icone" aria-hidden="true">delete_outline</mat-icon>
+                    <span class="selo-excluido__texto">Excluído</span>
+                  </span>
+                }
+                <!-- Linha de estorno identificável na lista (§3.11-e): mesma gramática visual do selo
+                     de excluído — sem sombra, sem animação. As DUAS linhas ficam visíveis (D-A). -->
+                @if (ehEstorno(m)) {
+                  <span class="selo-estorno" aria-label="Linha de estorno">
+                    Estorno de #{{ m.estornaMovimentacaoId }}
+                  </span>
+                }
+                @if (m.motivo) {
+                  <p class="lancamento__motivo tabela__apoio" [title]="m.motivo">{{ m.motivo }}</p>
+                }
+              </td>
+
+              <td data-rotulo="Tipo">
+                <span class="lancamento__tipo lancamento__tipo--{{ m.tipo }}">{{
+                  rotuloTipo(m.tipo)
+                }}</span>
+              </td>
+
+              <td class="campo">
                 <dt>Quantidade</dt>
-                <dd>{{ m.quantidade }} <span class="campo__seta">→ {{ m.quantidadeResultante }}</span></dd>
-              </div>
-              <div class="campo">
-                <dt>Autor</dt>
-                <dd>{{ m.usuarioNome ?? '—' }}</dd>
-              </div>
+                <dd>{{ m.quantidade }}</dd>
+              </td>
+
+              <!-- Saldo = `quantidadeResultante`, GRAVADO pelo back linha a linha (§3.6): zero soma no
+                   navegador, logo zero risco de "running total que muda conforme a página". -->
+              <td data-rotulo="Saldo">{{ m.quantidadeResultante }}</td>
+
+              <td data-rotulo="Unitário">{{ moeda(m.valorUnitario) }}</td>
+              <td data-rotulo="Total">{{ moeda(m.totalFinal) }}</td>
+
               <!-- Contraparte quando houver (RF-3): fornecedor na ENTRADA / cliente na SAÍDA. -->
               @if (contraparteRotulo(m); as rot) {
-                <div class="campo campo--contraparte">
+                <td class="campo campo--contraparte">
                   <dt>{{ rot }}</dt>
                   <dd>{{ contraparteNome(m) }}</dd>
-                </div>
+                </td>
+              } @else {
+                <td></td>
               }
-            </dl>
-            @if (m.motivo) {
-              <p class="lancamento__motivo">{{ m.motivo }}</p>
-            }
-          </div>
 
-          <time class="lancamento__data" [attr.datetime]="m.criadoEm">
-            {{ m.criadoEm | date: 'dd/MM/yyyy HH:mm' : 'America/Sao_Paulo' : 'pt-BR' }}
-          </time>
+              <td class="campo">
+                <dt>Autor</dt>
+                <dd>{{ m.usuarioNome ?? '—' }}</dd>
+              </td>
 
-          <div class="lancamento__acoes">
-            <button
-              type="button"
-              mat-button
-              class="lancamento__ver"
-              (click)="visualizar(m)"
-              [attr.aria-label]="'Visualizar lançamento de ' + m.produtoNome"
-            >
-              <mat-icon aria-hidden="true">visibility</mat-icon>
-              <span>Visualizar</span>
-            </button>
-          </div>
-        </li>
-      }
-    </ul>
+              <td class="tabela__acoes">
+                <button
+                  type="button"
+                  mat-button
+                  class="lancamento__ver"
+                  (click)="visualizar(m)"
+                  [attr.aria-label]="'Visualizar lançamento de ' + m.produtoNome"
+                >
+                  <mat-icon aria-hidden="true">visibility</mat-icon>
+                  <span>Visualizar</span>
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
 
     <mat-paginator
       class="paginacao"

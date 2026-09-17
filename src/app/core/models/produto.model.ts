@@ -200,6 +200,26 @@ export interface Movimentacao {
   fornecedorNome?: string | null;
   clienteId?: number | null;
   clienteNome?: string | null;
+  /**
+   * Valores financeiros CONGELADOS na linha (SPEC-M7 §3.3, aditivo — 6 campos, todos `null` quando
+   * não se aplicam). Vêm do servidor já em `NUMERIC(14,2)` (§3.1-a): **a tela FORMATA, nunca recalcula**
+   * — `totalBruto`/`totalFinal` são autoridade do back (§3.2-a), numa linha que ninguém pode corrigir
+   * depois. Recalcular `quantidade × valorUnitario` no navegador erraria toda linha com desconto.
+   *
+   * `null` ≠ `0`: "sem valor informado" (P6, o lançamento sem dinheiro é legítimo) se exibe `—`,
+   * enquanto desconto de 100 % é `R$ 0,00` de verdade (§4.4). O desconto efetivo em R$ **não** é campo:
+   * é `totalBruto − totalFinal` (§3.1-a — derivável, não duplicado).
+   *
+   * `estornaMovimentacaoId` aponta para a linha que ESTA linha estorna (§3.4-a); `null` = lançamento
+   * comum. O ponteiro é só para frente — "já foi estornada" se descobre pelo 409 (§12 #5).
+   * Opcionais no tipo: mudança aditiva, as fixtures do M2/M4/M5 seguem válidas.
+   */
+  valorUnitario?: number | null;
+  descontoTipo?: DescontoTipo | null;
+  descontoValor?: number | null;
+  totalBruto?: number | null;
+  totalFinal?: number | null;
+  estornaMovimentacaoId?: number | null;
   criadoEm: string;
 }
 

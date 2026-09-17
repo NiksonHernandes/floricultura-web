@@ -158,6 +158,34 @@ export class Movimentacoes implements OnInit {
     return m.fornecedorNome ?? m.clienteNome ?? null;
   }
 
+  /**
+   * Esta linha É um estorno de outra (SPEC-M7 §3.11-e): `estornaMovimentacaoId != null`. A tela marca
+   * a linha com o selo `Estorno de #<id>` — as DUAS linhas ficam visíveis, que é o ponto do D-A
+   * (corrigir lançamento é inserir linha nova, nunca editar). O ponteiro é só para frente: "esta linha
+   * JÁ FOI estornada" não é derivável daqui e se descobre pelo 409 do back (§12 #5).
+   */
+  protected ehEstorno(m: Movimentacao): boolean {
+    return m.estornaMovimentacaoId !== null && m.estornaMovimentacaoId !== undefined;
+  }
+
+  /**
+   * Formata dinheiro em pt-BR (§3.11-b, colunas "Unitário" e "Total").
+   *
+   * ⚠️ **`== null`, NUNCA `!valor`** — e isto é contrato, não estilo (§4.4): desconto de 100 % grava
+   * `total_final = 0.00`, que é um valor REAL e tem de aparecer como **R$ 0,00**; `null` é "sem valor
+   * informado" (P6) e aparece como **—**. Um `if (!valor)` colapsaria os dois casos e faria a tela
+   * mentir sobre um brinde/doação. Coberto pelo caso de `0` × `null` em `movimentacoes.tabela.spec.ts`.
+   *
+   * Aqui **não há arredondamento**: o valor chega do servidor em `NUMERIC(14,2)` (§3.1-a) e esta função
+   * só formata. É de propósito que ela não consome `normalizar2` (AD-SQ-165) — normalizar de novo o que
+   * já veio normalizado seria reimplementar a aritmética do §3.2-b no navegador.
+   */
+  protected moeda(valor: number | null | undefined): string {
+    return valor == null
+      ? '—'
+      : valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
   /** Abre a ficha do lançamento (`MatDialog`, só leitura — RF-3/R-CA-11). */
   protected visualizar(m: Movimentacao): void {
     const dados: VisualizarLancamentoDados = { movimentacao: m };
