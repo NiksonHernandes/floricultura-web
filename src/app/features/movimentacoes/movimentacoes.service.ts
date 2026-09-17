@@ -4,7 +4,27 @@ import { Observable, map } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../../core/models/api-response.model';
-import { Movimentacao, PaginaResponse } from '../../core/models/produto.model';
+import { Movimentacao, PaginaResponse, TipoMovimentacao } from '../../core/models/produto.model';
+
+/**
+ * Recorte da lista global (SPEC-M7 §3.5) — **todos opcionais**, todos em `E` entre si.
+ *
+ * `de`/`ate` são `yyyy-MM-dd` em `America/Sao_Paulo`, e o dia final **entra inteiro** (quem faz o
+ * `+1 dia` é o back). Os três ids são **recorte, não validação**: id que não casa nada devolve
+ * **200 com lista vazia**, nunca 400 (AD-SQ-168) — é por isso que a tela trata resultado vazio sob
+ * filtro como estado vazio honesto, e não como erro.
+ */
+export interface FiltroMovimentacoes {
+  de?: string | null;
+  ate?: string | null;
+  tipo?: TipoMovimentacao | null;
+  produtoId?: number | null;
+  clienteId?: number | null;
+  fornecedorId?: number | null;
+}
+
+/** Nenhum recorte aplicado — referência estável para comparação e para "limpar". */
+export const FILTRO_MOV_VAZIO: FiltroMovimentacoes = {};
 
 /**
  * Serviço da lista global de Movimentações (SPEC-M4 §3.5, T-M4-11).
@@ -23,11 +43,24 @@ export class MovimentacoesService {
    * GET /movimentacoes?pagina&tamanho&q → página do ledger global (§3.5, 0-based). `q` só entra no
    * request quando há filtro (evita `q=` vazio na URL) — mesmo padrão de `ProdutosService.listar`.
    */
-  listar(pagina: number, tamanho: number, q?: string): Observable<PaginaResponse<Movimentacao>> {
+  listar(
+    pagina: number,
+    tamanho: number,
+    q?: string,
+    filtros?: FiltroMovimentacoes,
+  ): Observable<PaginaResponse<Movimentacao>> {
     let params = new HttpParams().set('pagina', pagina).set('tamanho', tamanho);
     const termo = q?.trim();
     if (termo) {
       params = params.set('q', termo);
+    }
+    // Só o que está preenchido viaja (§3.5): param vazio na URL é ruído e o back trata ausente como
+    // "sem recorte". O 4º parâmetro é OPCIONAL de propósito — as chamadas posicionais de 3 argumentos
+    // que já existem (inclusive nos specs herdados do serviço) seguem idênticas, byte a byte.
+    for (const [chave, valor] of Object.entries(filtros ?? {})) {
+      if (valor !== null && valor !== undefined && valor !== '') {
+        params = params.set(chave, String(valor));
+      }
     }
     return this.http
       .get<ApiResponse<PaginaResponse<Movimentacao>>>(this.baseUrl, { params })
