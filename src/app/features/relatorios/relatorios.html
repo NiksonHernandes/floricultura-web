@@ -1,0 +1,33 @@
+<section class="fechamento">
+  <!-- Placa: mesmo padrão editorial das outras telas do ateliê (design distintivo, §9). -->
+  <header class="placa">
+    <span class="placa__furo" aria-hidden="true"></span>
+    <div class="placa__texto">
+      <span class="placa__eyebrow">Ateliê · Fechamento</span>
+      <h1 class="placa__titulo">Relatórios</h1>
+      <p class="placa__sub">
+        Entradas e saídas do período, como o livro fechou — o detalhe linha a linha sai no arquivo.
+      </p>
+    </div>
+  </header>
+
+  @if (carregando()) {
+    <div class="estado" role="status">
+      <mat-spinner diameter="32" />
+      <p>Gerando o relatório…</p>
+    </div>
+  } @else if (erro()) {
+    <div class="estado estado--erro" role="alert">
+      <p>{{ erro() }}</p>
+      <button type="button" mat-stroked-button (click)="carregar()">Tentar de novo</button>
+    </div>
+  } @else if (semPeriodo()) {
+    <div class="estado estado--vazio">
+      <p>Escolha um período para gerar o relatório.</p>
+    </div>
+  } @else if (semLancamentos()) {
+    <div class="estado estado--vazio">
+      <p>Nenhum lançamento neste período.</p>
+    </div>
+  }
+</section>

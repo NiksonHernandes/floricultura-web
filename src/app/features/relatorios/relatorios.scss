@@ -1,0 +1,102 @@
+// Relatórios — o fechamento do livro-caixa (SPEC-M7 §3.13, §9, CA-45..CA-49).
+//
+// Design system canônico do ateliê (`_atelie-tokens.scss`), MESMO produto: folhagem/estufa/tinta/
+// caule/dalia/orvalho/sais + Fraunces na placa e o rótulo de viveiro (caixa alta, 0.18em) nos
+// dados. Nada de painel de KPI com gradiente nem gráfico: o front não tem biblioteca de gráfico e
+// não vai ganhar uma (leveza é regra do dono); com no máximo 13 baldes, ficha + tabela densa lê
+// melhor e imprime. A ÚNICA ousadia é a fórmula escrita na ficha de resultado.
+// Mobile-first (FC-02): uma coluna no celular, alvos >= 44px, zero sombra nova/animação (CA-52).
+@use '../../shared/styles/atelie-tokens' as atelie;
+
+:host {
+  @include atelie.base;
+  @include atelie.densa;
+
+  display: block;
+  min-height: 100%;
+  background: var(--estufa);
+  color: var(--tinta);
+}
+
+.fechamento {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3rem;
+}
+
+/* ---- Placa (mesmo cabeçalho editorial das demais telas) ---- */
+.placa {
+  position: relative;
+  margin-bottom: 1.25rem;
+  padding: 1.5rem 1.5rem 1.25rem;
+  background: radial-gradient(120% 140% at 100% 0%, #274a3a 0%, var(--folhagem) 60%);
+  color: var(--estufa);
+  border-radius: 14px;
+}
+
+.placa__furo {
+  position: absolute;
+  top: -11px;
+  left: 2rem;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--estufa);
+  border: 1.5px solid var(--caule);
+}
+
+.placa__eyebrow {
+  font: 600 0.72rem/1 var(--display);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--sais);
+}
+
+.placa__titulo {
+  margin: 0.35rem 0 0;
+  font: 400 clamp(1.7rem, 4.5vw, 2.4rem) / 1.05 var(--display);
+  font-optical-sizing: auto;
+  letter-spacing: -0.01em;
+}
+
+.placa__sub {
+  margin: 0.4rem 0 0;
+  max-width: 36rem;
+  font: var(--mat-sys-body-medium);
+  color: color-mix(in srgb, var(--sais) 92%, white);
+}
+
+/* ---- Estados honestos ---- */
+.estado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1.25rem;
+  border: 1px solid var(--orvalho);
+  border-radius: var(--raio, 12px);
+  background: #fff;
+  color: color-mix(in srgb, var(--tinta) 70%, var(--estufa));
+  font: var(--mat-sys-body-medium);
+
+  p {
+    margin: 0;
+  }
+}
+
+.estado--erro {
+  border-color: color-mix(in srgb, var(--dalia) 40%, white);
+  color: #8f2450;
+}
+
+.estado--vazio {
+  justify-content: center;
+  text-align: center;
+  padding: 2.25rem 1.5rem;
+}
+
+.estado .mat-mdc-button,
+.estado .mat-mdc-outlined-button {
+  --mat-button-text-label-text-color: var(--folhagem);
+  min-height: var(--toque, 44px);
+}
