@@ -43,6 +43,56 @@
         }
       </select>
     </div>
+
+    <!--
+      Selects de recorte carregados SÓ ao receber foco (CA-41): nada sai no `ngOnInit`, nem daqui nem
+      da tela. Enquanto ninguém encosta, a lista fica vazia e o `<select>` mostra só "Todos" — que é
+      honesto: ele não promete opções que não buscou.
+    -->
+    <div class="campo-nativo">
+      <label class="campo-nativo__rotulo" for="filtro-produto">Produto</label>
+      <select
+        id="filtro-produto"
+        class="campo-nativo__campo filtro-produto"
+        formControlName="produtoId"
+        (focus)="carregarProdutos()"
+      >
+        <option [ngValue]="null">Todos</option>
+        @for (p of produtos(); track p.id) {
+          <option [ngValue]="p.id">{{ p.nome }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="campo-nativo">
+      <label class="campo-nativo__rotulo" for="filtro-cliente">Cliente</label>
+      <select
+        id="filtro-cliente"
+        class="campo-nativo__campo filtro-cliente"
+        formControlName="clienteId"
+        (focus)="carregarClientes()"
+      >
+        <option [ngValue]="null">Todos</option>
+        @for (c of clientes(); track c.id) {
+          <option [ngValue]="c.id">{{ c.nome }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="campo-nativo">
+      <label class="campo-nativo__rotulo" for="filtro-fornecedor">Fornecedor</label>
+      <select
+        id="filtro-fornecedor"
+        class="campo-nativo__campo filtro-fornecedor"
+        formControlName="fornecedorId"
+        (focus)="carregarFornecedores()"
+      >
+        <option [ngValue]="null">Todos</option>
+        @for (f of fornecedores(); track f.id) {
+          <option [ngValue]="f.id">{{ f.nome }}</option>
+        }
+      </select>
+    </div>
   </div>
 
   @if (periodoInvertido()) {

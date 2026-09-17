@@ -7,7 +7,16 @@ import { MatInputModule } from '@angular/material/input';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 
 import { FiltroMovimentacoes } from '../movimentacoes.service';
+import { ProdutosService } from '../../produtos/produtos.service';
+import { ClientesService } from '../../clientes/clientes.service';
+import { FornecedoresService } from '../../fornecedores/fornecedores.service';
 import { TipoMovimentacao } from '../../../core/models/produto.model';
+
+/** Opção de um select de recorte: só o que a tela precisa (id + nome), nunca a entidade inteira. */
+interface OpcaoRecorte {
+  id: number;
+  nome: string;
+}
 
 /**
  * `Date` do datepicker → `yyyy-MM-dd` do contrato (§3.5), pelos componentes **locais**.
@@ -79,7 +88,19 @@ export class FiltrosMovimentacoes {
     de: [null as Date | null],
     ate: [null as Date | null],
     tipo: [null as TipoMovimentacao | null],
+    produtoId: [null as number | null],
+    clienteId: [null as number | null],
+    fornecedorId: [null as number | null],
   });
+
+  private readonly produtosService = inject(ProdutosService);
+  private readonly clientesService = inject(ClientesService);
+  private readonly fornecedoresService = inject(FornecedoresService);
+
+  protected readonly produtos = signal<OpcaoRecorte[]>([]);
+  protected readonly clientes = signal<OpcaoRecorte[]>([]);
+  protected readonly fornecedores = signal<OpcaoRecorte[]>([]);
+  private carregados = { produtos: false, clientes: false, fornecedores: false };
 
   /** `de > ate` é 400 no back (§3.5). A tela avisa antes de gastar a viagem — o back segue mandando. */
   protected readonly periodoInvertido = signal(false);
@@ -90,27 +111,83 @@ export class FiltrosMovimentacoes {
       de: deDataIso(atual.de),
       ate: deDataIso(atual.ate),
       tipo: atual.tipo ?? null,
+      produtoId: atual.produtoId ?? null,
+      clienteId: atual.clienteId ?? null,
+      fornecedorId: atual.fornecedorId ?? null,
+    });
+  }
+
+  /**
+   * Carga SOB DEMANDA dos selects de recorte (CA-41): nada sai no `ngOnInit` — nem do painel, nem da
+   * tela. O `focus` do `<select>` nativo é o gatilho, e a flag impede repetir a chamada a cada foco.
+   * Em falha a flag volta a `false`, para que reabrir tente de novo em vez de ficar mudo para sempre.
+   *
+   * 1ª página com teto de 100, mesmo padrão já usado pelo modal Movimentar (RF-2): é recorte de
+   * conveniência, não um catálogo — quem tem mais de 100 produtos usa a busca por texto.
+   */
+  protected carregarProdutos(): void {
+    if (this.carregados.produtos) return;
+    this.carregados.produtos = true;
+    this.produtosService.listar(0, 100).subscribe({
+      next: (p) => this.produtos.set(p.conteudo.map((x) => ({ id: x.id, nome: x.nome }))),
+      error: () => {
+        this.produtos.set([]);
+        this.carregados.produtos = false;
+      },
+    });
+  }
+
+  protected carregarClientes(): void {
+    if (this.carregados.clientes) return;
+    this.carregados.clientes = true;
+    this.clientesService.listar(0, 100).subscribe({
+      next: (p) => this.clientes.set(p.conteudo.map((x) => ({ id: x.id, nome: x.nome }))),
+      error: () => {
+        this.clientes.set([]);
+        this.carregados.clientes = false;
+      },
+    });
+  }
+
+  protected carregarFornecedores(): void {
+    if (this.carregados.fornecedores) return;
+    this.carregados.fornecedores = true;
+    this.fornecedoresService.listar(0, 100).subscribe({
+      next: (p) => this.fornecedores.set(p.conteudo.map((x) => ({ id: x.id, nome: x.nome }))),
+      error: () => {
+        this.fornecedores.set([]);
+        this.carregados.fornecedores = false;
+      },
     });
   }
 
   protected aplicar(): void {
-    const { de, ate, tipo } = this.form.getRawValue();
+    const { de, ate, tipo, produtoId, clienteId, fornecedorId } = this.form.getRawValue();
     if (de && ate && de > ate) {
       this.periodoInvertido.set(true);
       return;
     }
     this.periodoInvertido.set(false);
     this.mudou.emit({
-      ...this.valor(),
       de: paraDataIso(de),
       ate: paraDataIso(ate),
       tipo: tipo ?? null,
+      produtoId: produtoId ?? null,
+      clienteId: clienteId ?? null,
+      fornecedorId: fornecedorId ?? null,
     });
   }
 
   protected limpar(): void {
     this.periodoInvertido.set(false);
-    this.form.setValue({ de: null, ate: null, tipo: null });
+    this.form.setValue({
+      de: null,
+      ate: null,
+      tipo: null,
+      produtoId: null,
+      clienteId: null,
+      fornecedorId: null,
+    });
     this.mudou.emit({});
   }
 
