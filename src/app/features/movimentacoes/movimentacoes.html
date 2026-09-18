@@ -9,55 +9,88 @@
     </div>
   </header>
 
-  <mat-form-field appearance="outline" class="busca">
-    <mat-icon matPrefix aria-hidden="true">search</mat-icon>
-    <mat-label>Buscar por produto ou autor</mat-label>
-    <input
-      matInput
-      type="text"
-      [formControl]="filtro"
-      autocomplete="off"
-      aria-label="Buscar movimentações por produto ou autor"
-    />
-    @if (filtro.value) {
-      <button
-        matSuffix
-        mat-icon-button
-        type="button"
-        aria-label="Limpar busca"
-        (click)="limparFiltro()"
-      >
-        <mat-icon>close</mat-icon>
-      </button>
-    }
-  </mat-form-field>
-
   <!--
-    Gatilho dos filtros (§3.5/§3.11-f). O painel é montado SÓ quando aberto — `@if` por ESTADO DO
-    USUÁRIO, não por largura de viewport (a §12 #24(b) do M6 proíbe a segunda, não esta). É o que
-    mantém o `MatDatepicker` fora da árvore na carga inicial: os 3 specs herdados desta tela não
-    provêem `DateAdapter`, e montá-lo eagerly os derrubaria com `NullInjectorError`.
+    Alternador de visões (§3.11-a): dois `<button aria-pressed>` nativos, SEM MatTabs — a mesma
+    postura leve que o M6 tomou ao recusar o MatMenu, e o mesmo idioma dos atalhos de Relatórios.
+    Trocar de visão NÃO requisita nada (CA-41): nem o catálogo do `<select>`, que só busca no foco.
   -->
-  <div class="controles">
+  <div class="visoes" role="group" aria-label="Visão das movimentações">
     <button
       type="button"
-      mat-stroked-button
-      class="controles__filtros"
-      aria-controls="painel-filtros-mov"
-      [attr.aria-expanded]="filtrosAbertos()"
-      (click)="filtrosAbertos.set(!filtrosAbertos())"
+      class="visao"
+      [attr.aria-pressed]="visao() === 'TODAS'"
+      (click)="mudarVisao('TODAS')"
     >
-      <mat-icon aria-hidden="true">tune</mat-icon>
-      <span>Filtros ({{ filtrosAtivos() }})</span>
+      Todas
+    </button>
+    <button
+      type="button"
+      class="visao"
+      [attr.aria-pressed]="visao() === 'PRODUTO'"
+      (click)="mudarVisao('PRODUTO')"
+    >
+      Por produto
     </button>
   </div>
 
-  @if (filtrosAbertos()) {
-    <app-filtros-movimentacoes
-      [valor]="filtros()"
-      (mudou)="aplicarFiltros($event)"
-      (fechou)="filtrosAbertos.set(false)"
-    />
+  @if (visao() === 'TODAS') {
+    <mat-form-field appearance="outline" class="busca">
+      <mat-icon matPrefix aria-hidden="true">search</mat-icon>
+      <mat-label>Buscar por produto ou autor</mat-label>
+      <input
+        matInput
+        type="text"
+        [formControl]="filtro"
+        autocomplete="off"
+        aria-label="Buscar movimentações por produto ou autor"
+      />
+      @if (filtro.value) {
+        <button
+          matSuffix
+          mat-icon-button
+          type="button"
+          aria-label="Limpar busca"
+          (click)="limparFiltro()"
+        >
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+    </mat-form-field>
+
+    <!--
+      Gatilho dos filtros (§3.5/§3.11-f). O painel é montado SÓ quando aberto — `@if` por ESTADO DO
+      USUÁRIO, não por largura de viewport (a §12 #24(b) do M6 proíbe a segunda, não esta). É o que
+      mantém o `MatDatepicker` fora da árvore na carga inicial: os 3 specs herdados desta tela não
+      provêem `DateAdapter`, e montá-lo eagerly os derrubaria com `NullInjectorError`.
+    -->
+    <div class="controles">
+      <button
+        type="button"
+        mat-stroked-button
+        class="controles__filtros"
+        aria-controls="painel-filtros-mov"
+        [attr.aria-expanded]="filtrosAbertos()"
+        (click)="filtrosAbertos.set(!filtrosAbertos())"
+      >
+        <mat-icon aria-hidden="true">tune</mat-icon>
+        <span>Filtros ({{ filtrosAtivos() }})</span>
+      </button>
+    </div>
+
+    @if (filtrosAbertos()) {
+      <app-filtros-movimentacoes
+        [valor]="filtros()"
+        (mudou)="aplicarFiltros($event)"
+        (fechou)="filtrosAbertos.set(false)"
+      />
+    }
+  } @else {
+    <!--
+      Busca `q` e painel de filtros NÃO aparecem aqui de propósito: `GET /produtos/{id}/movimentacoes`
+      não aceita nenhum dos dois (§3.6). Deixá-los visíveis e inertes seria a tela prometendo um
+      recorte que ela não sabe fazer.
+    -->
+    <app-extrato-produto [valor]="produtoExtrato()" (escolheu)="escolherProduto($event)" />
   }
 
   <!--
@@ -92,7 +125,12 @@
         lista vazia — não é erro, e dizer "nenhuma movimentação registrada" a quem filtrou seria
         mentira sobre o livro. Por isso o texto pergunta pelo RECORTE, não pelo acervo.
       -->
-      @if (filtro.value) {
+      @if (semProduto()) {
+        <p>Escolha um produto para ver o extrato dele.</p>
+      } @else if (visao() === 'PRODUTO') {
+        <!-- Só se pode dizer isto DEPOIS de o servidor responder (CA-44) — antes, seria invenção. -->
+        <p>Este produto ainda não tem movimentações registradas.</p>
+      } @else if (filtro.value) {
         <p>Nenhuma movimentação encontrada para “{{ filtro.value }}”. Tente outro termo.</p>
       } @else if (comRecorte()) {
         <p>Nenhuma movimentação neste recorte. Ajuste o período ou os filtros.</p>
@@ -146,7 +184,23 @@
 
               <!-- Célula-título: dispensa `data-rotulo` (precedente da tabela de clientes). -->
               <td class="lancamento__produto">
-                {{ m.produtoNome }}
+                <!--
+                  CA-43: o nome leva ao extrato DAQUELE produto, sem recarregar a página. Só na visão
+                  "Todas" (no extrato não há para onde ir) e só com produto vivo: linha órfã de
+                  produto excluído (FC-08) não tem extrato, e oferecer o clique seria promessa falsa.
+                -->
+                @if (visao() === 'TODAS' && !produtoExcluido(m)) {
+                  <button
+                    type="button"
+                    class="lancamento__extrato"
+                    (click)="abrirExtrato(m)"
+                    [attr.aria-label]="'Ver o extrato de ' + m.produtoNome"
+                  >
+                    {{ m.produtoNome }}
+                  </button>
+                } @else {
+                  {{ m.produtoNome }}
+                }
                 <!-- Selo do produto excluído: só em linha órfã (produtoId=null, FC-08). B-R1/B-R5. -->
                 @if (produtoExcluido(m)) {
                   <span class="selo-excluido" aria-label="Produto excluído">

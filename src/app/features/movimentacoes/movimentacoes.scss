@@ -98,6 +98,39 @@
   --mat-button-outlined-icon-color: var(--caule);
 }
 
+/* ---- Alternador de visões (§3.11-a) ----
+   A escolha do produto mora em `extrato-produto/`, com folha PRÓPRIA: com ela aqui, este arquivo
+   compilou 8 074 B e o build falhou (`Budget 8.00 kB … not met by 42 bytes`). Split por medição. */
+.visoes {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.visao {
+  min-height: var(--toque, 44px);
+  padding: 0 0.9rem;
+  border: 1px solid var(--orvalho);
+  border-radius: var(--raio, 12px);
+  background: #fff;
+  color: var(--tinta);
+  font: 500 0.88rem/1 var(--corpo);
+  cursor: pointer;
+
+  /* Estado lido pelo leitor de tela E pintado pelo seletor de atributo: uma fonte só de verdade. */
+  &[aria-pressed='true'] {
+    background: var(--folhagem);
+    border-color: var(--folhagem);
+    color: var(--estufa);
+  }
+}
+
+.visao:focus-visible,
+.lancamento__extrato:focus-visible {
+  outline: 2px solid var(--caule);
+  outline-offset: 2px;
+}
+
 /* ---- Estados honestos ---- */
 .estado {
   display: flex;
@@ -255,6 +288,20 @@
   display: block;
 }
 
+/* Nome do produto como gatilho do extrato (CA-43). Alvo de toque >= 44px no CELULAR (CA-51/FC-02);
+   no desktop o `min-height` volta a zero mais abaixo, senão a tabela densa deixaria de ser densa. */
+.lancamento__extrato {
+  min-height: var(--toque, 44px);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--folhagem);
+  font: inherit;
+  text-align: left;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 /* Carimbo data+hora pt-BR/America/Sao_Paulo (CA-24) */
 .lancamento__data {
   white-space: nowrap;
@@ -302,6 +349,12 @@
      embaixo naturalmente, e o `title` entrega o texto completo no hover. */
   .lancamento__motivo {
     display: -webkit-box;
+  }
+
+  /* Alvo de 44px é regra de DEDO, e no desktop quem aponta é o mouse: manter a altura aqui inflaria
+     cada linha da tabela densa sem ninguém ganhar nada. */
+  .lancamento__extrato {
+    min-height: 0;
   }
 }
 

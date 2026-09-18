@@ -13,7 +13,9 @@ import { MatPaginatorModule, MatPaginatorIntl, PageEvent } from '@angular/materi
 import { MatDialog } from '@angular/material/dialog';
 
 import { MovimentacoesService, FiltroMovimentacoes } from './movimentacoes.service';
+import { ProdutosService } from '../produtos/produtos.service';
 import { FiltrosMovimentacoes } from './filtros-movimentacoes/filtros-movimentacoes';
+import { ExtratoProduto, ProdutoDoExtrato } from './extrato-produto/extrato-produto';
 import {
   VisualizarLancamento,
   VisualizarLancamentoDados,
@@ -58,6 +60,9 @@ function mensagemDoEnvelope(erro: HttpErrorResponse): string {
   return 'Não foi possível estornar agora. Tente novamente.';
 }
 
+/** As duas visões da tela (SPEC-M7 §3.11-a): a lista global ou o extrato de UM produto. */
+export type VisaoMovimentacoes = 'TODAS' | 'PRODUTO';
+
 /** Rótulos pt-BR dos tipos do ledger (AD-SQ-30). */
 export const ROTULOS_TIPO_MOV: Record<TipoMovimentacao, string> = {
   ENTRADA: 'Entrada',
@@ -79,6 +84,13 @@ export const ROTULOS_TIPO_MOV: Record<TipoMovimentacao, string> = {
  * ficha completa do lançamento (`VisualizarLancamento`, `MatDialog`). Nada muda na fonte de dados: o
  * `GET /movimentacoes` (paginação/filtro/ordem `criado_em DESC`) continua igual — a contraparte é
  * aditiva no `MovimentacaoResponse`; a lista **não regride** (anti-regressão dos testes do M4).
+ *
+ * **T-M7-08 (SPEC-M7 §3.11-a/§3.6):** a MESMA tela ganha a 2ª visão, **"Por produto"** — o extrato de
+ * um produto, servido por `GET /produtos/{id}/movimentacoes` (sem endpoint novo). A coluna **Saldo**
+ * continua sendo `quantidadeResultante`, que o back grava linha a linha: **nada é somado aqui**, e é
+ * essa a razão de o §3.6 ter recusado um "saldo acumulado" calculado no navegador — ele mudaria de
+ * significado conforme a paginação. A visão "Por produto" **não requisita nada ao ser ativada**
+ * (CA-41): o catálogo do `<select>` vem no foco, e o extrato só quando há produto escolhido.
  */
 @Component({
   selector: 'app-movimentacoes',
@@ -92,6 +104,7 @@ export const ROTULOS_TIPO_MOV: Record<TipoMovimentacao, string> = {
     MatProgressSpinnerModule,
     MatPaginatorModule,
     FiltrosMovimentacoes,
+    ExtratoProduto,
   ],
   providers: [{ provide: MatPaginatorIntl, useFactory: paginatorPtBr }],
   templateUrl: './movimentacoes.html',
@@ -99,8 +112,26 @@ export const ROTULOS_TIPO_MOV: Record<TipoMovimentacao, string> = {
 })
 export class Movimentacoes implements OnInit {
   private readonly service = inject(MovimentacoesService);
+  private readonly produtosService = inject(ProdutosService);
   private readonly dialog = inject(MatDialog);
   private readonly auth = inject(AuthService);
+
+  /**
+   * Visão ativa (§3.11-a). "Todas" é o default, e é o que mantém a carga inicial em **uma** só
+   * requisição (CA-41): trocar de visão não busca nada por si — nem o catálogo do `<select>`, que só
+   * é lido quando alguém o foca.
+   */
+  protected readonly visao = signal<VisaoMovimentacoes>('TODAS');
+
+  /** Produto cujo extrato está aberto. `null` = ninguém escolheu ainda ⇒ nenhuma requisição sai. */
+  protected readonly produtoExtrato = signal<ProdutoDoExtrato | null>(null);
+
+  /**
+   * Visão "Por produto" ainda sem alvo. Separa "escolha um produto" de "este produto não tem
+   * movimentação" (CA-44): são duas verdades diferentes, e a segunda só pode ser dita **depois** de
+   * o servidor responder. Dizer a segunda sem ter perguntado seria a tela inventando um fato.
+   */
+  protected readonly semProduto = computed(() => this.visao() === 'PRODUTO' && !this.produtoExtrato());
 
   /**
    * RBAC de UX (§3.11-d): a ação "Estornar" só aparece para ADMIN. É orientação de interface — quem
@@ -160,10 +191,27 @@ export class Movimentacoes implements OnInit {
     this.carregar();
   }
 
+  /**
+   * Carrega a página vigente **da visão ativa**.
+   *
+   * "Todas" ⇒ `GET /movimentacoes` (o de sempre, com `q` e os recortes do §3.5). "Por produto" ⇒
+   * `GET /produtos/{id}/movimentacoes`, que **já existe desde o M2** — o §3.6 decidiu reusá-lo em vez
+   * de criar endpoint novo, e é por isso que o Saldo não precisa de conta nenhuma aqui: ele chega
+   * gravado em `quantidadeResultante`, linha a linha.
+   *
+   * Sem produto escolhido **não há o que pedir**: a tela mostra o convite e não gasta viagem.
+   */
   protected carregar(): void {
+    const alvo = this.produtoExtrato();
+    if (this.visao() === 'PRODUTO' && !alvo) return;
+
     this.carregando.set(true);
     this.erro.set(null);
-    this.service.listar(this.pagina(), this.tamanho(), this.filtro.value, this.filtros()).subscribe({
+    const fonte =
+      this.visao() === 'PRODUTO' && alvo
+        ? this.produtosService.movimentacoes(alvo.id, this.pagina(), this.tamanho())
+        : this.service.listar(this.pagina(), this.tamanho(), this.filtro.value, this.filtros());
+    fonte.subscribe({
       next: (pagina) => {
         this.movimentacoes.set(pagina.conteudo);
         this.totalElementos.set(pagina.totalElementos);
@@ -174,6 +222,49 @@ export class Movimentacoes implements OnInit {
         this.carregando.set(false);
       },
     });
+  }
+
+  /**
+   * Toda troca de visão/alvo **recomeça na 1ª página e esvazia a lista**.
+   *
+   * Esvaziar não é zelo: sem isso, as linhas da visão anterior ficariam na tela enquanto a nova
+   * carrega — e numa tela de auditoria isso é a pior mentira possível, porque as linhas são
+   * verdadeiras, só que de outra pergunta.
+   */
+  private recomecar(): void {
+    this.filtrosAbertos.set(false);
+    this.pagina.set(0);
+    this.movimentacoes.set([]);
+    this.totalElementos.set(0);
+    this.erro.set(null);
+    this.carregar();
+  }
+
+  /** Alternador do §3.11-a. Trocar de visão **não** dispara busca de catálogo (CA-41). */
+  protected mudarVisao(nova: VisaoMovimentacoes): void {
+    if (this.visao() === nova) return;
+    this.visao.set(nova);
+    this.recomecar();
+  }
+
+  /** Escolha vinda do `<select>` do filho. `null` ⇒ volta ao convite, sem pedir nada. */
+  protected escolherProduto(alvo: ProdutoDoExtrato | null): void {
+    this.produtoExtrato.set(alvo);
+    this.recomecar();
+  }
+
+  /**
+   * CA-43: clicar no nome do produto abre o extrato **daquele** produto, sem recarregar a página.
+   *
+   * Linha órfã (produto hard-deletado, `produtoId = null` — FC-08) **não** oferece o clique: não há
+   * produto a consultar, e um botão que só pode falhar é promessa falsa. Quem faz o produto aparecer
+   * no `<select>` sem catálogo carregado é o `opcoes()` do filho, a partir do `valor` que vai daqui.
+   */
+  protected abrirExtrato(m: Movimentacao): void {
+    if (m.produtoId == null) return;
+    this.produtoExtrato.set({ id: m.produtoId, nome: m.produtoNome });
+    this.visao.set('PRODUTO');
+    this.recomecar();
   }
 
   protected aoPaginar(evento: PageEvent): void {
