@@ -192,6 +192,21 @@ export class Movimentacoes implements OnInit {
   }
 
   /**
+   * Geração da carga vigente — **descarta resposta vencida** (P1 da review do delta).
+   *
+   * Esvaziar o array em `recomecar()` **não basta**: a requisição da visão anterior continua no ar e,
+   * quando pousa, escreve na lista. Reproduzido no app real com o `GET /movimentacoes` inicial
+   * segurado 9 s (o cold start do host grátis é de **30–50 s**, `HISTORICO.md`): a aba "Por produto"
+   * ficava pressionada, o `<select>` em "Escolha um produto…" e a tabela listando **dois produtos
+   * diferentes** — a mentira exata que o comentário do `recomecar()` promete impedir.
+   *
+   * Contador em vez de RxJS (`switchMap`/`takeUntil`) por leveza: o efeito é o mesmo para 3
+   * chamadores e não muda a forma do componente. A regra é uma só — **só a última carga pedida pode
+   * escrever no estado**, e isso vale para o `next` E para o `error`.
+   */
+  private geracao = 0;
+
+  /**
    * Carrega a página vigente **da visão ativa**.
    *
    * "Todas" ⇒ `GET /movimentacoes` (o de sempre, com `q` e os recortes do §3.5). "Por produto" ⇒
@@ -203,8 +218,15 @@ export class Movimentacoes implements OnInit {
    */
   protected carregar(): void {
     const alvo = this.produtoExtrato();
-    if (this.visao() === 'PRODUTO' && !alvo) return;
+    // Sem produto não há o que pedir. Encerrar o "carregando" aqui é parte do contrato: sem isto, o
+    // spinner da carga anterior fica preso no lugar do convite (efeito irmão do P1).
+    if (this.visao() === 'PRODUTO' && !alvo) {
+      this.geracao++;
+      this.carregando.set(false);
+      return;
+    }
 
+    const minha = ++this.geracao;
     this.carregando.set(true);
     this.erro.set(null);
     const fonte =
@@ -213,11 +235,13 @@ export class Movimentacoes implements OnInit {
         : this.service.listar(this.pagina(), this.tamanho(), this.filtro.value, this.filtros());
     fonte.subscribe({
       next: (pagina) => {
+        if (minha !== this.geracao) return; // resposta vencida: a pergunta na tela é outra
         this.movimentacoes.set(pagina.conteudo);
         this.totalElementos.set(pagina.totalElementos);
         this.carregando.set(false);
       },
       error: () => {
+        if (minha !== this.geracao) return; // idem: quem manda no estado é a carga vigente
         this.erro.set('Não foi possível carregar as movimentações. Tente novamente.');
         this.carregando.set(false);
       },

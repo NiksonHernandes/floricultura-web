@@ -351,8 +351,12 @@
     display: -webkit-box;
   }
 
-  /* Alvo de 44px é regra de DEDO, e no desktop quem aponta é o mouse: manter a altura aqui inflaria
-     cada linha da tabela densa sem ninguém ganhar nada. */
+  /* Alvo de 44px é regra de DEDO; no desktop quem aponta é o mouse, e a tabela densa não precisa da
+     altura extra. ⚠️ A 1ª redação disto afirmava que manter os 44px "inflaria cada linha" — MEDIDO a
+     1019 px com nome curto, isso é FALSO: o botão vai de 20 → 44 px e a linha fica em **69 px nos
+     dois casos**, porque quem governa a altura são as células mais altas (o `.lancamento__ver` já
+     tem 44px). Ou seja, hoje esta regra **não economiza altura nenhuma** — ela mantém a densidade
+     declarada para quando o resto da linha encolher. Quem quiser removê-la, remova com medição. */
   .lancamento__extrato {
     min-height: 0;
   }

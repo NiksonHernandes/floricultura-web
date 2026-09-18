@@ -123,8 +123,9 @@ export class FiltrosMovimentacoes {
    * O guard de comparação **evita um `setValue` redundante** quando o recorte que volta do pai já é
    * o que o form tem (o caso do `limpar()`, que emite `{}` e recebe `{}` de volta). Ele **não**
    * "impede um laço" — e dizer que impedia era a frase errada desta doc (P3-A, corrigida na T-M7-08).
-   * **Medido:** removê-lo deixa os testes das três telas que montam este painel em **88 SUCCESS**,
-   * porque não há laço possível: `montar()` lê o `FormGroup`, que **não é signal** e portanto não
+   * **Medido:** removê-lo deixa os testes das **duas** telas que montam este painel (Movimentações e
+   * Relatórios) em **88 SUCCESS** no recorte que rodei — e o reviewer chegou à **mesma conclusão** por
+   * outro recorte (**90**). Não há laço possível: `montar()` lê o `FormGroup`, que **não é signal** e não
    * entra nas dependências do efeito, e o pai fecha o painel na linha seguinte ao `set`. O desenho
    * ecoa o `filtros-produtos.ts:213` (§3.11-f); o que muda aqui é só a promessa que a doc faz.
    * **Nenhum caso cobre a remoção do guard** — quem mexer nele não será avisado por teste nenhum.
