@@ -120,9 +120,14 @@ export class FiltrosMovimentacoes {
    * construtor ele nunca funcionaria. O sintoma era mudo e caro: reabrir mostrava o form em branco e
    * o "Aplicar" seguinte **apagava o recorte em silêncio**, numa tela de auditoria (P1-1 da review).
    *
-   * O guard de comparação é o que impede o laço: `limpar()` emite `{}`, o pai devolve `{}` pelo
-   * `valor`, e sem ele o efeito reescreveria o form a cada volta. Mesmo desenho do
-   * `filtros-produtos.ts:213`, que é o padrão que o §3.11-f mandava reusar.
+   * O guard de comparação **evita um `setValue` redundante** quando o recorte que volta do pai já é
+   * o que o form tem (o caso do `limpar()`, que emite `{}` e recebe `{}` de volta). Ele **não**
+   * "impede um laço" — e dizer que impedia era a frase errada desta doc (P3-A, corrigida na T-M7-08).
+   * **Medido:** removê-lo deixa os testes das três telas que montam este painel em **88 SUCCESS**,
+   * porque não há laço possível: `montar()` lê o `FormGroup`, que **não é signal** e portanto não
+   * entra nas dependências do efeito, e o pai fecha o painel na linha seguinte ao `set`. O desenho
+   * ecoa o `filtros-produtos.ts:213` (§3.11-f); o que muda aqui é só a promessa que a doc faz.
+   * **Nenhum caso cobre a remoção do guard** — quem mexer nele não será avisado por teste nenhum.
    */
   private readonly reidratacao = effect(() => {
     const externo = this.valor();
