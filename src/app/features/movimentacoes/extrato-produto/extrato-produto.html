@@ -1,0 +1,25 @@
+<!--
+  `<select>` NATIVO, mínimo de propósito (AD-SQ-69): sem `appearance:none`, o chevron e o picker do
+  sistema vêm de graça — e no celular o picker nativo é melhor que qualquer overlay que a gente
+  escrevesse. Enquanto ninguém focar o campo, a lista tem só o produto vigente (ou nada): ele não
+  promete opções que não buscou.
+-->
+<label class="extrato__rotulo" for="extrato-produto">Produto</label>
+<!--
+  ⚠️ A seleção é marcada na `<option>` (`[selected]`), NUNCA com `[value]` no `<select>`: o binding do
+  pai é aplicado ANTES de o `@for` criar as opções, então `select.value = '5'` cairia no vazio e o
+  campo ficaria em branco — e, como o valor ligado não muda depois, nenhuma detecção posterior o
+  corrigiria. Medido: o caso do CA-43 reprovou com `Expected '' to be '5'` antes desta forma.
+-->
+<select
+  #seletor
+  id="extrato-produto"
+  class="extrato__campo"
+  (focus)="carregarCatalogo()"
+  (change)="escolher(seletor.value)"
+>
+  <option value="" [selected]="!valor()">Escolha um produto…</option>
+  @for (p of opcoes(); track p.id) {
+    <option [value]="p.id" [selected]="p.id === valor()?.id">{{ p.nome }}</option>
+  }
+</select>

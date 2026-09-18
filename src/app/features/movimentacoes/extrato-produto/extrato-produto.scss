@@ -1,0 +1,33 @@
+@use '../../../shared/styles/atelie-tokens' as atelie;
+
+:host {
+  @include atelie.base; // --esp-*, --txt-*, --toque, --raio, --orvalho, --caule, --tinta
+  display: grid;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.extrato__rotulo {
+  font: 600 0.66rem/1 var(--display);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--caule);
+}
+
+/* `font-size: 1rem` (16px) não é estética: abaixo disso o Safari iOS dá zoom automático no foco, e
+   ~90% do uso é celular. Alvo de toque >= 44px pelo token (CA-51/FC-02). */
+.extrato__campo {
+  min-height: var(--toque, 44px);
+  padding: 0 0.6rem;
+  border: 1px solid var(--orvalho);
+  border-radius: var(--raio, 12px);
+  background: #fff;
+  font-family: inherit;
+  font-size: 1rem;
+  color: var(--tinta);
+
+  &:focus-visible {
+    outline: 2px solid var(--caule);
+    outline-offset: 2px;
+  }
+}
