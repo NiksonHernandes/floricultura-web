@@ -282,7 +282,13 @@ export class Relatorios implements OnInit {
     const link = document.createElement('a');
     link.href = url;
     link.download = `movimentacoes-${de}_a_${ate}.${formato.toLowerCase()}`;
+    // O `<a>` entra no DOM antes do clique e sai depois (P2-2 da review da T-M7-09): Chrome, Edge e
+    // Firefox disparam o download de um link desanexado, mas o **Safari não** — e `download` sobre
+    // `blob:` é o caso mais frágil dele. Como ~90 % do uso é celular, essa é a plataforma onde a
+    // falha apareceria; e ela apareceria **sem erro e sem banner**, que é o pior modo de falhar.
+    document.body.appendChild(link);
     link.click();
+    link.remove();
     URL.revokeObjectURL(url); // sem isto o blob fica retido na aba até recarregar
   }
 }
