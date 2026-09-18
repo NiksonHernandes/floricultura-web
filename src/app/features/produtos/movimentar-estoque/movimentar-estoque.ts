@@ -84,6 +84,73 @@ export function normalizar2(valor: number): number {
 }
 
 /**
+ * Decompõe um decimal na forma `{ inteiro, casas }` — `1.5` vira `{15, 1}` — **sem passar pelo
+ * binário**. `null` quando o número não está em notação decimal simples ou quando o inteiro sairia
+ * fora do alcance seguro: nesses casos quem responde é o caminho antigo, e o back continua sendo a
+ * autoridade (§3.2-d).
+ */
+function decompor(valor: number): { inteiro: number; casas: number } | null {
+  const texto = String(valor);
+  if (!/^\d+(\.\d+)?$/.test(texto)) return null;
+  const casas = texto.includes('.') ? texto.split('.')[1].length : 0;
+  const inteiro = Number(`${texto}e${casas}`);
+  return Number.isSafeInteger(inteiro) ? { inteiro, casas } : null;
+}
+
+/**
+ * Arredonda `inteiro ÷ 10^casas` para 2 decimais com **HALF_UP**, em aritmética inteira.
+ *
+ * O empate é decidido por `resto × 2 >= divisor`, que é exato — enquanto `Math.round(x)` sobre um
+ * `x` que já nasceu do binário decide sobre um número que **não é** o que o operador digitou.
+ */
+function arredondar2(inteiro: number, casas: number): number | null {
+  if (casas <= 2) return inteiro / 10 ** (casas - 2) / 100;
+  const divisor = 10 ** (casas - 2);
+  if (!Number.isSafeInteger(divisor)) return null;
+  const quociente = Math.floor(inteiro / divisor);
+  const resto = inteiro - quociente * divisor;
+  return (resto * 2 >= divisor ? quociente + 1 : quociente) / 100;
+}
+
+/**
+ * `a × b` arredondado a 2 casas com HALF_UP, **na representação decimal** (BUG-002).
+ *
+ * ⚠️ **Normalizar DEPOIS da multiplicação não basta — foi o defeito de dinheiro do M7.** Com
+ * `quantidade 1,5 × unitário 0,15`, o produto binário é `0.22499999999999998` (medido em `node`): o
+ * empate **já se perdeu** antes de qualquer arredondamento, a tela mostrava **R$ 0,22** e o banco
+ * gravava **R$ 0,23** (`CalculoFinanceiroTest:130` crava `0.23` para este par) — numa linha
+ * **imutável**, que só se corrige com estorno.
+ *
+ * Aqui os dois fatores viram inteiros (`15` e `15`), o produto é exato (`225`, 3 casas) e o empate é
+ * decidido em inteiro: `R$ 0,23`, igual ao back. **Quantidade inteira nunca expôs o defeito** — é
+ * por isso que os casos de CA-53 com `8.165 × 2` ficavam verdes: o VALOR discriminava, o PAR não.
+ */
+export function multiplicar2(a: number, b: number): number {
+  const x = decompor(a);
+  const y = decompor(b);
+  if (!x || !y) return normalizar2(a * b);
+  const produto = x.inteiro * y.inteiro;
+  if (!Number.isSafeInteger(produto)) return normalizar2(a * b);
+  return arredondar2(produto, x.casas + y.casas) ?? normalizar2(a * b);
+}
+
+/**
+ * `bruto × percentual ÷ 100` arredondado a 2 casas com HALF_UP, na representação decimal.
+ *
+ * Mesma porta do `multiplicar2`, e ela precisa de prova PRÓPRIA (AD-SQ-167: a discriminação é por
+ * **caminho** de arredondamento). Medido: bruto `R$ 0,70` a `45 %` dá `0.31499999999999995` em
+ * binário ⇒ a tela descontava **0,31** enquanto o banco desconta **0,32**.
+ */
+export function percentual2(bruto: number, percentual: number): number {
+  const x = decompor(bruto);
+  const y = decompor(percentual);
+  if (!x || !y) return normalizar2((bruto * percentual) / 100);
+  const produto = x.inteiro * y.inteiro;
+  if (!Number.isSafeInteger(produto)) return normalizar2((bruto * percentual) / 100);
+  return arredondar2(produto, x.casas + y.casas + 2) ?? normalizar2((bruto * percentual) / 100);
+}
+
+/**
  * Diálogo de movimentação de estoque — "o livro-caixa da prateleira"
  * (SPEC-M2 §7 T-M2-9, CA-20 parte movimentação / CA-11, AD-SQ-30).
  *
@@ -214,7 +281,9 @@ export class MovimentarEstoque implements OnInit {
     const qtd = this.quantidadeAtual();
     if (vu == null || !Number.isFinite(vu) || vu < 0) return null;
     if (qtd == null || !Number.isFinite(qtd) || qtd < 0) return null;
-    return normalizar2(qtd * normalizar2(vu));
+    // A conta acontece na representação DECIMAL (BUG-002): `normalizar2(qtd * vu)` normalizaria um
+    // produto que já perdeu o empate no binário — e o centavo perdido fica numa linha imutável.
+    return multiplicar2(qtd, normalizar2(vu));
   });
 
   /** Desconto efetivo em R$ (§3.2-b): PERCENTUAL → `bruto × d ÷ 100` arredondado; VALOR → `d`. */
@@ -224,7 +293,7 @@ export class MovimentarEstoque implements OnInit {
     const dv = this.descontoValorAtual();
     if (bruto == null || tipo == null || dv == null || !Number.isFinite(dv) || dv < 0) return null;
     const d = normalizar2(dv);
-    return tipo === 'PERCENTUAL' ? normalizar2((bruto * d) / 100) : d;
+    return tipo === 'PERCENTUAL' ? percentual2(bruto, d) : d;
   });
 
   /**
