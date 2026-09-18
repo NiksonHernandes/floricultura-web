@@ -84,6 +84,26 @@ export function normalizar2(valor: number): number {
 }
 
 /**
+ * Passo 0 da **quantidade**: 3 casas com HALF_UP — o espelho de
+ * `CalculoFinanceiro.normalizarQuantidade` (back `5cdcae5`, decisão do dono de 2026-09-18).
+ *
+ * ⚠️ **A quantidade tem escala PRÓPRIA** (`NUMERIC(14,3)`), diferente do dinheiro (2). Multiplicar a
+ * quantidade **crua** faz a linha não fechar consigo mesma: `1.0005 × 1000,00` grava
+ * `quantidade = 1.001` com total `R$ 1.001,00`, enquanto a tela mostrava `R$ 1.000,50` — **R$ 0,50 de
+ * divergência numa linha imutável** (BUG-008). O `step="0.001"` do campo **não impede** digitar 4
+ * casas, então isso é alcançável pela tela.
+ *
+ * O empate sobe pela mesma mecânica da `normalizar2`: deslocamento de vírgula na representação
+ * decimal, nunca `× 1000` em binário.
+ */
+export function normalizar3(valor: number): number {
+  if (!Number.isFinite(valor)) return 0;
+  const texto = String(valor);
+  if (!/^-?\d+(\.\d+)?$/.test(texto)) return Math.round(valor * 1000) / 1000;
+  return Math.round(Number(`${texto}e3`)) / 1000;
+}
+
+/**
  * Decompõe um decimal na forma `{ inteiro, casas }` — `1.5` vira `{15, 1}` — **sem passar pelo
  * binário**. `null` quando o número não está em notação decimal simples ou quando o inteiro sairia
  * fora do alcance seguro: nesses casos quem responde é o caminho antigo, e o back continua sendo a
@@ -281,9 +301,11 @@ export class MovimentarEstoque implements OnInit {
     const qtd = this.quantidadeAtual();
     if (vu == null || !Number.isFinite(vu) || vu < 0) return null;
     if (qtd == null || !Number.isFinite(qtd) || qtd < 0) return null;
-    // A conta acontece na representação DECIMAL (BUG-002): `normalizar2(qtd * vu)` normalizaria um
-    // produto que já perdeu o empate no binário — e o centavo perdido fica numa linha imutável.
-    return multiplicar2(qtd, normalizar2(vu));
+    // Os TRÊS campos passam pelo passo 0 ANTES de qualquer multiplicação — quantidade em 3 casas,
+    // dinheiro em 2 —, e só então a conta acontece na representação DECIMAL. Sem o passo 0 da
+    // quantidade, a tela multiplica um número que o banco não guarda (BUG-008); sem a conta decimal,
+    // o produto já chega com o empate perdido (BUG-002). São dois defeitos distintos, na mesma linha.
+    return multiplicar2(normalizar3(qtd), normalizar2(vu));
   });
 
   /** Desconto efetivo em R$ (§3.2-b): PERCENTUAL → `bruto × d ÷ 100` arredondado; VALOR → `d`. */
